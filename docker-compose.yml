@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Frontend - React with Vite
   frontend:
@@ -32,7 +30,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://keptcarbon:keptcarbon123@db:5432/keptcarbon
       - POSTGRES_HOST=db
-      - POSTGRES_PORT=5432
+      - POSTGRES_PORT=5433
       - POSTGRES_USER=keptcarbon
       - POSTGRES_PASSWORD=keptcarbon123
       - POSTGRES_DB=keptcarbon

@@ -28,6 +28,8 @@ class PlotResponse(PlotBase):
     status: str
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    geometry: Optional[dict] = None
+    carbon_tons: Optional[float] = 0.0
 
     class Config:
         from_attributes = True

@@ -1,5 +1,6 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { getPlots } from '../services/api'
 
 // Icons
 const TrendingUpIcon = () => (
@@ -44,39 +45,40 @@ const ArrowRightIcon = () => (
 )
 
 function DashboardPage() {
-    const stats = [
+    const [recentPlots, setRecentPlots] = useState([]);
+    const [stats, setStats] = useState([
         {
             title: 'จำนวนแปลง',
-            value: '25',
-            change: '+3',
-            changeType: 'positive',
+            value: '0',
+            change: '+0',
+            changeType: 'neutral',
             icon: '🗺️',
             iconBg: 'bg-[#3cc2cf]/15',
-            period: 'เดือนนี้'
+            period: 'ทั้งหมด'
         },
         {
             title: 'พื้นที่รวม',
-            value: '1,250',
+            value: '0',
             unit: 'ไร่',
-            change: '+120',
-            changeType: 'positive',
+            change: '+0',
+            changeType: 'neutral',
             icon: '📐',
             iconBg: 'bg-[#7c5cfc]/15',
-            period: 'เดือนนี้'
+            period: 'ทั้งหมด'
         },
         {
             title: 'คาร์บอนรวม',
-            value: '2,580',
+            value: '0',
             unit: 'ตัน',
-            change: '+15%',
-            changeType: 'positive',
+            change: '-',
+            changeType: 'neutral',
             icon: '🌱',
             iconBg: 'bg-green-100',
-            period: 'จากปีก่อน'
+            period: 'ประมาณการ'
         },
         {
             title: 'อายุเฉลี่ย',
-            value: '12',
+            value: '0',
             unit: 'ปี',
             change: '-',
             changeType: 'neutral',
@@ -84,15 +86,88 @@ function DashboardPage() {
             iconBg: 'bg-amber-100',
             period: 'ต้นยาง'
         }
-    ]
+    ]);
 
-    const recentPlots = [
-        { id: 1, name: 'แปลงที่ 1 - บ้านนา', area: '50 ไร่', age: 15, carbon: 258, status: 'completed' },
-        { id: 2, name: 'แปลงที่ 2 - ท่าศาลา', area: '35 ไร่', age: 8, carbon: 124, status: 'completed' },
-        { id: 3, name: 'แปลงที่ 3 - หัวไทร', area: '42 ไร่', age: 12, carbon: 189, status: 'pending' },
-        { id: 4, name: 'แปลงที่ 4 - ปากพนัง', area: '28 ไร่', age: 6, carbon: 72, status: 'completed' },
-        { id: 5, name: 'แปลงที่ 5 - ร่อนพิบูลย์', area: '60 ไร่', age: 18, carbon: 342, status: 'completed' },
-    ]
+    useEffect(() => {
+        const loadData = async () => {
+            try {
+                const plots = await getPlots();
+
+                // Debug logs
+                console.log("Plots data received:", plots);
+
+                // Process Data for Stats
+                const totalPlots = plots.length;
+                const totalArea = plots.reduce((sum, p) => sum + (parseFloat(p.area_rai) || 0), 0);
+                const avgAge = plots.length > 0 ? (plots.reduce((sum, p) => sum + (parseFloat(p.tree_age) || 0), 0) / plots.length).toFixed(1) : 0;
+
+                // Use carbon_tons from backend API with safer parsing
+                const totalCarbon = plots.reduce((sum, p) => {
+                    const carbon = parseFloat(p.carbon_tons);
+                    // console.log(`Plot ${p.id} carbon:`, carbon); 
+                    return sum + (isNaN(carbon) ? 0 : carbon);
+                }, 0);
+
+                setStats([
+                    {
+                        title: 'จำนวนแปลง',
+                        value: totalPlots.toString(),
+                        change: `+${totalPlots}`,
+                        changeType: 'positive',
+                        icon: '🗺️',
+                        iconBg: 'bg-[#3cc2cf]/15',
+                        period: 'ทั้งหมด'
+                    },
+                    {
+                        title: 'พื้นที่รวม',
+                        value: totalArea.toFixed(2),
+                        unit: 'ไร่',
+                        change: `+${totalArea.toFixed(2)}`,
+                        changeType: 'positive',
+                        icon: '📐',
+                        iconBg: 'bg-[#7c5cfc]/15',
+                        period: 'ทั้งหมด'
+                    },
+                    {
+                        title: 'คาร์บอนรวม',
+                        value: totalCarbon.toFixed(2),
+                        unit: 'ตัน',
+                        change: '-',
+                        changeType: 'neutral',
+                        icon: '🌱',
+                        iconBg: 'bg-green-100',
+                        period: 'ข้อมูลล่าสุด'
+                    },
+                    {
+                        title: 'อายุเฉลี่ย',
+                        value: avgAge.toString(),
+                        unit: 'ปี',
+                        change: '-',
+                        changeType: 'neutral',
+                        icon: '🌳',
+                        iconBg: 'bg-amber-100',
+                        period: 'ต้นยาง'
+                    }
+                ]);
+
+                // Set Recent Plots (Top 5)
+                const mappedPlots = plots.slice(0, 5).map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    area: `${(p.area_rai || 0).toFixed(2)} ไร่`,
+                    age: p.tree_age || 0,
+                    carbon: (p.carbon_tons || 0).toFixed(2),
+                    status: p.status || 'completed'
+                }));
+                setRecentPlots(mappedPlots);
+
+            } catch (error) {
+                console.error("Failed to load dashboard data", error);
+            }
+        };
+
+        loadData();
+    }, []);
 
     const carbonByAge = [
         { age: '1-5 ปี', carbon: 320, percentage: 12 },
@@ -139,11 +214,10 @@ function DashboardPage() {
                     <div className="flex items-center justify-between mb-6">
                         <div>
                             <h2 className="text-lg font-semibold text-gray-800">คาร์บอนตามอายุต้นยาง</h2>
-                            <p className="text-sm text-gray-500">การกระจายตัวของคาร์บอนตามช่วงอายุ</p>
+                            <p className="text-sm text-gray-500">การกระจายตัวของคาร์บอนตามช่วงอายุ (จำลองข้อมูล)</p>
                         </div>
                         <select className="px-4 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 bg-white">
                             <option>ปี 2024</option>
-                            <option>ปี 2023</option>
                         </select>
                     </div>
 
@@ -169,7 +243,7 @@ function DashboardPage() {
                     <div className="mt-6 pt-6 border-t border-gray-100 flex justify-between items-center">
                         <div>
                             <span className="text-gray-500 text-sm">คาร์บอนรวมทั้งหมด</span>
-                            <div className="text-2xl font-bold text-gray-800">2,580 <span className="text-sm font-normal text-gray-500">ตัน CO₂</span></div>
+                            <div className="text-2xl font-bold text-gray-800">{stats[2].value} <span className="text-sm font-normal text-gray-500">ตัน CO₂</span></div>
                         </div>
                         <Link
                             to="/dashboard/history"
@@ -193,27 +267,20 @@ function DashboardPage() {
                         </Link>
                     </div>
 
-                    {/* Map Placeholder */}
                     <div className="h-[200px] bg-gradient-to-br from-green-100 via-green-200 to-green-300 rounded-xl relative overflow-hidden mb-4">
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(60,194,207,0.3)_0%,transparent_50%)]"></div>
                         <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1.5 rounded-lg text-sm font-medium text-gray-700">
-                            25 แปลง
+                            {stats[0].value} แปลง
+                        </div>
+                        <div className="flex items-center justify-center h-full text-green-800/50 font-semibold text-lg">
+                            KeptCarbon Map
                         </div>
                     </div>
 
-                    {/* Legend */}
                     <div className="space-y-2">
                         <div className="flex items-center gap-2 text-sm">
                             <div className="w-3 h-3 rounded bg-green-300"></div>
-                            <span className="text-gray-600">อายุ 1-10 ปี</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                            <div className="w-3 h-3 rounded bg-green-500"></div>
-                            <span className="text-gray-600">อายุ 11-20 ปี</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                            <div className="w-3 h-3 rounded bg-green-700"></div>
-                            <span className="text-gray-600">อายุ 20+ ปี</span>
+                            <span className="text-gray-600">แสดงข้อมูลพื้นที่จริง</span>
                         </div>
                     </div>
 
@@ -221,7 +288,7 @@ function DashboardPage() {
                         to="/dashboard/map"
                         className="mt-4 w-full py-3 rounded-xl text-center font-semibold text-white gradient-primary block shadow-lg shadow-[#3cc2cf]/30"
                     >
-                        เพิ่มแปลงใหม่
+                        จัดการแปลง
                     </Link>
                 </div>
             </div>
@@ -233,12 +300,6 @@ function DashboardPage() {
                         <h2 className="text-lg font-semibold text-gray-800">แปลงล่าสุด</h2>
                         <p className="text-sm text-gray-500">รายการแปลงยางที่เพิ่มล่าสุด</p>
                     </div>
-                    <Link
-                        to="/dashboard/history"
-                        className="text-[#3cc2cf] font-medium text-sm hover:underline"
-                    >
-                        ดูทั้งหมด
-                    </Link>
                 </div>
 
                 <div className="overflow-x-auto">
@@ -253,31 +314,40 @@ function DashboardPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {recentPlots.map((plot) => (
-                                <tr key={plot.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                                    <td className="py-4 px-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-[#3cc2cf]/10 rounded-xl flex items-center justify-center text-[#3cc2cf]">
-                                                <MapPinIcon />
+                            {recentPlots.length > 0 ? (
+                                recentPlots.map((plot) => (
+                                    <tr key={plot.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                                        <td className="py-4 px-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 bg-[#3cc2cf]/10 rounded-xl flex items-center justify-center text-[#3cc2cf]">
+                                                    <MapPinIcon />
+                                                </div>
+                                                <span className="font-medium text-gray-800">{plot.name}</span>
                                             </div>
-                                            <span className="font-medium text-gray-800">{plot.name}</span>
-                                        </div>
-                                    </td>
-                                    <td className="py-4 px-4 text-gray-600">{plot.area}</td>
-                                    <td className="py-4 px-4 text-gray-600">{plot.age}</td>
-                                    <td className="py-4 px-4">
-                                        <span className="font-semibold text-gray-800">{plot.carbon}</span>
-                                    </td>
-                                    <td className="py-4 px-4">
-                                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${plot.status === 'completed'
+                                        </td>
+                                        <td className="py-4 px-4 text-gray-600">{plot.area}</td>
+                                        <td className="py-4 px-4 text-gray-600">{plot.age}</td>
+                                        {/* Show Carbon */}
+                                        <td className="py-4 px-4">
+                                            <span className="font-semibold text-gray-800">{plot.carbon}</span>
+                                        </td>
+                                        <td className="py-4 px-4">
+                                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${plot.status === 'completed' || plot.status === 'complete'
                                                 ? 'bg-green-100 text-green-600'
                                                 : 'bg-amber-100 text-amber-600'
-                                            }`}>
-                                            {plot.status === 'completed' ? 'เสร็จสิ้น' : 'รอดำเนินการ'}
-                                        </span>
+                                                }`}>
+                                                {plot.status === 'completed' || plot.status === 'complete' ? 'เสร็จสิ้น' : 'รอดำเนินการ'}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan="5" className="py-8 text-center text-gray-400">
+                                        ยังไม่มีข้อมูลแปลง
                                     </td>
                                 </tr>
-                            ))}
+                            )}
                         </tbody>
                     </table>
                 </div>

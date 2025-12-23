@@ -20,7 +20,7 @@ def calculate_rubber_carbon(age: int, area_rai: float) -> dict:
     Carbon = AGB * 0.47 (carbon fraction)
     """
     if age <= 0:
-        return {"biomass": 0, "carbon": 0}
+        return {"biomass_tons": 0, "carbon_tons": 0, "co2_equivalent_tons": 0}
     
     # Estimate DBH from age (simplified model for rubber trees)
     if age <= 5:

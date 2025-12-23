@@ -6,6 +6,7 @@ const PlotListItem = ({
     name,
     area,
     year,
+    carbon, // Added prop
     status = 'complete', // complete, missing
     onClick,
     className = ''
@@ -31,10 +32,13 @@ const PlotListItem = ({
                     {status === 'complete' ? 'ครบถ้วน' : 'ข้อมูลไม่ครบ'}
                 </Badge>
             </div>
-            <div className="flex gap-4 text-sm text-gray-500 pl-10">
-                <span>พื้นที่: {area}</span>
-                <span>ปลูก: {year}</span>
-            </div>
+            <span>พื้นที่: {area}</span>
+            <span>ปลูก: {year}</span>
+            {carbon && (
+                <span className="text-[#3cc2cf] font-medium flex items-center gap-1">
+                    🌱 {carbon} ตัน
+                </span>
+            )}
         </div>
     )
 }
