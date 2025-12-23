@@ -57,7 +57,8 @@ const PlotSidebar = ({
                             name={plot.name}
                             area={plot.area}
                             year={plot.year}
-                            carbon={plot.carbon} // Pass carbon here
+                            age={plot.age} // Pass age
+                            carbon={plot.carbon}
                             status={plot.status}
                             onClick={() => onPlotSelect && onPlotSelect(plot)}
                         />

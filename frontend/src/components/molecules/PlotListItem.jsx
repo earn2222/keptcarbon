@@ -6,8 +6,9 @@ const PlotListItem = ({
     name,
     area,
     year,
-    carbon, // Added prop
-    status = 'complete', // complete, missing
+    age,
+    carbon,
+    status = 'complete',
     onClick,
     className = ''
 }) => {
@@ -17,28 +18,45 @@ const PlotListItem = ({
             className={`
         p-4 border border-gray-100 rounded-xl 
         hover:border-[#3cc2cf] hover:bg-[#3cc2cf]/5 
-        transition-all cursor-pointer
+        transition-all cursor-pointer bg-white
         ${className}
       `}
         >
-            <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-[#3cc2cf]/10 rounded-lg flex items-center justify-center text-[#3cc2cf]">
-                        <MapPinIcon size={16} />
+            {/* Header: Icon + Name + Status */}
+            <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-[#3cc2cf]/10 rounded-xl flex items-center justify-center text-[#3cc2cf]">
+                        <MapPinIcon size={18} />
                     </div>
-                    <h3 className="font-medium text-gray-800">{name}</h3>
+                    <div>
+                        <h3 className="font-semibold text-gray-800 text-sm">{name}</h3>
+                        <div className="flex gap-2 text-xs text-gray-500 mt-0.5">
+                            <span>ปีปลูก: {year}</span>
+                            {age && <span>• อายุ {age} ปี</span>}
+                        </div>
+                    </div>
                 </div>
                 <Badge variant={status === 'complete' ? 'success' : 'warning'} size="sm">
-                    {status === 'complete' ? 'ครบถ้วน' : 'ข้อมูลไม่ครบ'}
+                    {status === 'complete' ? 'ครบถ้วน' : 'ไม่ครบ'}
                 </Badge>
             </div>
-            <span>พื้นที่: {area}</span>
-            <span>ปลูก: {year}</span>
-            {carbon && (
-                <span className="text-[#3cc2cf] font-medium flex items-center gap-1">
-                    🌱 {carbon} ตัน
-                </span>
-            )}
+
+            {/* Info Metrics */}
+            <div className="flex items-center justify-between pt-2 border-t border-gray-50 text-xs">
+                <div className="text-gray-500">
+                    พื้นที่: <span className="text-gray-700 font-medium">{area}</span>
+                </div>
+
+                {carbon ? (
+                    <div className="flex items-center gap-1.5 px-2 py-1 bg-green-50 rounded-lg">
+                        <span className="text-lg">🌱</span>
+                        <span className="text-green-700 font-bold">{carbon}</span>
+                        <span className="text-green-600">ตัน</span>
+                    </div>
+                ) : (
+                    <span className="text-gray-400">- รอคำนวณ -</span>
+                )}
+            </div>
         </div>
     )
 }

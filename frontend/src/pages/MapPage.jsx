@@ -112,10 +112,12 @@ function MapPage() {
         try {
             const data = await getPlots();
             const mappedPlots = data.map(p => ({
+                item: p.name, // Keep existing fields
                 id: p.id,
                 name: p.name,
                 area: p.area_rai ? `${p.area_rai.toFixed(2)} ไร่` : '0 ไร่',
                 year: p.planting_year,
+                age: p.tree_age, // Add Age field
                 status: 'complete',
                 geometry: p.geometry,
                 carbon: p.carbon_tons ? p.carbon_tons.toFixed(2) : null, // Mapped here
