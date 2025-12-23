@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # Frontend - React with Vite
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: keptcarbon-frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    networks:
+      - keptcarbon-network
+
+  # Backend - FastAPI
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: keptcarbon-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - DATABASE_URL=postgresql://keptcarbon:keptcarbon123@db:5432/keptcarbon
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=keptcarbon
+      - POSTGRES_PASSWORD=keptcarbon123
+      - POSTGRES_DB=keptcarbon
+      - SECRET_KEY=your-secret-key-change-in-production
+      - DEBUG=true
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - keptcarbon-network
+
+  # Database - PostGIS (PostgreSQL with GIS extensions)
+  db:
+    image: postgis/postgis:15-3.3-alpine
+    container_name: keptcarbon-db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=keptcarbon
+      - POSTGRES_PASSWORD=keptcarbon123
+      - POSTGRES_DB=keptcarbon
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keptcarbon -d keptcarbon"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - keptcarbon-network
+
+networks:
+  keptcarbon-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
