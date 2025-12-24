@@ -18,12 +18,20 @@ function App() {
             <Route exact path="/" component={LandingPage} />
             <Route path="/login" component={LoginPage} />
 
-            {/* Protected Dashboard Routes */}
+            {/* Direct access to Map (Skip login for testing) */}
+            <Route path="/map">
+                <DashboardLayout>
+                    <MapPage />
+                </DashboardLayout>
+            </Route>
+
+            {/* Dashboard Routes */}
             <Route path="/dashboard">
                 <DashboardLayout>
                     <Switch>
                         <Route exact path="/dashboard" component={DashboardPage} />
-                        <Route path="/dashboard/map" component={MapPage} />
+                        {/* Redirect old path to new public path */}
+                        <Redirect from="/dashboard/map" to="/map" />
                         <Route path="/dashboard/history" component={HistoryPage} />
                     </Switch>
                 </DashboardLayout>

@@ -10,37 +10,28 @@ router = APIRouter()
 def calculate_rubber_carbon(age: int, area_rai: float) -> dict:
     """
     Calculate carbon sequestration for rubber trees (Hevea brasiliensis)
+    Using RRIM 600 Precise Formula (Hytönen et al., 2018)
     
     Formula for Above-ground Biomass (AGB):
-    AGB = exp(-2.134 + 2.530 * ln(DBH))
+    AGB (kg/tree) = 0.118 * DBH^2.53
     
-    For rubber trees, DBH can be estimated from age using:
-    DBH (cm) = 2.5 * age (for young trees) to 4 * age (for mature trees)
-    
-    Carbon = AGB * 0.47 (carbon fraction)
+    Assuming DBH growth = 2cm / year for RRIM 600 in Thailand
     """
-    if age <= 0:
+    if age <= 0 or area_rai <= 0:
         return {"biomass_tons": 0, "carbon_tons": 0, "co2_equivalent_tons": 0}
     
-    # Estimate DBH from age (simplified model for rubber trees)
-    if age <= 5:
-        dbh = 2.0 * age
-    elif age <= 10:
-        dbh = 10 + 1.5 * (age - 5)
-    elif age <= 20:
-        dbh = 17.5 + 1.0 * (age - 10)
-    else:
-        dbh = 27.5 + 0.5 * (age - 20)
+    # Estimate DBH from age (2cm per year for RRIM 600)
+    dbh = 2.0 * age
     
     # Calculate AGB per tree (kg)
-    import math
-    agb_per_tree = math.exp(-2.134 + 2.530 * math.log(dbh))
+    # AGB = 0.118 * DBH^2.53
+    agb_per_tree_kg = 0.118 * (dbh ** 2.53)
     
     # Trees per rai (approximately 70 trees per rai for rubber)
-    trees_per_rai = 70
+    trees_per_rai = 70.0
     
     # Total biomass in tons
-    total_biomass = (agb_per_tree * trees_per_rai * area_rai) / 1000
+    total_biomass = (agb_per_tree_kg * trees_per_rai * area_rai) / 1000.0
     
     # Carbon = Biomass * 0.47
     carbon = total_biomass * 0.47

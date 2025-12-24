@@ -21,3 +21,7 @@ class UserRegister(BaseModel):
     password: str
     name: str
     province: Optional[str] = None
+
+
+class GoogleLogin(BaseModel):
+    token: str

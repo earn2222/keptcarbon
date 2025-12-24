@@ -148,27 +148,21 @@ async def read_plots(
              except Exception:
                  pass
 
-        # Calculate Carbon (Using Backend Logic directly)
+        # Calculate Carbon (Using RRIM 600 Precise Formula - Hytönen et al., 2018)
+        # Formula: AGB (kg/tree) = 0.118 * DBH^2.53
+        # Assuming DBH growth = 2cm / year for RRIM 600
         carbon_tons = 0.0
-        # Use display_area_rai here instead of p.area_rai
+        agb_tons = 0.0
         if tree_age > 0 and display_area_rai and display_area_rai > 0:
-            # Estimate DBH
-            if tree_age <= 5:
-                dbh = 2.0 * tree_age
-            elif tree_age <= 10:
-                dbh = 10 + 1.5 * (tree_age - 5)
-            elif tree_age <= 20:
-                dbh = 17.5 + 1.0 * (tree_age - 10)
-            else:
-                dbh = 27.5 + 0.5 * (tree_age - 20)
-            
-            # AGB per tree
             try:
-                agb_per_tree = math.exp(-2.134 + 2.530 * math.log(dbh))
-                trees_per_rai = 70
-                total_biomass = (agb_per_tree * trees_per_rai * display_area_rai) / 1000
-                carbon_tons = total_biomass * 0.47
-            except:
+                dbh = 2.0 * tree_age # Conservative DBH estimate for Thailand
+                agb_per_tree_kg = 0.118 * (dbh ** 2.53)
+                trees_per_rai = 70.0
+                total_agb_kg = agb_per_tree_kg * trees_per_rai * display_area_rai
+                agb_tons = total_agb_kg / 1000.0
+                carbon_tons = agb_tons * 0.47 # Carbon conversion factor
+            except Exception as e:
+                print(f"Calculation error for plot {p.id}: {e}")
                 carbon_tons = 0.0
 
         p_dict = {
@@ -196,8 +190,29 @@ async def get_plot(
     db: Session = Depends(get_db)
 ):
     """Get a specific plot by ID"""
-    # TODO: Implement
-    raise HTTPException(status_code=404, detail="Plot not found")
+    db_plot = db.query(Plot).filter(Plot.id == plot_id).first()
+    if not db_plot:
+        raise HTTPException(status_code=404, detail="Plot not found")
+    
+    geom = None
+    if db_plot.geometry is not None:
+        try:
+            geom = mapping(to_shape(db_plot.geometry))
+        except Exception:
+            pass
+
+    return {
+        "id": db_plot.id,
+        "name": db_plot.name,
+        "planting_year": db_plot.planting_year,
+        "notes": db_plot.notes,
+        "area_sqm": db_plot.area_sqm,
+        "area_rai": db_plot.area_rai,
+        "status": db_plot.status,
+        "created_at": db_plot.created_at,
+        "updated_at": db_plot.updated_at,
+        "geometry": geom
+    }
 
 
 @router.put("/{plot_id}", response_model=PlotResponse)
@@ -207,8 +222,39 @@ async def update_plot(
     db: Session = Depends(get_db)
 ):
     """Update a plot"""
-    # TODO: Implement
-    raise HTTPException(status_code=404, detail="Plot not found")
+    db_plot = db.query(Plot).filter(Plot.id == plot_id).first()
+    if not db_plot:
+        raise HTTPException(status_code=404, detail="Plot not found")
+    
+    update_data = plot.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        if key == 'geometry' and value:
+            db_plot.geometry = from_shape(shape(value), srid=4326)
+        else:
+            setattr(db_plot, key, value)
+    
+    db.commit()
+    db.refresh(db_plot)
+    
+    geom = None
+    if db_plot.geometry is not None:
+        try:
+            geom = mapping(to_shape(db_plot.geometry))
+        except Exception:
+            pass
+
+    return {
+        "id": db_plot.id,
+        "name": db_plot.name,
+        "planting_year": db_plot.planting_year,
+        "notes": db_plot.notes,
+        "area_sqm": db_plot.area_sqm,
+        "area_rai": db_plot.area_rai,
+        "status": db_plot.status,
+        "created_at": db_plot.created_at,
+        "updated_at": db_plot.updated_at,
+        "geometry": geom
+    }
 
 
 @router.delete("/{plot_id}")
@@ -217,5 +263,10 @@ async def delete_plot(
     db: Session = Depends(get_db)
 ):
     """Delete a plot"""
-    # TODO: Implement
+    db_plot = db.query(Plot).filter(Plot.id == plot_id).first()
+    if not db_plot:
+        raise HTTPException(status_code=404, detail="Plot not found")
+    
+    db.delete(db_plot)
+    db.commit()
     return {"message": "Plot deleted successfully"}

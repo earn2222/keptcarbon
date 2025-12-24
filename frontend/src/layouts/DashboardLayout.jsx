@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
+import { BrandLogo } from '../components/atoms'
 
 // Icons
 const DashboardIcon = () => (
@@ -55,12 +56,6 @@ const MenuIcon = () => (
     </svg>
 )
 
-const LeafIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path>
-        <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path>
-    </svg>
-)
 
 const LogoutIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -70,6 +65,7 @@ const LogoutIcon = () => (
     </svg>
 )
 
+
 function DashboardLayout({ children }) {
     const [sidebarOpen, setSidebarOpen] = useState(true)
     const [mobileOpen, setMobileOpen] = useState(false)
@@ -77,7 +73,7 @@ function DashboardLayout({ children }) {
 
     const navigation = [
         { name: 'แดชบอร์ด', path: '/dashboard', icon: DashboardIcon },
-        { name: 'แผนที่แปลง', path: '/dashboard/map', icon: MapIcon },
+        { name: 'แผนที่แปลง', path: '/map', icon: MapIcon },
         { name: 'ประวัติ', path: '/dashboard/history', icon: HistoryIcon },
     ]
 
@@ -85,6 +81,7 @@ function DashboardLayout({ children }) {
         switch (location.pathname) {
             case '/dashboard':
                 return 'แดชบอร์ด'
+            case '/map':
             case '/dashboard/map':
                 return 'จัดการแปลงยาง'
             case '/dashboard/history':
@@ -108,10 +105,7 @@ function DashboardLayout({ children }) {
             <aside className={`fixed top-0 left-0 w-[280px] h-screen bg-gradient-to-b from-gray-800 to-gray-900 text-gray-300 p-6 z-50 overflow-y-auto transition-transform duration-300 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
                 {/* Logo */}
                 <div className="flex items-center gap-3 pb-6 mb-6 border-b border-white/10">
-                    <div className="w-10 h-10 gradient-primary rounded-xl flex items-center justify-center text-white">
-                        <LeafIcon />
-                    </div>
-                    <span className="text-xl font-bold text-white">KeptCarbon</span>
+                    <BrandLogo mode="white" size={24} />
                 </div>
 
                 {/* Navigation */}
@@ -125,11 +119,11 @@ function DashboardLayout({ children }) {
                                 exact={item.path === '/dashboard'}
                                 className={({ isActive }) =>
                                     `flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all ${location.pathname === item.path
-                                        ? 'bg-[#3cc2cf] text-white shadow-lg shadow-[#3cc2cf]/40'
+                                        ? 'bg-[#065f46] text-white shadow-lg shadow-[#065f46]/40'
                                         : 'text-gray-400 hover:bg-white/5 hover:text-white'
                                     }`
                                 }
-                                activeClassName="bg-[#3cc2cf] text-white shadow-lg shadow-[#3cc2cf]/40"
+                                activeClassName="bg-[#065f46] text-white shadow-lg shadow-[#065f46]/40"
                             >
                                 <item.icon />
                                 <span>{item.name}</span>
@@ -150,12 +144,12 @@ function DashboardLayout({ children }) {
                 </div>
 
                 {/* Promo Card */}
-                <div className="mt-auto bg-gradient-to-br from-[#3cc2cf]/20 to-[#7c5cfc]/20 rounded-2xl p-5 text-center">
+                <div className="mt-auto bg-gradient-to-br from-[#16a34a]/10 to-[#059669]/10 rounded-2xl p-5 text-center border border-white/5">
                     <div className="text-3xl mb-3">🌱</div>
                     <div className="font-semibold text-white text-sm mb-2">เริ่มประเมินคาร์บอน</div>
                     <div className="text-xs text-gray-400 mb-4 leading-relaxed">วาดแปลงยางพาราของคุณเพื่อคำนวณคาร์บอน</div>
                     <NavLink
-                        to="/dashboard/map"
+                        to="/map"
                         className="block w-full py-2.5 rounded-lg text-sm font-semibold gradient-primary text-white"
                     >
                         เริ่มต้นใช้งาน
@@ -167,7 +161,7 @@ function DashboardLayout({ children }) {
             <header className="fixed top-0 left-0 lg:left-[280px] right-0 h-[70px] bg-white/95 backdrop-blur-lg flex items-center justify-between px-6 z-30 shadow-sm">
                 <div className="flex items-center gap-4">
                     <button
-                        className="lg:hidden w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-[#3cc2cf]/10 hover:text-[#3cc2cf] transition-all"
+                        className="lg:hidden w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-[#059669]/10 hover:text-[#059669] transition-all"
                         onClick={() => setMobileOpen(true)}
                     >
                         <MenuIcon />
@@ -183,11 +177,11 @@ function DashboardLayout({ children }) {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <button className="relative w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-[#3cc2cf]/10 hover:text-[#3cc2cf] transition-all">
+                    <button className="relative w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-[#059669]/10 hover:text-[#059669] transition-all">
                         <BellIcon />
                         <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-semibold rounded-full flex items-center justify-center">3</span>
                     </button>
-                    <button className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-[#3cc2cf]/10 hover:text-[#3cc2cf] transition-all">
+                    <button className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-[#059669]/10 hover:text-[#059669] transition-all">
                         <SettingsIcon />
                     </button>
                     <div className="flex items-center gap-3 pl-3 border-l border-gray-200">
@@ -208,7 +202,7 @@ function DashboardLayout({ children }) {
                     <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
                         <span>หน้าหลัก</span>
                         <span>/</span>
-                        <span className="text-[#3cc2cf] font-medium">{getPageTitle()}</span>
+                        <span className="text-[#059669] font-medium">{getPageTitle()}</span>
                     </div>
                     <h1 className="text-2xl font-bold text-gray-800">{getPageTitle()}</h1>
                 </div>

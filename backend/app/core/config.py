@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     APP_NAME: str = "KeptCarbon API"
     
+    # Google Auth
+    GOOGLE_CLIENT_ID: str = ""
+    
     class Config:
         env_file = ".env"
         case_sensitive = True

@@ -1,12 +1,18 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+const getAuthHeaders = (contentType = 'application/json') => {
+    const token = localStorage.getItem('token');
+    const headers = {};
+    if (contentType) headers['Content-Type'] = contentType;
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return headers;
+};
+
 export const calculateCarbon = async (age, areaRai) => {
     try {
         const response = await fetch(`${API_URL}/api/carbon/calculate`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({
                 tree_age: parseInt(age),
                 area_rai: parseFloat(areaRai)
@@ -26,7 +32,9 @@ export const calculateCarbon = async (age, areaRai) => {
 
 export const getCarbonSummary = async () => {
     try {
-        const response = await fetch(`${API_URL}/api/carbon/summary`);
+        const response = await fetch(`${API_URL}/api/carbon/summary`, {
+            headers: getAuthHeaders()
+        });
         if (!response.ok) throw new Error('Failed to fetch summary');
         return await response.json();
     } catch (error) {
@@ -37,11 +45,9 @@ export const getCarbonSummary = async () => {
 
 export const createPlot = async (plotData) => {
     try {
-        const response = await fetch(`${API_URL}/api/plots/`, {
+        const response = await fetch(`${API_URL}/api/plots`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify(plotData),
         });
 
@@ -59,11 +65,27 @@ export const createPlot = async (plotData) => {
 
 export const getPlots = async () => {
     try {
-        const response = await fetch(`${API_URL}/api/plots/`);
+        const response = await fetch(`${API_URL}/api/plots`, {
+            headers: getAuthHeaders()
+        });
         if (!response.ok) throw new Error('Failed to fetch plots');
         return await response.json();
     } catch (error) {
         console.error('Fetch Plots Error:', error);
+        throw error;
+    }
+};
+
+export const deletePlot = async (id) => {
+    try {
+        const response = await fetch(`${API_URL}/api/plots/${id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+        if (!response.ok) throw new Error('Failed to delete plot');
+        return true;
+    } catch (error) {
+        console.error('Delete Plot Error:', error);
         throw error;
     }
 };

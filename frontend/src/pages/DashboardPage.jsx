@@ -53,7 +53,7 @@ function DashboardPage() {
             change: '+0',
             changeType: 'neutral',
             icon: '🗺️',
-            iconBg: 'bg-[#3cc2cf]/15',
+            iconBg: 'bg-[#16a34a]/10',
             period: 'ทั้งหมด'
         },
         {
@@ -63,7 +63,7 @@ function DashboardPage() {
             change: '+0',
             changeType: 'neutral',
             icon: '📐',
-            iconBg: 'bg-[#7c5cfc]/15',
+            iconBg: 'bg-[#059669]/10',
             period: 'ทั้งหมด'
         },
         {
@@ -115,7 +115,7 @@ function DashboardPage() {
                         change: `+${totalPlots}`,
                         changeType: 'positive',
                         icon: '🗺️',
-                        iconBg: 'bg-[#3cc2cf]/15',
+                        iconBg: 'bg-[#065f46]/10',
                         period: 'ทั้งหมด'
                     },
                     {
@@ -125,7 +125,7 @@ function DashboardPage() {
                         change: `+${totalArea.toFixed(2)}`,
                         changeType: 'positive',
                         icon: '📐',
-                        iconBg: 'bg-[#7c5cfc]/15',
+                        iconBg: 'bg-[#059669]/10',
                         period: 'ทั้งหมด'
                     },
                     {
@@ -247,7 +247,7 @@ function DashboardPage() {
                         </div>
                         <Link
                             to="/dashboard/history"
-                            className="flex items-center gap-2 text-[#3cc2cf] font-medium text-sm hover:gap-3 transition-all"
+                            className="flex items-center gap-2 text-[#059669] font-medium text-sm hover:gap-3 transition-all"
                         >
                             ดูรายละเอียด
                             <ArrowRightIcon />
@@ -261,7 +261,7 @@ function DashboardPage() {
                         <h2 className="text-lg font-semibold text-gray-800">แผนที่แปลง</h2>
                         <Link
                             to="/dashboard/map"
-                            className="text-[#3cc2cf] text-sm font-medium hover:underline"
+                            className="text-[#16a34a] text-sm font-medium hover:underline"
                         >
                             ดูเต็ม
                         </Link>
@@ -286,7 +286,7 @@ function DashboardPage() {
 
                     <Link
                         to="/dashboard/map"
-                        className="mt-4 w-full py-3 rounded-xl text-center font-semibold text-white gradient-primary block shadow-lg shadow-[#3cc2cf]/30"
+                        className="mt-4 w-full py-3 rounded-xl text-center font-semibold text-white gradient-primary block shadow-lg shadow-[#065f46]/20"
                     >
                         จัดการแปลง
                     </Link>
@@ -319,7 +319,7 @@ function DashboardPage() {
                                     <tr key={plot.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                                         <td className="py-4 px-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-[#3cc2cf]/10 rounded-xl flex items-center justify-center text-[#3cc2cf]">
+                                                <div className="w-10 h-10 bg-[#059669]/10 rounded-xl flex items-center justify-center text-[#059669]">
                                                     <MapPinIcon />
                                                 </div>
                                                 <span className="font-medium text-gray-800">{plot.name}</span>
