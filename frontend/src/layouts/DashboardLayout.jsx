@@ -66,7 +66,7 @@ const LogoutIcon = () => (
 )
 
 
-function DashboardLayout({ children }) {
+const DashboardLayout = ({ children }) => {
     const [mobileOpen, setMobileOpen] = useState(false)
     const location = useLocation()
 

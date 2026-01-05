@@ -118,7 +118,7 @@ const LocateControl = () => {
     }
 
     return (
-        <div className="leaflet-bottom leaflet-left pointer-events-auto mb-[20px] ml-[10px]">
+        <div className="leaflet-bottom leaflet-left pointer-events-auto mb-[30px] ml-[16px]">
             <div className="leaflet-control leaflet-bar">
                 <button
                     onClick={handleLocate}
@@ -532,9 +532,9 @@ function MapPage() {
     const allDisplayPlots = [...plots, ...tempPlots]
 
     return (
-        <div className="relative w-full h-[calc(100vh-130px)] lg:h-[calc(100vh-160px)] flex flex-col lg:flex-row gap-0 lg:gap-6 overflow-hidden lg:overflow-visible">
-            {/* Map Area */}
-            <div className="absolute top-0 left-0 right-0 h-[45vh] lg:static lg:flex-1 lg:h-auto bg-gray-100 lg:bg-white rounded-none lg:rounded-[2.5rem] shadow-none lg:shadow-premium overflow-hidden z-0 border-b lg:border border-gray-100/50">
+        <div className="relative w-full h-[calc(100vh-70px)] lg:h-[calc(100vh-160px)] flex flex-col lg:flex-row gap-0 lg:gap-6 overflow-hidden lg:overflow-visible">
+            {/* Map Area - Full Screen on Mobile */}
+            <div className="absolute inset-0 lg:static lg:flex-1 lg:h-auto bg-gray-100 lg:bg-white rounded-none lg:rounded-[2.5rem] shadow-none lg:shadow-premium overflow-hidden z-0 border-b lg:border border-gray-100/50">
                 <MapContainer
                     center={center}
                     zoom={zoom}
@@ -563,7 +563,7 @@ function MapPage() {
                         </LayersControl.BaseLayer>
                     </LayersControl>
 
-                    {/* Standard Zoom Control at Top-Left (First item = Top) */}
+                    {/* Standard Zoom Control at Top-Left */}
                     <ZoomControl position="topleft" />
 
                     <FeatureGroup>
@@ -575,6 +575,8 @@ function MapPage() {
                     </FeatureGroup>
 
                     <FlyToFeature focusedGeometry={focusedGeometry} />
+
+                    {/* Locate Control at Bottom-Left (with bottom margin for Sidebar) */}
                     <LocateControl />
 
                     {allDisplayPlots.map((plot) => (
@@ -635,8 +637,8 @@ function MapPage() {
             </div>
 
             {/* Sidebar Container - Bottom Sheet on Mobile */}
-            <div className="absolute top-[42vh] bottom-0 left-0 right-0 lg:static lg:h-full lg:w-auto flex flex-col z-10 pointer-events-auto">
-                <div className="w-full h-full lg:w-auto shadow-[0_-10px_30px_-5px_rgba(0,0,0,0.1)] lg:shadow-none bg-transparent">
+            <div className="absolute bottom-0 left-0 right-0 lg:static lg:h-full lg:w-auto flex flex-col justify-end z-30 pointer-events-none max-h-[85vh]">
+                <div className="w-full h-auto lg:h-full lg:w-auto shadow-[0_-10px_40px_-5px_rgba(0,0,0,0.1)] lg:shadow-none bg-transparent pointer-events-auto">
                     <PlotSidebar
                         plots={allDisplayPlots}
                         selectedAreaRai={selectedAreaRai}

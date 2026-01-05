@@ -143,10 +143,8 @@ const PlotSidebar = ({
         <div className="w-full lg:w-[480px] bg-white lg:bg-white rounded-t-[2.5rem] lg:rounded-[2.5rem] shadow-premium flex flex-col h-full border-t lg:border border-gray-100/50 overflow-hidden relative transition-all duration-500 ease-in-out">
 
             {/* Mobile Drag Handle */}
-            <div className="w-full flex justify-center pt-4 pb-2 lg:hidden">
-                <div className="w-16 h-1.5 bg-[#4c7c44]/20 rounded-full">
-                    <div className="w-8 h-full bg-[#4c7c44] rounded-full mx-auto"></div>
-                </div>
+            <div className="w-full flex justify-center pt-3 pb-1 lg:hidden">
+                <div className="w-12 h-1.5 bg-[#4c7c44] rounded-full opacity-80"></div>
             </div>
 
             {/* Step Indicator */}
@@ -190,37 +188,36 @@ const PlotSidebar = ({
                         <div className="grid grid-cols-1 gap-4 mb-8">
                             <div
                                 onClick={handleStartManual}
-                                className="group relative p-6 lg:p-8 rounded-[2rem] lg:rounded-[2.5rem] bg-[#4f7f46] lg:bg-[#4c7c44] text-white cursor-pointer shadow-lg hover:bg-[#3d6336] active:scale-[0.98] transition-all overflow-hidden w-full aspect-[2.5/1] lg:aspect-auto flex items-center justify-between"
+                                className="group relative p-6 lg:p-8 rounded-[2.5rem] bg-[#4c7c44] text-white cursor-pointer shadow-lg hover:bg-[#3d6336] active:scale-[0.98] transition-all overflow-hidden"
                             >
-                                <div className="relative z-10 flex items-center gap-5 pl-2">
-                                    <div className="w-16 h-16 lg:w-14 lg:h-14 rounded-full lg:rounded-2xl bg-white/20 lg:bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/30 lg:border-white/20 shadow-inner">
-                                        <PlusIcon size={32} className="text-white" />
+                                <div className="relative z-10 flex items-center gap-5">
+                                    <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
+                                        <PlusIcon size={28} />
                                     </div>
-                                    <div className="flex-1">
-                                        <h3 className="text-xl lg:text-lg font-black lg:font-bold tracking-tight text-white leading-none mb-1">เพิ่มเเปลงใหม่ (วาดเอง)</h3>
-                                        <p className="text-[11px] lg:text-[10px] text-white/80 lg:text-white/70 font-medium uppercase tracking-wide">กดเพื่อเริ่มกำหนดจุดบนเเผนที่</p>
+                                    <div>
+                                        <h3 className="text-lg font-bold tracking-tight">เพิ่มเเปลงใหม่ (วาดเอง)</h3>
+                                        <p className="text-[10px] text-white/70 font-medium uppercase tracking-widest mt-0.5">กดเพื่อเริ่มกำหนดจุดบนเเผนที่</p>
                                     </div>
                                 </div>
-                                <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-white/5 skew-x-[-20deg] translate-x-1/2 rounded-full blur-xl pointer-events-none"></div>
-                                <div className="absolute -bottom-10 -right-10 opacity-20 lg:opacity-10 group-hover:scale-110 transition-transform duration-700 pointer-events-none">
-                                    <MapPinIcon size={180} />
+                                <div className="absolute -bottom-6 -right-6 opacity-10 group-hover:scale-110 transition-transform duration-700">
+                                    <MapPinIcon size={120} />
                                 </div>
                             </div>
 
                             <div
                                 onClick={handleStartShp}
-                                className="group relative p-6 lg:p-8 rounded-[2rem] lg:rounded-[2.5rem] bg-white border border-gray-100 text-[#2d4a27] cursor-pointer shadow-sm hover:shadow-md hover:border-[#4c7c44]/30 active:scale-[0.98] transition-all overflow-hidden flex items-center gap-5"
+                                className="group relative p-6 lg:p-8 rounded-[2.5rem] bg-white border border-gray-100 text-[#2d4a27] cursor-pointer shadow-sm hover:shadow-md hover:border-[#4c7c44]/30 active:scale-[0.98] transition-all overflow-hidden"
                             >
-                                <div className="relative z-10 flex items-center gap-5 pl-2">
-                                    <div className="w-16 h-16 lg:w-14 lg:h-14 rounded-full lg:rounded-2xl bg-[#eef2e6] flex items-center justify-center text-[#4c7c44] border border-[#4c7c44]/5">
+                                <div className="relative z-10 flex items-center gap-5">
+                                    <div className="w-14 h-14 rounded-2xl bg-[#eef2e6] flex items-center justify-center text-[#4c7c44]">
                                         <UploadIcon size={28} />
                                     </div>
                                     <div>
-                                        <h3 className="text-xl lg:text-lg font-black lg:font-bold tracking-tight text-[#2d4a27] leading-none mb-1">นำเข้าไฟล์ SHP</h3>
-                                        <p className="text-[11px] lg:text-[10px] text-gray-400 font-medium uppercase tracking-wide">ใช้พิกัดมาตรฐานจากโปรแกรม GIS</p>
+                                        <h3 className="text-lg font-bold tracking-tight text-[#2d4a27]">นำเข้าไฟล์ SHP</h3>
+                                        <p className="text-[10px] text-gray-400 font-medium uppercase tracking-widest mt-0.5">ใช้พิกัดมาตรฐานจากโปรแกรม GIS</p>
                                     </div>
                                 </div>
-                                <div className="absolute -bottom-6 -right-6 opacity-[0.03] group-hover:scale-110 transition-transform duration-700 pointer-events-none">
+                                <div className="absolute -bottom-6 -right-6 opacity-[0.03] group-hover:scale-110 transition-transform duration-700">
                                     <LayersIcon size={120} />
                                 </div>
                             </div>
