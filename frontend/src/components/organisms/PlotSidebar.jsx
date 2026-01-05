@@ -207,36 +207,39 @@ const PlotSidebar = ({
                         <div className="grid grid-cols-1 gap-4 mb-8">
                             <div
                                 onClick={handleStartManual}
-                                className="group relative p-6 lg:p-8 rounded-[2.5rem] bg-[#4c7c44] text-white cursor-pointer shadow-lg hover:bg-[#3d6336] active:scale-[0.98] transition-all overflow-hidden"
+                                className="group relative p-6 lg:p-8 rounded-[2.5rem] bg-gradient-to-br from-[#4c7c44] to-[#3d6336] text-white cursor-pointer shadow-[0_20px_40px_-15px_rgba(76,124,68,0.4)] hover:shadow-[0_25px_50px_-12px_rgba(76,124,68,0.6)] active:scale-[0.96] active:shadow-sm transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] overflow-hidden"
                             >
                                 <div className="relative z-10 flex items-center gap-5">
-                                    <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
+                                    <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-inner group-active:scale-90 transition-transform duration-300">
                                         <PlusIcon size={28} />
                                     </div>
                                     <div>
-                                        <h3 className="text-lg font-bold tracking-tight">เพิ่มเเปลงใหม่ (วาดเอง)</h3>
+                                        <h3 className="text-lg font-bold tracking-tight group-active:translate-x-1 transition-transform duration-300">เพิ่มเเปลงใหม่ (วาดเอง)</h3>
                                         <p className="text-[10px] text-white/70 font-medium uppercase tracking-widest mt-0.5">กดเพื่อเริ่มกำหนดจุดบนเเผนที่</p>
                                     </div>
                                 </div>
-                                <div className="absolute -bottom-6 -right-6 opacity-10 group-hover:scale-110 transition-transform duration-700">
+                                {/* Decorative Icon */}
+                                <div className="absolute -bottom-6 -right-6 opacity-10 group-hover:opacity-20 group-hover:scale-125 group-hover:rotate-12 transition-all duration-500 ease-out">
                                     <MapPinIcon size={120} />
                                 </div>
+                                {/* Shine Effect */}
+                                <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
                             </div>
 
                             <div
                                 onClick={handleStartShp}
-                                className="group relative p-6 lg:p-8 rounded-[2.5rem] bg-white border border-gray-100 text-[#2d4a27] cursor-pointer shadow-sm hover:shadow-md hover:border-[#4c7c44]/30 active:scale-[0.98] transition-all overflow-hidden"
+                                className="group relative p-6 lg:p-8 rounded-[2.5rem] bg-white border border-gray-100 text-[#2d4a27] cursor-pointer shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.08)] hover:border-[#4c7c44]/50 active:scale-[0.96] active:bg-gray-50 transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] overflow-hidden"
                             >
                                 <div className="relative z-10 flex items-center gap-5">
-                                    <div className="w-14 h-14 rounded-2xl bg-[#eef2e6] flex items-center justify-center text-[#4c7c44]">
+                                    <div className="w-14 h-14 rounded-2xl bg-[#eef2e6] flex items-center justify-center text-[#4c7c44] group-active:scale-90 transition-transform duration-300">
                                         <UploadIcon size={28} />
                                     </div>
                                     <div>
-                                        <h3 className="text-lg font-bold tracking-tight text-[#2d4a27]">นำเข้าไฟล์ SHP</h3>
+                                        <h3 className="text-lg font-bold tracking-tight text-[#2d4a27] group-active:translate-x-1 transition-transform duration-300">นำเข้าไฟล์ SHP</h3>
                                         <p className="text-[10px] text-gray-400 font-medium uppercase tracking-widest mt-0.5">ใช้พิกัดมาตรฐานจากโปรแกรม GIS</p>
                                     </div>
                                 </div>
-                                <div className="absolute -bottom-6 -right-6 opacity-[0.03] group-hover:scale-110 transition-transform duration-700">
+                                <div className="absolute -bottom-6 -right-6 opacity-[0.03] group-hover:opacity-[0.08] group-hover:scale-125 group-hover:-rotate-12 transition-all duration-500 ease-out">
                                     <LayersIcon size={120} />
                                 </div>
                             </div>
@@ -271,8 +274,8 @@ const PlotSidebar = ({
                                         <div
                                             key={plot.id}
                                             onClick={() => onPlotSelect && onPlotSelect(plot)}
-                                            className={`p-4 border rounded-[2rem] cursor-pointer transition-all flex items-center gap-4 relative overflow-hidden group
-                                                ${selectedPlotId === plot.id ? 'bg-[#eef2e6] border-[#4c7c44]/30 shadow-sm' : 'bg-white border-gray-50 hover:border-[#4c7c44]/20 hover:bg-gray-50/50'}
+                                            className={`p-4 border rounded-[2rem] cursor-pointer transition-all duration-300 ease-out flex items-center gap-4 relative overflow-hidden group active:scale-[0.98]
+                                                ${selectedPlotId === plot.id ? 'bg-[#eef2e6] border-[#4c7c44] shadow-md scale-[1.02]' : 'bg-white border-gray-50 hover:border-[#4c7c44]/30 hover:shadow-lg hover:shadow-gray-200/50'}
                                             `}
                                         >
                                             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 ${plot.source === 'shp' ? 'bg-sky-50 text-sky-600' : 'bg-[#eef2e6] text-[#4c7c44]'}`}>
