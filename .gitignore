@@ -20,7 +20,7 @@ build/
 
 # IDE
 .idea/
-.vscode/
+# .vscode/ (removed to allow project settings)
 *.swp
 *.swo
 *~

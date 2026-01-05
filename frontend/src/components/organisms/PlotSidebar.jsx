@@ -530,7 +530,7 @@ const PlotSidebar = ({
                         {/* Summary Card Removed - User requested to remove redundant summary section */}
 
                         <Button variant="primary" className="w-full py-5 rounded-[1.75rem] font-black shadow-xl shadow-[#10b981]/30 flex items-center justify-center gap-3 transition-transform active:scale-95" onClick={handleFinalSync}>
-                            บันทึกและประเมินผลสุทธิ
+                            บันทึก
                             <ArrowRightIcon size={20} />
                         </Button>
                     </div>
