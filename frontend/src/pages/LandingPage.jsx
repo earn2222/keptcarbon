@@ -1,5 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
+import { BrandLogo } from '../components/atoms'
 
 /**
  * Modern Responsive Landing Page for Carbon Assessment System
@@ -13,17 +14,7 @@ function LandingPage() {
                 <div className="container-responsive">
                     <div className="flex justify-between items-center h-20 md:h-24">
                         {/* Logo */}
-                        <Link to="/" className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-[#4c7c44] rounded-lg flex items-center justify-center shadow-sm">
-                                <svg viewBox="0 0 24 24" className="w-8 h-8 text-white fill-current">
-                                    <path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.7C7.14,19.87 7.64,20 8.17,20C12.14,20 15.64,17.43 16.92,14H18.1L20,16V9L18.1,7H17V8M16,14C14.72,14 13,15.68 13,17.75C13,20.21 14.89,22 17,22H18.1L19.5,23.5L20.5,22.5L19,21V19L21,17.5L20.5,16.5L18.5,18H17C16.14,18 15,16.89 15,15.75C15,14.61 16.14,13.5 17,13.5H18.5L19,12.5L18,11.5H17V12.5L16,14M11.5,11C11.5,9.62 12.62,8.5 14,8.5C15.38,8.5 16.5,9.62 16.5,11C16.5,12.38 15.38,13.5 14,13.5C12.62,13.5 11.5,12.38 11.5,11Z" />
-                                </svg>
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="text-xl font-bold text-[#2d4a27] tracking-tight leading-tight">KEPT CARBON</span>
-                                <span className="text-xs text-gray-500 font-medium">ระบบประเมินการกักเก็บคาร์บอนสวนยางพารา</span>
-                            </div>
-                        </Link>
+                        <BrandLogo mode="dark" size={32} />
 
                         {/* Navigation Links */}
                         <div className="hidden md:flex items-center gap-10">
@@ -261,17 +252,7 @@ function LandingPage() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-16 mb-20">
                         {/* Brand Column */}
                         <div className="text-left">
-                            <div className="flex items-center gap-4 mb-8">
-                                <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-lg">
-                                    <svg viewBox="0 0 24 24" className="w-10 h-10 text-white fill-current">
-                                        <path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.7C7.14,19.87 7.64,20 8.17,20C12.14,20 15.64,17.43 16.92,14H18.1L20,16V9L18.1,7H17V8Z" />
-                                    </svg>
-                                </div>
-                                <div className="text-left">
-                                    <h4 className="text-2xl font-bold tracking-tight leading-none">Carbon Assessment</h4>
-                                    <span className="text-xs font-medium text-gray-400">ระบบประเมินคาร์บอนสวนยางพารา</span>
-                                </div>
-                            </div>
+                            <BrandLogo mode="white" size={40} className="mb-8" />
                             <p className="text-gray-400 font-medium leading-relaxed mb-10 max-w-sm">
                                 แพลตฟอร์มดิจิทัลสำหรับการประเมินและวิเคราะห์การกักเก็บคาร์บอนจากสวนยางพารา เพื่อสนับสนุนการจัดการพื้นที่เกษตรอย่างยั่งยืน
                             </p>
@@ -323,7 +304,7 @@ function LandingPage() {
 
                     <div className="border-t border-white/5 pt-12 flex flex-col md:flex-row justify-between items-center gap-6">
                         <div className="text-xs text-gray-500 font-bold uppercase tracking-[4px]">
-                            © 2024 Carbon Assessment System. สงวนลิขสิทธิ์.
+                            © 2024 KEPT CARBON System. สงวนลิขสิทธิ์.
                         </div>
                         <div className="text-xs text-gray-600 font-bold">
                             Designed for Sustainable Agriculture

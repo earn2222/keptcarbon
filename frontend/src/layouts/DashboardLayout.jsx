@@ -67,7 +67,6 @@ const LogoutIcon = () => (
 
 
 function DashboardLayout({ children }) {
-    const [sidebarOpen, setSidebarOpen] = useState(true)
     const [mobileOpen, setMobileOpen] = useState(false)
     const location = useLocation()
 
@@ -92,121 +91,150 @@ function DashboardLayout({ children }) {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-[#f7f5f2] font-sans">
             {/* Mobile Overlay */}
             {mobileOpen && (
                 <div
-                    className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+                    className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden transition-all duration-500"
                     onClick={() => setMobileOpen(false)}
                 ></div>
             )}
 
             {/* Sidebar */}
-            <aside className={`fixed top-0 left-0 w-[280px] h-screen bg-gradient-to-b from-gray-800 to-gray-900 text-gray-300 p-6 z-50 overflow-y-auto transition-transform duration-300 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
+            <aside className={`
+                fixed top-0 left-0 w-[280px] h-screen 
+                bg-white border-r border-gray-100
+                p-6 z-50 overflow-y-auto 
+                transition-all duration-300 ease-in-out
+                ${mobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'}
+            `}>
                 {/* Logo */}
-                <div className="flex items-center gap-3 pb-6 mb-6 border-b border-white/10">
-                    <BrandLogo mode="white" size={24} />
+                <div className="flex items-center justify-between pb-8 mb-8 border-b border-gray-50">
+                    <BrandLogo mode="dark" size={32} />
+                    <button onClick={() => setMobileOpen(false)} className="lg:hidden p-2 text-gray-400">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
                 </div>
 
                 {/* Navigation */}
-                <div className="mb-6">
-                    <div className="text-xs uppercase tracking-wider text-gray-500 mb-3 px-2">เมนูหลัก</div>
-                    <nav className="space-y-1">
+                <div className="mb-10">
+                    <div className="text-[10px] font-bold uppercase tracking-[2px] text-gray-400 mb-6 px-2">เมนูหลัก</div>
+                    <nav className="space-y-4">
                         {navigation.map((item) => (
                             <NavLink
                                 key={item.path}
                                 to={item.path}
                                 exact={item.path === '/dashboard'}
                                 className={({ isActive }) =>
-                                    `flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all ${location.pathname === item.path
-                                        ? 'bg-[#065f46] text-white shadow-lg shadow-[#065f46]/40'
-                                        : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                                    `flex items-center gap-4 px-5 py-4 rounded-2xl font-medium text-sm transition-all duration-300 group ${location.pathname === item.path
+                                        ? 'bg-[#4c7c44] text-white shadow-lg shadow-[#4c7c44]/20'
+                                        : 'text-gray-500 hover:bg-[#4c7c44]/5 hover:text-[#4c7c44]'
                                     }`
                                 }
-                                activeClassName="bg-[#065f46] text-white shadow-lg shadow-[#065f46]/40"
+                                onClick={() => setMobileOpen(false)}
                             >
-                                <item.icon />
-                                <span>{item.name}</span>
+                                <div className={`transition-transform duration-300 group-hover:scale-110`}>
+                                    <item.icon />
+                                </div>
+                                <span className="tracking-tight">{item.name}</span>
                             </NavLink>
                         ))}
                     </nav>
                 </div>
 
-                {/* Settings */}
-                <div className="mb-6">
-                    <div className="text-xs uppercase tracking-wider text-gray-500 mb-3 px-2">การตั้งค่า</div>
-                    <nav className="space-y-1">
-                        <a href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm text-gray-400 hover:bg-white/5 hover:text-white transition-all">
+                {/* Settings Section */}
+                <div className="mb-10">
+                    <div className="text-[10px] font-bold uppercase tracking-[2px] text-gray-400 mb-6 px-2">การตั้งค่า</div>
+                    <nav className="space-y-4">
+                        <a href="#" className="flex items-center gap-4 px-5 py-4 rounded-2xl font-medium text-sm text-gray-500 hover:bg-gray-100 transition-all">
                             <SettingsIcon />
-                            <span>ตั้งค่า</span>
+                            <span>ตั้งค่าบัญชี</span>
                         </a>
+                        <button className="flex items-center gap-4 px-5 py-4 rounded-2xl font-medium text-sm text-red-500 hover:bg-red-50 transition-all w-full text-left mt-2">
+                            <LogoutIcon />
+                            <span>ออกจากระบบ</span>
+                        </button>
                     </nav>
                 </div>
 
-                {/* Promo Card */}
-                <div className="mt-auto bg-gradient-to-br from-[#16a34a]/10 to-[#059669]/10 rounded-2xl p-5 text-center border border-white/5">
-                    <div className="text-3xl mb-3">🌱</div>
-                    <div className="font-semibold text-white text-sm mb-2">เริ่มประเมินคาร์บอน</div>
-                    <div className="text-xs text-gray-400 mb-4 leading-relaxed">วาดแปลงยางพาราของคุณเพื่อคำนวณคาร์บอน</div>
-                    <NavLink
-                        to="/map"
-                        className="block w-full py-2.5 rounded-lg text-sm font-semibold gradient-primary text-white"
-                    >
-                        เริ่มต้นใช้งาน
-                    </NavLink>
+                {/* Farmer Support Card */}
+                <div className="mt-10 bg-[#eef2e6] rounded-3xl p-6 border border-[#e0e7d5] relative overflow-hidden">
+                    <div className="relative z-10">
+                        <div className="text-2xl mb-3">🌱</div>
+                        <div className="font-bold text-[#2d4a27] text-sm mb-1 uppercase tracking-tight">ต้องการความช่วยเหลือ?</div>
+                        <div className="text-[11px] text-[#4c7c44] mb-4 font-medium opacity-80 leading-relaxed">
+                            โทรหาเจ้าหน้าที่เพื่อช่วยเหลือในการวาดแปลงของท่าน
+                        </div>
+                        <button className="w-full py-3 bg-white text-[#4c7c44] rounded-xl text-xs font-bold shadow-sm border border-[#e0e7d5] hover:bg-green-50 transition-all">
+                            ติดต่อเรา
+                        </button>
+                    </div>
+                    <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-[#4c7c44]/5 rounded-full blur-xl"></div>
                 </div>
             </aside>
 
             {/* Header */}
-            <header className="fixed top-0 left-0 lg:left-[280px] right-0 h-[70px] bg-white/95 backdrop-blur-lg flex items-center justify-between px-6 z-30 shadow-sm">
+            <header className="fixed top-0 left-0 lg:left-[280px] right-0 h-[70px] lg:h-[80px] bg-white lg:bg-white/80 lg:backdrop-blur-xl flex items-center justify-between px-4 lg:px-6 z-30 border-b border-gray-100/50 font-sans">
                 <div className="flex items-center gap-4">
                     <button
-                        className="lg:hidden w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-[#059669]/10 hover:text-[#059669] transition-all"
+                        className="lg:hidden w-10 h-10 rounded-full bg-[#f0f4ef] flex items-center justify-center text-[#2d4a27] hover:bg-[#4c7c44] hover:text-white transition-all shadow-sm active:scale-95"
                         onClick={() => setMobileOpen(true)}
                     >
-                        <MenuIcon />
+                        <MenuIcon size={20} />
                     </button>
-                    <div className="hidden md:flex items-center bg-gray-100 rounded-xl px-4 py-2">
+                    {/* Desktop Search */}
+                    <div className="hidden md:flex items-center bg-gray-50 border border-gray-100 rounded-2xl px-5 py-2.5 transition-all focus-within:bg-white focus-within:border-[#4c7c44]/20 focus-within:shadow-sm">
                         <SearchIcon className="text-gray-400" />
                         <input
                             type="text"
-                            className="bg-transparent border-none outline-none ml-3 w-[250px] text-sm"
-                            placeholder="ค้นหา..."
+                            className="bg-transparent border-none outline-none ml-4 w-[280px] text-sm font-medium text-gray-700 placeholder:text-gray-400"
+                            placeholder="ค้นหาชื่อแปลง..."
                         />
                     </div>
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <button className="relative w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-[#059669]/10 hover:text-[#059669] transition-all">
-                        <BellIcon />
-                        <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-semibold rounded-full flex items-center justify-center">3</span>
-                    </button>
-                    <button className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-[#059669]/10 hover:text-[#059669] transition-all">
-                        <SettingsIcon />
-                    </button>
-                    <div className="flex items-center gap-3 pl-3 border-l border-gray-200">
-                        <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center text-white font-semibold">
-                            JD
-                        </div>
-                        <div className="hidden md:block">
-                            <div className="font-semibold text-sm text-gray-800">John Doe</div>
-                            <div className="text-xs text-gray-500">ผู้ดูแลระบบ</div>
+                    {/* ID Indicator for Mobile Design */}
+                    <div className="flex items-center gap-1 pl-1 pr-1.5 py-1 bg-white border border-gray-100 rounded-full shadow-sm">
+                        <button className="relative w-9 h-9 lg:w-10 lg:h-10 rounded-full text-gray-400 hover:text-[#4c7c44] hover:bg-gray-50 transition-all flex items-center justify-center">
+                            <BellIcon size={18} />
+                            <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-red-500 border border-white rounded-full"></span>
+                        </button>
+                        <div className="w-[1px] h-5 bg-gray-200 mx-0.5"></div>
+                        <div className="flex items-center gap-3 pr-1 cursor-pointer group">
+                            <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-[#4c7c44] flex items-center justify-center text-white text-[10px] lg:text-xs font-bold shadow-md ring-2 ring-white transition-all group-hover:scale-105">
+                                JD
+                            </div>
+                            {/* Desktop Name */}
+                            <div className="hidden sm:block pr-2">
+                                <div className="font-bold text-xs text-[#2d4a27] tracking-tight">John Doe</div>
+                                <div className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Farmer Agent</div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </header>
 
             {/* Main Content */}
-            <main className="lg:ml-[280px] pt-[70px] p-6 min-h-screen">
-                <div className="mb-6">
-                    <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-                        <span>หน้าหลัก</span>
-                        <span>/</span>
-                        <span className="text-[#059669] font-medium">{getPageTitle()}</span>
+            <main className={`
+                lg:ml-[280px] pt-[70px] lg:pt-[80px] p-0 lg:p-8 min-h-screen
+                transition-all duration-300 relative
+            `}>
+                <div className="px-5 pt-6 pb-2 lg:px-0 lg:pt-0 lg:pb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4 sticky top-[70px] lg:static z-20 bg-[#f7f5f2] lg:bg-transparent">
+                    <div>
+                        <div className="hidden lg:flex items-center gap-2 text-[11px] font-bold text-gray-400 mb-3 uppercase tracking-widest">
+                            <span className="hover:text-gray-600 transition-colors cursor-pointer">หน้าหลัก</span>
+                            <span className="opacity-30">/</span>
+                            <span className="text-[#4c7c44]">{getPageTitle()}</span>
+                        </div>
+                        <h1 className="text-2xl lg:text-3xl font-black text-[#1b301a] tracking-tight">{getPageTitle()}</h1>
                     </div>
-                    <h1 className="text-2xl font-bold text-gray-800">{getPageTitle()}</h1>
                 </div>
-                {children}
+                <div className="animate-fadeIn">
+                    {children}
+                </div>
             </main>
         </div>
     )

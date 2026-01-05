@@ -51,8 +51,8 @@ module.exports = {
                 }
             },
             fontFamily: {
-                sans: ['Inter', 'Anuphan', 'sans-serif'],
-                display: ['Inter', 'sans-serif'],
+                sans: ['Prompt', 'Inter', 'Anuphan', 'sans-serif'],
+                display: ['Prompt', 'Inter', 'sans-serif'],
             },
             // Fluid Typography
             fontSize: {

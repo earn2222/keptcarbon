@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { MapContainer, TileLayer, FeatureGroup, useMap, LayersControl, GeoJSON } from 'react-leaflet'
+import { MapContainer, TileLayer, FeatureGroup, useMap, LayersControl, GeoJSON, ZoomControl } from 'react-leaflet'
 import * as L from 'leaflet'
 import '@geoman-io/leaflet-geoman-free'
 import * as turf from '@turf/turf'
@@ -42,7 +42,7 @@ const GeomanControls = ({ onDrawCreated, onDrawEdited, showControls = true }) =>
             map.pm.removeControls();
         }
 
-        map.pm.setLang('en')
+        map.pm.setLang('th')
 
         const handleCreate = (e) => {
             if (onDrawCreated) onDrawCreated(e)
@@ -70,7 +70,7 @@ const MapInstruction = ({ active }) => {
     return (
         <div className="absolute top-20 left-20 z-[1000] animate-fadeIn pointer-events-none">
             <div className="bg-slate-900/90 backdrop-blur-md text-white px-6 py-4 rounded-3xl shadow-2xl border border-white/20 flex items-center gap-4">
-                <div className="w-10 h-10 bg-[#10b981] rounded-full flex items-center justify-center animate-bounce">
+                <div className="w-10 h-10 bg-[#4c7c44] rounded-full flex items-center justify-center animate-bounce">
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                     </svg>
@@ -84,7 +84,6 @@ const MapInstruction = ({ active }) => {
     )
 }
 
-// Helper Component to control map zoom
 const FlyToFeature = ({ focusedGeometry }) => {
     const map = useMap();
 
@@ -110,6 +109,33 @@ const FlyToFeature = ({ focusedGeometry }) => {
     return null;
 }
 
+// Locate Me Control
+const LocateControl = () => {
+    const map = useMap()
+
+    const handleLocate = () => {
+        map.locate({ setView: true, maxZoom: 16 })
+    }
+
+    return (
+        <div className="leaflet-bottom leaflet-left pointer-events-auto mb-[20px] ml-[10px]">
+            <div className="leaflet-control leaflet-bar">
+                <button
+                    onClick={handleLocate}
+                    className="w-10 h-10 bg-white rounded-md shadow-md border-b-2 border-gray-200 flex items-center justify-center text-[#4c7c44] hover:bg-gray-50 transition-all active:scale-95"
+                    title="ค้นหาตำแหน่งของฉัน"
+                    style={{ border: 'none' }}
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    )
+}
+
 function MapPage() {
     const [center] = useState([8.4304, 99.9631])
     const [zoom] = useState(13)
@@ -117,6 +143,7 @@ function MapPage() {
     // Data States
     const [plots, setPlots] = useState([])
     const [tempPlots, setTempPlots] = useState([]) // For uploaded SHP not yet saved
+    const [error, setError] = useState(null)
 
     // Zoom State
     const [focusedGeometry, setFocusedGeometry] = useState(null);
@@ -153,6 +180,7 @@ function MapPage() {
             setPlots(mappedPlots);
         } catch (error) {
             console.error("Failed to load plots", error);
+            setError("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่อ (Backend Connection Failed)");
         }
     }
 
@@ -504,15 +532,28 @@ function MapPage() {
     const allDisplayPlots = [...plots, ...tempPlots]
 
     return (
-        <div className="h-[calc(100vh-150px)] flex gap-6">
+        <div className="relative w-full h-[calc(100vh-130px)] lg:h-[calc(100vh-160px)] flex flex-col lg:flex-row gap-0 lg:gap-6 overflow-hidden lg:overflow-visible">
             {/* Map Area */}
-            <div className="flex-1 bg-white rounded-3xl shadow-premium overflow-hidden relative z-0 border border-gray-100">
+            <div className="absolute top-0 left-0 right-0 h-[45vh] lg:static lg:flex-1 lg:h-auto bg-gray-100 lg:bg-white rounded-none lg:rounded-[2.5rem] shadow-none lg:shadow-premium overflow-hidden z-0 border-b lg:border border-gray-100/50">
                 <MapContainer
                     center={center}
                     zoom={zoom}
                     style={{ height: "100%", width: "100%" }}
                     className="z-0"
+                    zoomControl={false}
                 >
+                    <style>
+                        {`
+                            /* Custom spacing for top-left controls */
+                            .leaflet-top.leaflet-left .leaflet-control {
+                                margin-left: 20px !important;
+                            }
+                            .leaflet-top.leaflet-left .leaflet-control:first-child {
+                                margin-top: 20px !important;
+                            }
+                        `}
+                    </style>
+
                     <LayersControl position="topright">
                         <LayersControl.BaseLayer checked name="Google Satellite">
                             <TileLayer url="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}" maxZoom={20} />
@@ -521,6 +562,9 @@ function MapPage() {
                             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                         </LayersControl.BaseLayer>
                     </LayersControl>
+
+                    {/* Standard Zoom Control at Top-Left (First item = Top) */}
+                    <ZoomControl position="topleft" />
 
                     <FeatureGroup>
                         <GeomanControls
@@ -531,6 +575,7 @@ function MapPage() {
                     </FeatureGroup>
 
                     <FlyToFeature focusedGeometry={focusedGeometry} />
+                    <LocateControl />
 
                     {allDisplayPlots.map((plot) => (
                         plot.geometry && (
@@ -539,10 +584,11 @@ function MapPage() {
                                 data={plot.geometry}
                                 style={{
                                     color: plot.id === selectedPlotId
-                                        ? '#fbbf24' // Yellow for selected
-                                        : (plot.isSaved ? '#10b981' : '#3cc2cf'),
+                                        ? '#ffffff' // White border for selected
+                                        : (plot.isSaved ? '#4c7c44' : '#3cc2cf'),
                                     weight: plot.id === selectedPlotId ? 4 : 2,
-                                    fillOpacity: plot.id === selectedPlotId ? 0.5 : 0.3,
+                                    fillColor: plot.id === selectedPlotId ? '#4c7c44' : (plot.isSaved ? '#4c7c44' : '#3cc2cf'),
+                                    fillOpacity: plot.id === selectedPlotId ? 0.6 : 0.3,
                                     dashArray: plot.isSaved ? '' : '5, 5'
                                 }}
                                 onEachFeature={(feature, layer) => {
@@ -561,29 +607,53 @@ function MapPage() {
                 {loading && (
                     <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] z-[1000] flex items-center justify-center">
                         <div className="bg-white p-4 rounded-2xl shadow-xl flex items-center gap-3">
-                            <div className="w-5 h-5 border-2 border-[#10b981] border-t-transparent rounded-full animate-spin"></div>
+                            <div className="w-5 h-5 border-2 border-[#4c7c44] border-t-transparent rounded-full animate-spin"></div>
                             <span className="text-sm font-bold text-gray-700">กำลังดำเนินการ...</span>
+                        </div>
+                    </div>
+                )}
+
+                {error && (
+                    <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[2000] animate-bounce-in">
+                        <div className="bg-red-50 border border-red-200 text-red-800 px-6 py-4 rounded-2xl shadow-xl flex items-center gap-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <div>
+                                <h4 className="font-bold text-sm">เกิดข้อผิดพลาด</h4>
+                                <p className="text-xs">{error}</p>
+                            </div>
+                            <button
+                                onClick={() => { setError(null); fetchPlots(); }}
+                                className="ml-2 bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                            >
+                                ลองใหม่
+                            </button>
                         </div>
                     </div>
                 )}
             </div>
 
-            {/* Sidebar */}
-            <PlotSidebar
-                plots={allDisplayPlots}
-                selectedAreaRai={selectedAreaRai}
-                selectedPlotId={selectedPlotId}
-                onCalculate={handleCalculate}
-                calculationResult={calculationResult}
-                onSavePlot={handleSavePlot}
-                onPlotSelect={handlePlotSelect}
-                onShpUpload={handleShpUpload}
-                onBulkCalculate={handleBulkCalculate}
-                onSaveAll={handleSaveAllTempPlots}
-                onDeletePlot={handleDeletePlot}
-                onDeleteAll={handleDeleteAll}
-                onDrawingStepChange={setDrawingStep}
-            />
+            {/* Sidebar Container - Bottom Sheet on Mobile */}
+            <div className="absolute top-[42vh] bottom-0 left-0 right-0 lg:static lg:h-full lg:w-auto flex flex-col z-10 pointer-events-auto">
+                <div className="w-full h-full lg:w-auto shadow-[0_-10px_30px_-5px_rgba(0,0,0,0.1)] lg:shadow-none bg-transparent">
+                    <PlotSidebar
+                        plots={allDisplayPlots}
+                        selectedAreaRai={selectedAreaRai}
+                        selectedPlotId={selectedPlotId}
+                        onCalculate={handleCalculate}
+                        calculationResult={calculationResult}
+                        onSavePlot={handleSavePlot}
+                        onPlotSelect={handlePlotSelect}
+                        onShpUpload={handleShpUpload}
+                        onBulkCalculate={handleBulkCalculate}
+                        onSaveAll={handleSaveAllTempPlots}
+                        onDeletePlot={handleDeletePlot}
+                        onDeleteAll={handleDeleteAll}
+                        onDrawingStepChange={setDrawingStep}
+                    />
+                </div>
+            </div>
         </div>
     )
 }
