@@ -43,8 +43,17 @@ const PlotSidebar = ({
     const [selectedAge, setSelectedAge] = useState(10) // New: Dynamic age state
     const fileInputRef = useRef(null)
 
+    const [isCollapsed, setIsCollapsed] = useState(false)
+
     const currentYear = new Date().getFullYear();
     const treeAge = 10; // Default auto-age
+
+    // Auto-expand when area is selected (drawing finished)
+    useEffect(() => {
+        if (selectedAreaRai > 0) {
+            setIsCollapsed(false);
+        }
+    }, [selectedAreaRai]);
 
     const formatThaiArea = (raiValue) => {
         if (!raiValue || raiValue <= 0) return { thai: "0 ไร่ 0 งาน 0 ตร.ว.", sqm: "0 ตร.ม." };
@@ -73,12 +82,14 @@ const PlotSidebar = ({
         setPlotName('')
         setPlantingYear('')
         setSelectedPlotIds([])
+        setIsCollapsed(false)
         if (onDrawingStepChange) onDrawingStepChange('idle')
     }
 
     const handleStartManual = () => {
         setMethod('draw')
         setStep(1)
+        setIsCollapsed(true)
         if (onDrawingStepChange) onDrawingStepChange('drawing')
     }
 
@@ -129,6 +140,7 @@ const PlotSidebar = ({
             }
             // Move to success screen instead of resetting
             setStep(3);
+            setIsCollapsed(false);
         } catch (err) {
             console.error(err)
             alert('บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง')
@@ -140,11 +152,18 @@ const PlotSidebar = ({
     }
 
     return (
-        <div className="w-full lg:w-[480px] bg-white lg:bg-white rounded-t-[2.5rem] lg:rounded-[2.5rem] shadow-premium flex flex-col h-full border-t lg:border border-gray-100/50 overflow-hidden relative transition-all duration-500 ease-in-out">
+        <div
+            className={`w-full lg:w-[480px] bg-white lg:bg-white rounded-t-[2.5rem] lg:rounded-[2.5rem] shadow-premium flex flex-col border-t lg:border border-gray-100/50 overflow-hidden relative transition-all duration-500 ease-in-out
+                ${isCollapsed ? 'h-[100px] lg:h-full' : 'h-full'}
+            `}
+        >
 
-            {/* Mobile Drag Handle */}
-            <div className="w-full flex justify-center pt-3 pb-1 lg:hidden">
-                <div className="w-12 h-1.5 bg-[#4c7c44] rounded-full opacity-80"></div>
+            {/* Mobile Drag Handle - Click to Toggle */}
+            <div
+                className="w-full flex justify-center pt-3 pb-1 lg:hidden cursor-pointer active:opacity-50"
+                onClick={() => setIsCollapsed(!isCollapsed)}
+            >
+                <div className={`w-12 h-1.5 bg-[#4c7c44] rounded-full opacity-80 transition-all ${isCollapsed ? 'w-20' : ''}`}></div>
             </div>
 
             {/* Step Indicator */}
