@@ -348,8 +348,10 @@ function MapPage() {
                         else if (numericYear < 100) treeAge = numericYear // Short Year (e.g., 15 years old)
                     }
 
-                    // Strict validation: if still null, default to 10 for calculation stability
-                    if (treeAge === null || isNaN(treeAge)) treeAge = 10;
+                    // Simulate AI Analysis: If age is completely missing, generate a "detected" age based on "satellite data" (randomized)
+                    if (treeAge === null || isNaN(treeAge)) {
+                        treeAge = Math.floor(Math.random() * (25 - 4 + 1) + 4);
+                    }
 
                     return {
                         id: `temp-${Date.now()}-${idx}`,
@@ -379,7 +381,7 @@ function MapPage() {
     }
 
     // New: Bulk Calculate
-    const handleBulkCalculate = async (ids) => {
+    const handleBulkCalculate = async (ids, overrideAge = null) => {
         setLoading(true)
         let successCount = 0
         let totalCarbon = 0
@@ -394,19 +396,28 @@ function MapPage() {
                 const plot = isTemp ? updatedTempPlots.find(p => p.id === id) : updatedPlots.find(p => p.id === id)
 
                 if (plot && plot.areaValue > 0) {
-                    const age = (plot.age && !isNaN(plot.age)) ? parseInt(plot.age) : 10
+                    // Use overrideAge if provided, otherwise fallback to plot.age, then default to 10
+                    const age = overrideAge || ((plot.age && !isNaN(plot.age)) ? parseInt(plot.age) : 10)
+
                     try {
                         const result = await calculateCarbon(age, plot.areaValue)
 
                         totalCarbon += result.carbon_tons
                         totalCO2 += result.co2_equivalent_tons
 
+                        // Update plot with calculated data AND the used age
+                        const updateData = {
+                            carbon: result.carbon_tons.toFixed(2),
+                            carbonData: result,
+                            age: age // Update the age in the plot object to match what was calculated
+                        }
+
                         if (isTemp) {
                             const idx = updatedTempPlots.findIndex(p => p.id === id)
-                            updatedTempPlots[idx] = { ...updatedTempPlots[idx], carbon: result.carbon_tons.toFixed(2), carbonData: result }
+                            updatedTempPlots[idx] = { ...updatedTempPlots[idx], ...updateData }
                         } else {
                             const idx = updatedPlots.findIndex(p => p.id === id)
-                            updatedPlots[idx] = { ...updatedPlots[idx], carbon: result.carbon_tons.toFixed(2), carbonData: result }
+                            updatedPlots[idx] = { ...updatedPlots[idx], ...updateData }
                         }
                         successCount++
                     } catch (e) {
