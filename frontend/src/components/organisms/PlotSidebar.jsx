@@ -179,58 +179,48 @@ const PlotSidebar = ({
                 )}
             </div>
 
-            {/* Header with BrandLogo - Matching LandingPage Style */}
-            <div className="px-6 lg:px-8 py-4 border-b border-gray-100 flex-shrink-0 bg-white">
-                <div className="flex justify-between items-center">
-                    <BrandLogo mode="dark" size={28} />
-                    {step > 0 && step < 3 && (
-                        <button onClick={resetWorkflow} className="text-xs font-semibold text-gray-400 hover:text-red-500 transition-colors px-3 py-1.5 rounded-lg hover:bg-red-50">
-                            ยกเลิก
-                        </button>
-                    )}
-                </div>
-            </div>
-
-            {/* Step Indicator - Refined */}
-            <div className="px-6 lg:px-8 pt-6 pb-4 flex-shrink-0 bg-white z-10">
-                {/* Progress Bar */}
-                <div className="flex items-center gap-1.5 mb-6">
-                    {[0, 1, 2, 3].map((s) => (
-                        <div
-                            key={s}
-                            className={`h-1 flex-1 rounded-full transition-all duration-500 ${step >= s ? 'bg-[#4c7c44]' : 'bg-gray-100'}`}
-                        />
-                    ))}
-                </div>
-
-                <div className="flex justify-between items-end">
-                    <div>
-                        <p className="text-[10px] font-bold text-[#4c7c44] uppercase tracking-[2px] mb-1.5 flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#4c7c44]" />
-                            ขั้นตอนที่ {step + 1} / 4
-                        </p>
-                        <h2 className="text-xl lg:text-2xl font-bold text-[#2d4a27] tracking-tight">
-                            {step === 0 && "เลือกวิธีนำเข้าข้อมูล"}
-                            {step === 1 && (method === 'draw' ? "ลงทะเบียนแปลง" : "เลือกแปลงที่นำเข้า")}
-                            {step === 2 && "สรุปผลการประเมิน"}
-                            {step === 3 && "บันทึกเรียบร้อย"}
-                        </h2>
+            {/* Step Indicator Section - Clean & Simple */}
+            <div className="px-6 lg:px-10 pt-10 pb-2 flex-shrink-0 bg-white z-10">
+                <div className="flex flex-col gap-8">
+                    {/* 4 Segment Progress Bar */}
+                    <div className="flex gap-2">
+                        {[0, 1, 2, 3].map((s) => (
+                            <div
+                                key={s}
+                                className={`h-1 w-12 rounded-full transition-all duration-500 ${step >= s ? 'bg-[#2d992c]' : 'bg-gray-100'}`}
+                            />
+                        ))}
                     </div>
-                    {step > 0 && step < 3 && (
-                        <button
-                            onClick={handleBack}
-                            className="text-xs font-semibold text-[#4c7c44] hover:bg-[#eef2e6] px-4 py-2 rounded-xl border border-[#e0e7d5] transition-all flex items-center gap-1"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                            </svg>
-                            ย้อนกลับ
-                        </button>
-                    )}
+
+                    <div className="flex justify-between items-end">
+                        <div className="flex flex-col">
+                            <p className="text-[10px] font-black text-[#2d992c] uppercase tracking-[3px] mb-2 leading-none opacity-90">
+                                STEP 0{step + 1}
+                            </p>
+                            <h2 className="text-3xl lg:text-4xl font-black text-[#2d4a27] tracking-tighter leading-none">
+                                {step === 0 && 'เริ่มต้นใช้งาน'}
+                                {step === 1 && (method === 'draw' ? "ลงทะเบียนเเปลง" : "เลือกเเปลงที่นำเข้า")}
+                                {step === 2 && "สรุปผลการประเมิน"}
+                                {step === 3 && "บันทึกเรียบร้อย"}
+                            </h2>
+                        </div>
+                        {step > 0 && step < 3 && (
+                            <button
+                                onClick={handleBack}
+                                className="mb-1 text-xs font-bold text-gray-400 hover:text-[#2d992c] transition-all flex items-center gap-1 group"
+                            >
+                                <svg className="w-4 h-4 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7" />
+                                </svg>
+                                ย้อนกลับ
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
 
-            <div className="p-6 lg:p-10 flex-1 flex flex-col overflow-y-auto overflow-x-hidden scrollbar-hide pb-24 lg:pb-10">
+            {/* Adjusting the content area top padding to control the gap below "เริ่มต้นใช้งาน" */}
+            <div className="px-6 lg:px-10 pt-6 flex-1 flex flex-col overflow-y-auto overflow-x-hidden scrollbar-hide pb-24 lg:pb-10">
 
                 {/* STEP 0: METHOD SELECTION */}
                 {step === 0 && (
