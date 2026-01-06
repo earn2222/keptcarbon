@@ -153,17 +153,30 @@ const PlotSidebar = ({
 
     return (
         <div
-            className={`w-full lg:w-[480px] bg-white lg:bg-white rounded-t-[2.5rem] lg:rounded-[2.5rem] shadow-premium flex flex-col border-t lg:border border-gray-100/50 overflow-hidden relative transition-all duration-500 ease-in-out
-                ${isCollapsed ? 'h-[100px] lg:h-full' : 'h-full'}
+            className={`w-full lg:w-[480px] bg-white lg:bg-white rounded-t-[2.5rem] lg:rounded-[2.5rem] shadow-premium flex flex-col border-t lg:border border-gray-100/50 overflow-hidden relative transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]
+                ${isCollapsed ? 'h-[60px] lg:h-full' : 'h-[75vh] lg:h-full'}
             `}
         >
 
-            {/* Mobile Drag Handle - Click to Toggle */}
+            {/* Mobile Drag Handle & Close Button */}
             <div
-                className="w-full flex justify-center pt-3 pb-1 lg:hidden cursor-pointer active:opacity-50"
+                className="w-full flex items-center justify-center pt-3 pb-1 lg:hidden relative cursor-pointer active:opacity-50"
                 onClick={() => setIsCollapsed(!isCollapsed)}
             >
-                <div className={`w-12 h-1.5 bg-[#4c7c44] rounded-full opacity-80 transition-all ${isCollapsed ? 'w-20' : ''}`}></div>
+                <div className={`w-12 h-1.5 bg-[#4c7c44]/20 rounded-full transition-all ${isCollapsed ? 'w-12' : 'w-12'}`}></div>
+
+                {/* Mobile Close Button (Visible when expanded) */}
+                {!isCollapsed && (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setIsCollapsed(true);
+                        }}
+                        className="absolute right-6 top-3 p-2 bg-gray-100 rounded-full text-gray-400 hover:bg-gray-200 transition-colors"
+                    >
+                        <ChevronRightIcon size={20} className="rotate-90" />
+                    </button>
+                )}
             </div>
 
             {/* Step Indicator */}
@@ -178,7 +191,7 @@ const PlotSidebar = ({
                     <div>
                         <p className="text-[10px] font-bold text-[#4c7c44] uppercase tracking-[3px] mb-1">ขั้นตอนที่ {step + 1}</p>
                         <h2 className="text-xl lg:text-2xl font-black text-[#1b301a] tracking-tight">
-                            {step === 0 && "เลือกวิธีการระบุพิกัด"}
+                            {step === 0 && "เลือกวิธีการนำเข้าข้อมูลเเปลง"}
                             {step === 1 && (method === 'draw' ? "ลงทะเบียนเเปลง" : "เลือกเเปลงที่นำเข้า")}
                             {step === 2 && "สรุปผลการประเมิน"}
                             {step === 3 && "บันทึกเรียบร้อย"}
@@ -236,7 +249,7 @@ const PlotSidebar = ({
                                     </div>
                                     <div>
                                         <h3 className="text-lg font-bold tracking-tight text-[#2d4a27] group-active:translate-x-1 transition-transform duration-300">นำเข้าไฟล์ SHP</h3>
-                                        <p className="text-[10px] text-gray-400 font-medium uppercase tracking-widest mt-0.5">ใช้พิกัดมาตรฐานจากโปรแกรม GIS</p>
+                                        <p className="text-[10px] text-gray-400 font-medium uppercase tracking-widest mt-0.5">ใช้ฐ</p>
                                     </div>
                                 </div>
                                 <div className="absolute -bottom-6 -right-6 opacity-[0.03] group-hover:opacity-[0.08] group-hover:scale-125 group-hover:-rotate-12 transition-all duration-500 ease-out">
@@ -492,7 +505,7 @@ const PlotSidebar = ({
                                                                 <span className="text-6xl font-bold text-[#2d4a27] tracking-tighter">
                                                                     {carbonVal || '0.00'}
                                                                 </span>
-                                                                <span className="text-xl font-bold text-[#4c7c44] uppercase">ตััน</span>
+                                                                <span className="text-xl font-bold text-[#4c7c44] uppercase">ตัน</span>
                                                             </div>
                                                             <div className="absolute -top-10 -right-4 opacity-[0.05] grayscale brightness-0 pointer-events-none">
                                                                 <LeafIcon size={180} />

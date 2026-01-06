@@ -1,47 +1,41 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { LeafIcon } from './Icons'
 
 /**
- * BrandLogo - Unified premium brand identity component
- * @param {string} mode - 'light', 'dark', or 'white'
- * @param {number} size - Icon size
- * @param {boolean} showText - Whether to show text
- * @param {string} className - Optional container class
+ * BrandLogo - Professional layout with Image + Styled Text identity
  */
 const BrandLogo = ({ mode = 'dark', size = 32, showText = true, className = '' }) => {
-    const isDark = mode === 'dark';
+    const logoSrc = "/logo.jpg";
     const isWhite = mode === 'white';
+
+    // Brand Colors from the logo
+    const blueColor = "#0077c0";
+    const greenColor = "#2d992c";
 
     return (
         <Link
             to="/"
-            className={`flex items-center gap-4 group transition-all duration-300 active:scale-95 no-underline ${className}`}
+            className={`flex items-center gap-3 group transition-all duration-300 active:scale-95 no-underline ${className}`}
         >
-            <div className={`
-                relative flex items-center justify-center rounded-[1rem] transition-all duration-500 overflow-hidden
-                group-hover:shadow-[0_8px_20px_rgba(76,124,68,0.2)] group-hover:rotate-[-4deg]
-                ${isWhite ? 'bg-white text-[#4c7c44]' : 'bg-[#4c7c44] text-white shadow-lg shadow-[#4c7c44]/10'}
-                ${size > 40 ? 'w-16 h-16 p-3.5' : 'w-11 h-11 p-2.5'}
-            `}>
-                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <LeafIcon size={size} />
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-white/20 rounded-full blur-sm group-hover:scale-150 transition-transform"></div>
+            {/* Logo Image Container */}
+            <div className={`relative flex items-center justify-center overflow-hidden transition-transform duration-500 group-hover:scale-105 ${size > 40 ? 'h-16' : 'h-11'}`}>
+                <img
+                    src={logoSrc}
+                    alt="Kept Carbon"
+                    className="h-full w-auto object-contain"
+                />
             </div>
 
+            {/* Brand Text Identity */}
             {showText && (
-                <div className="flex flex-col leading-none font-sans">
-                    <span className={`
-                        text-xl font-black tracking-[-1px] mb-0.5 transition-colors duration-300
-                        ${isWhite ? 'text-white' : isDark ? 'text-[#2d4a27]' : 'text-white'}
-                        group-hover:text-[#4c7c44]
-                    `}>
-                        KEPT CARBON
-                    </span>
-                    <span className={`
-                        text-[0.6rem] font-bold tracking-[1px] opacity-60
-                        ${isWhite ? 'text-white/70' : 'text-[#4c7c44]'}
-                    `}>
+                <div className="flex flex-col leading-none">
+                    <div className="flex items-baseline gap-[1px]">
+                        <span className="text-xl font-black tracking-tight" style={{ color: blueColor }}>KEPT</span>
+                        <span className="text-xl font-black tracking-tight ml-1" style={{ color: greenColor }}>CARBON</span>
+                    </div>
+                    <span
+                        className={`text-[0.65rem] font-bold tracking-[0.5px] mt-0.5 opacity-80 ${isWhite ? 'text-white' : 'text-gray-500'}`}
+                    >
                         ระบบประเมินการกักเก็บคาร์บอน
                     </span>
                 </div>
