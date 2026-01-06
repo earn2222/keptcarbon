@@ -163,7 +163,7 @@ const PlotSidebar = ({
                 className="w-full flex items-center justify-center pt-3 pb-1 lg:hidden relative cursor-pointer active:opacity-50"
                 onClick={() => setIsCollapsed(!isCollapsed)}
             >
-                <div className={`w-12 h-1.5 bg-[#4c7c44]/20 rounded-full transition-all ${isCollapsed ? 'w-12' : 'w-12'}`}></div>
+                <div className={`w-12 h-1 bg-gray-300 rounded-full transition-all ${isCollapsed ? 'w-12' : 'w-12'}`}></div>
 
                 {/* Mobile Close Button (Visible when expanded) */}
                 {!isCollapsed && (
@@ -183,7 +183,7 @@ const PlotSidebar = ({
             <div className="px-6 lg:px-10 pt-4 lg:pt-10 pb-2 lg:pb-4 flex-shrink-0 bg-white z-10">
                 <div className="flex items-center gap-2 lg:gap-3 mb-4 lg:mb-8">
                     {[0, 1, 2, 3].map((s) => (
-                        <div key={s} className={`h-1 lg:h-1.5 flex-1 rounded-full transition-all duration-700 ${step >= s ? 'bg-[#4c7c44] shadow-[0_0_10px_rgba(76,124,68,0.2)]' : 'bg-gray-100'}`}></div>
+                        <div key={s} className={`h-1 lg:h-1 flex-1 rounded-full transition-all duration-700 ${step >= s ? 'bg-gray-400' : 'bg-gray-100'}`}></div>
                     ))}
                 </div>
 
@@ -249,7 +249,7 @@ const PlotSidebar = ({
                                     </div>
                                     <div>
                                         <h3 className="text-lg font-bold tracking-tight text-[#2d4a27] group-active:translate-x-1 transition-transform duration-300">นำเข้าไฟล์ SHP</h3>
-                                        <p className="text-[10px] text-gray-400 font-medium uppercase tracking-widest mt-0.5">ใช้ฐ</p>
+                                        <p className="text-[10px] text-gray-400 font-medium uppercase tracking-widest mt-0.5">ใช้ฐานข้อมูล SHP</p>
                                     </div>
                                 </div>
                                 <div className="absolute -bottom-6 -right-6 opacity-[0.03] group-hover:opacity-[0.08] group-hover:scale-125 group-hover:-rotate-12 transition-all duration-500 ease-out">
