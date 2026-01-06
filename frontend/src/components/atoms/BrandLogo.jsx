@@ -9,8 +9,8 @@ const BrandLogo = ({ mode = 'dark', size = 32, showText = true, className = '' }
     const isWhite = mode === 'white';
 
     // Brand Colors from the logo
-    const blueColor = "#0077c0";
-    const greenColor = "#2d992c";
+    const blueColor = "#4C7C44";
+    const greenColor = "#4C7C44";
 
     return (
         <Link

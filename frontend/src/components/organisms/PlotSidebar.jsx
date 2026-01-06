@@ -187,7 +187,7 @@ const PlotSidebar = ({
                         {[0, 1, 2, 3].map((s) => (
                             <div
                                 key={s}
-                                className={`h-1 w-12 rounded-full transition-all duration-500 ${step >= s ? 'bg-[#2d992c]' : 'bg-gray-100'}`}
+                                className={`h-1 flex-1 rounded-full transition-all duration-500 ${step >= s ? 'bg-[#2d992c]' : 'bg-gray-100'}`}
                             />
                         ))}
                     </div>
