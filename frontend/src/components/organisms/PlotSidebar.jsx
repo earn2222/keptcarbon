@@ -45,8 +45,9 @@ const PlotSidebar = ({
 
     const [isCollapsed, setIsCollapsed] = useState(false)
 
-    const currentYear = new Date().getFullYear();
-    const treeAge = 10; // Default auto-age
+    const currentYearAD = new Date().getFullYear();
+    const currentYearBE = currentYearAD + 543;
+    const yearsList = Array.from({ length: 35 }, (_, i) => currentYearBE - i);
 
     // Auto-expand when area is selected (drawing finished)
     useEffect(() => {
@@ -89,6 +90,8 @@ const PlotSidebar = ({
     const handleStartManual = () => {
         setMethod('draw')
         setStep(1)
+        setPlantingYear('')
+        setSelectedAge(10)
         setIsCollapsed(true)
         if (onDrawingStepChange) onDrawingStepChange('drawing')
     }
@@ -96,6 +99,8 @@ const PlotSidebar = ({
     const handleStartShp = () => {
         setMethod('shp')
         setStep(1)
+        setPlantingYear('')
+        setSelectedAge(10)
         if (onDrawingStepChange) onDrawingStepChange('idle')
     }
 
@@ -109,7 +114,8 @@ const PlotSidebar = ({
 
     const handleBulkCalculateShp = async () => {
         if (onBulkCalculate && selectedPlotIds.length > 0) {
-            await onBulkCalculate(selectedPlotIds)
+            // Only pass selectedAge if user actually picked a year, otherwise let backend/file decide
+            await onBulkCalculate(selectedPlotIds, plantingYear ? selectedAge : null)
             setStep(2)
         }
     }
@@ -130,7 +136,7 @@ const PlotSidebar = ({
             if (method === 'draw') {
                 await onSavePlot({
                     name: plotName,
-                    year: currentYear - selectedAge,
+                    year: plantingYear ? parseInt(plantingYear) - 543 : currentYearAD - selectedAge,
                     area: selectedAreaRai,
                     carbonData: calculationResult
                 })
@@ -309,8 +315,10 @@ const PlotSidebar = ({
                                                         {plot.source === 'shp' ? 'SHP' : 'วาดเอง'}
                                                     </span>
                                                 </div>
-                                                <div className="mt-0.5">
+                                                <div className="mt-0.5 flex items-center gap-2">
                                                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">{plot.area}</p>
+                                                    <span className="w-1 h-1 rounded-full bg-gray-200"></span>
+                                                    <p className="text-[10px] text-[#4c7c44] font-bold uppercase tracking-tight">อายุ {plot.age || 0} ปี</p>
                                                 </div>
                                             </div>
                                             <div className="text-right">
@@ -363,31 +371,43 @@ const PlotSidebar = ({
                                             onChange={(e) => setPlotName(e.target.value)}
                                         />
                                     </div>
-                                    <div className="space-y-3">
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-2">อายุต้นยางพารา (ประเมิน)</p>
-                                        <div className="grid grid-cols-4 gap-3">
-                                            {[
-                                                { val: 5, label: '1-5 ปี', size: 16 },
-                                                { val: 10, label: '6-10 ปี', size: 20 },
-                                                { val: 15, label: '11-15 ปี', size: 24 },
-                                                { val: 20, label: '16+ ปี', size: 28 }
-                                            ].map((ageOption) => (
-                                                <div
-                                                    key={ageOption.val}
-                                                    onClick={() => setSelectedAge(ageOption.val)}
-                                                    className={`
-                                                        p-4 rounded-[1.5rem] border transition-all cursor-pointer flex flex-col items-center gap-2 group/age
-                                                        ${selectedAge === ageOption.val
-                                                            ? 'bg-[#4c7c44] border-[#4c7c44] text-white shadow-lg shadow-[#4c7c44]/20'
-                                                            : 'bg-gray-50 border-gray-100 text-gray-400 hover:bg-white hover:border-[#4c7c44]/30'}
-                                                    `}
+                                    <div className="space-y-6">
+                                        <div className="space-y-2">
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-2">ปีที่เริ่มปลูก (พ.ศ.)</p>
+                                            <div className="relative">
+                                                <select
+                                                    className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-[#2d4a27] focus:bg-white focus:border-[#4c7c44]/20 transition-all outline-none appearance-none"
+                                                    value={plantingYear}
+                                                    onChange={(e) => {
+                                                        const year = e.target.value;
+                                                        setPlantingYear(year);
+                                                        if (year) {
+                                                            const age = currentYearBE - parseInt(year);
+                                                            setSelectedAge(age > 0 ? age : 1);
+                                                        }
+                                                    }}
                                                 >
-                                                    <TreeIcon size={ageOption.size} className={`${selectedAge === ageOption.val ? 'text-white' : 'text-[#4c7c44]/40 group-hover/age:text-[#4c7c44]'} transition-colors`} />
-                                                    <span className={`text-[9px] font-black uppercase tracking-tighter ${selectedAge === ageOption.val ? 'text-white/80' : 'text-gray-300'}`}>
-                                                        {ageOption.label}
-                                                    </span>
+                                                    <option value="">เลือกปีที่ปลูก</option>
+                                                    {yearsList.map(y => (
+                                                        <option key={y} value={y}>{y}</option>
+                                                    ))}
+                                                </select>
+                                                <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                                    <ChevronRightIcon size={16} className="rotate-90" />
                                                 </div>
-                                            ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-3 p-4 bg-[#eef2e6] rounded-2xl border border-[#4c7c44]/10">
+                                            <div className="w-10 h-10 rounded-xl bg-[#4c7c44] flex items-center justify-center text-white">
+                                                <TreeIcon size={20} />
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">อายุต้นยางพารา</p>
+                                                <p className="text-sm font-bold text-[#2d4a27]">
+                                                    {plantingYear ? `${selectedAge} ปี` : 'กรุณาเลือกปีที่ปลูก'}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -406,7 +426,7 @@ const PlotSidebar = ({
                             <button
                                 className="w-full py-5 bg-[#4c7c44] text-white rounded-[2rem] font-bold text-sm shadow-xl shadow-[#4c7c44]/20 flex items-center justify-center gap-3 active:scale-[0.98] transition-all disabled:opacity-20 disabled:grayscale disabled:pointer-events-none"
                                 onClick={handleCalculateManual}
-                                disabled={!plotName || selectedAreaRai <= 0}
+                                disabled={!plotName || selectedAreaRai <= 0 || !plantingYear}
                             >
                                 เริ่มการคำนวณคาร์บอน
                                 <ArrowRightIcon size={20} />
@@ -437,7 +457,22 @@ const PlotSidebar = ({
                             <table className="w-full">
                                 <thead className="bg-white border-b border-gray-100 sticky top-0 z-10">
                                     <tr>
-                                        <th className="p-4 w-12"></th>
+                                        <th className="p-4 w-12 text-center">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const availablePlots = plots.filter(p => !p.isSaved);
+                                                    if (selectedPlotIds.length === availablePlots.length) {
+                                                        setSelectedPlotIds([]);
+                                                    } else {
+                                                        setSelectedPlotIds(availablePlots.map(p => p.id));
+                                                    }
+                                                }}
+                                                className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all mx-auto ${selectedPlotIds.length === plots.filter(p => !p.isSaved).length && selectedPlotIds.length > 0 ? 'bg-[#4c7c44] border-[#4c7c44] shadow-sm' : 'border-gray-200'}`}
+                                            >
+                                                {selectedPlotIds.length === plots.filter(p => !p.isSaved).length && selectedPlotIds.length > 0 && <CheckIcon size={12} className="text-white" />}
+                                            </button>
+                                        </th>
                                         <th className="p-4 text-left text-[9px] font-bold text-gray-400 uppercase tracking-widest">ข้อมูลเเปลง</th>
                                         <th className="p-4 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">ขนาดพื้นที่</th>
                                     </tr>
@@ -465,6 +500,34 @@ const PlotSidebar = ({
                                     ))}
                                 </tbody>
                             </table>
+                        </div>
+
+                        <div className="space-y-4 mb-6">
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-2">ระบุปีที่เริ่มปลูกสำหรับทั้งกลุ่ม (พ.ศ.)</p>
+                                <div className="relative">
+                                    <select
+                                        className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-[#2d4a27] focus:bg-white focus:border-[#4c7c44]/20 transition-all outline-none appearance-none"
+                                        value={plantingYear}
+                                        onChange={(e) => {
+                                            const year = e.target.value;
+                                            setPlantingYear(year);
+                                            if (year) {
+                                                const age = currentYearBE - parseInt(year);
+                                                setSelectedAge(age > 0 ? age : 1);
+                                            }
+                                        }}
+                                    >
+                                        <option value="">ใช้ตามข้อมูลในไฟล์ (ถ้ามี)</option>
+                                        {yearsList.map(y => (
+                                            <option key={y} value={y}>{y}</option>
+                                        ))}
+                                    </select>
+                                    <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                        <ChevronRightIcon size={16} className="rotate-90" />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <button
@@ -528,7 +591,7 @@ const PlotSidebar = ({
                                                             <div className="w-[1px] h-8 bg-gray-200"></div>
                                                             <div className="text-right">
                                                                 <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5">อายุยางที่ใช้</p>
-                                                                <p className="text-xl font-bold text-[#2d4a27] tracking-tight">{method === 'draw' ? treeAge : plot?.age} <span className="text-[10px] text-gray-300 font-bold ml-1 uppercase leading-none">ปี</span></p>
+                                                                <p className="text-xl font-bold text-[#2d4a27] tracking-tight">{selectedAge} <span className="text-[10px] text-gray-300 font-bold ml-1 uppercase leading-none">ปี</span></p>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -546,8 +609,17 @@ const PlotSidebar = ({
                                             {plot.source === 'shp' ? <LayersIcon size={20} /> : <LeafIcon size={24} />}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <h4 className="font-bold text-[#2d4a27] text-sm truncate">{plot.name}</h4>
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight mt-0.5">{plot.area}</p>
+                                            <div className="flex items-center gap-2">
+                                                <h4 className="font-bold text-[#2d4a27] text-sm truncate">{plot.name}</h4>
+                                                <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-tighter ${plot.source === 'shp' ? 'bg-sky-100 text-sky-700' : 'bg-[#eef2e6] text-[#4c7c44]'}`}>
+                                                    {plot.source === 'shp' ? 'SHP' : 'วาดเอง'}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">{plot.area}</p>
+                                                <span className="w-1 h-1 rounded-full bg-gray-200"></span>
+                                                <p className="text-[10px] font-bold text-[#4c7c44] uppercase tracking-tight">อายุ {plot.age} ปี</p>
+                                            </div>
                                         </div>
                                         <div className="text-right">
                                             <div className="text-base font-bold text-[#4c7c44] leading-tight flex items-center justify-end gap-1">

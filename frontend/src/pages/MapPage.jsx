@@ -175,7 +175,7 @@ function MapPage() {
                 geometry: p.geometry,
                 carbon: p.carbon_tons ? p.carbon_tons.toFixed(2) : null,
                 isSaved: true,
-                source: 'manual' // Added source for saved plots
+                source: p.notes && p.notes.includes('SHP') ? 'shp' : 'manual'
             }));
             setPlots(mappedPlots);
         } catch (error) {
@@ -405,11 +405,13 @@ function MapPage() {
                         totalCarbon += result.carbon_tons
                         totalCO2 += result.co2_equivalent_tons
 
-                        // Update plot with calculated data AND the used age
+                        // Update plot with calculated data AND the used age/year
+                        const currentYear = new Date().getFullYear()
                         const updateData = {
                             carbon: result.carbon_tons.toFixed(2),
                             carbonData: result,
-                            age: age // Update the age in the plot object to match what was calculated
+                            age: age,
+                            year: currentYear - age // Store A.D. year
                         }
 
                         if (isTemp) {
