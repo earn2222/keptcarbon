@@ -273,14 +273,14 @@ const PlotSidebar = ({
 
     const goToShpSummary = () => {
         if (confirmedShpIds.length > 0) {
-            setStep(2);
+            setSubStep('summary');
         }
     }
 
     const startShpCalculation = async () => {
         if (onBulkCalculate && confirmedShpIds.length > 0) {
             await onBulkCalculate(confirmedShpIds, null, null, null, null)
-            setStep(3) // Move to results
+            setStep(2) // Move to results (Matches manual)
         }
     }
 
@@ -313,7 +313,7 @@ const PlotSidebar = ({
 
         await onSaveAll(ids);
         setShowSummary(false);
-        setStep(method === 'draw' ? 3 : 4);
+        setStep(3); // Final success step for both
     }
 
     const handleBack = () => {
@@ -362,7 +362,7 @@ const PlotSidebar = ({
                 <div className="flex flex-col gap-8">
                     {/* Progress Bar (Dynamic segments) */}
                     <div className="flex gap-2">
-                        {(method === 'shp' ? [0, 1, 2, 3, 4] : [0, 1, 2, 3]).map((s) => (
+                        {[0, 1, 2, 3].map((s) => (
                             <div
                                 key={s}
                                 className={`h-1 flex-1 rounded-full transition-all duration-500 ${step >= s ? 'bg-[#2d992c]' : 'bg-gray-100'}`}
@@ -378,12 +378,9 @@ const PlotSidebar = ({
                             <h2 className="text-3xl lg:text-4xl font-black text-[#2d4a27] tracking-tighter leading-none">
                                 {step === 0 && 'เริ่มต้นใช้งาน'}
                                 {step === 1 && method === 'draw' && (subStep === 'list' ? "รายการเเปลง" : (selectedPlotId ? "แก้ไขข้อมูล" : "วาดเเปลงใหม่"))}
-                                {step === 1 && method === 'shp' && (subStep === 'edit' ? "แก้ไขข้อมูลแปลง" : "เลือกเเปลงที่นำเข้า")}
-                                {step === 2 && method === 'shp' && "ตั้งค่ารายเเปลง"}
-                                {step === 2 && method === 'draw' && "สรุปผลการประเมิน"}
-                                {step === 3 && method === 'shp' && "สรุปผลการประเมิน"}
-                                {step === 3 && method === 'draw' && "บันทึกเรียบร้อย"}
-                                {step === 4 && "บันทึกเรียบร้อย"}
+                                {step === 1 && method === 'shp' && (subStep === 'summary' ? "ตั้งค่ารายเเปลง" : (subStep === 'edit' ? "แก้ไขข้อมูลแปลง" : "เลือกเเปลงที่นำเข้า"))}
+                                {step === 2 && "สรุปผลการประเมิน"}
+                                {step === 3 && "บันทึกเรียบร้อย"}
                             </h2>
                         </div>
                         {step > 0 && step < 3 && (
@@ -975,98 +972,89 @@ const PlotSidebar = ({
                     )
                 }
 
-                {/* STEP 2: SHP CONFIG SUMMARY */}
-                {
-                    step === 2 && method === 'shp' && (
-                        <div className="flex flex-col animate-fadeIn">
-                            {/* Summary Header */}
-                            <div className="p-6 bg-[#f0f9ff] border border-sky-100 rounded-[2.5rem] mb-6">
-                                <p className="text-sm font-bold text-sky-700 leading-relaxed">
-                                    ตรวจสอบรายการและเลือกวิธีการคำนวณสำหรับแต่ละแปลง ({confirmedShpIds.length} แปลง)
-                                </p>
-                            </div>
+                {/* STEP 1: SHP CONFIG SUMMARY (Sub-step of Step 1 now) */}
+                {step === 1 && method === 'shp' && subStep === 'summary' && (
+                    <div className="flex flex-col animate-fadeIn">
+                        <div className="p-6 bg-[#f0f9ff] border border-sky-100 rounded-[2.5rem] mb-6">
+                            <p className="text-sm font-bold text-sky-700 leading-relaxed">
+                                ตรวจสอบรายการและเลือกวิธีการคำนวณสำหรับแต่ละแปลง ({confirmedShpIds.length} แปลง)
+                            </p>
+                        </div>
 
-                            {/* Plots Config List */}
-                            <div className="space-y-4 mb-8">
-                                {plots.filter(p => confirmedShpIds.includes(p.id)).map((plot, idx) => (
-                                    <div key={plot.id} className="p-5 bg-white border border-gray-100 rounded-[2.5rem] shadow-sm flex flex-col gap-4">
-                                        <div className="flex justify-between items-start">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-sky-50 rounded-xl flex items-center justify-center text-sky-600 border border-sky-100">
-                                                    <MapPinIcon size={20} />
-                                                </div>
-                                                <div>
-                                                    <h4 className="font-bold text-[#2d4a27] leading-tight">{plot.name}</h4>
-                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">{plot.area}</p>
-                                                </div>
+                        <div className="space-y-4 mb-8 overflow-y-auto scrollbar-hide">
+                            {plots.filter(p => confirmedShpIds.includes(p.id)).map((plot) => (
+                                <div key={plot.id} className="p-5 bg-white border border-gray-100 rounded-[2.5rem] shadow-sm flex flex-col gap-4">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-sky-50 rounded-xl flex items-center justify-center text-sky-600 border border-sky-100">
+                                                <MapPinIcon size={20} />
                                             </div>
-                                            <div className="flex items-center gap-1">
-                                                <button
-                                                    onClick={() => {
-                                                        setOriginStep(2);
-                                                        setStep(1);
-                                                        startEditPlot(plot);
-                                                    }}
-                                                    className="p-2 text-gray-400 hover:text-[#4c7c44] hover:bg-green-50 rounded-full transition-colors"
-                                                    title="แก้ไข"
-                                                >
-                                                    <PencilIcon size={16} />
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        setConfirmedShpIds(prev => prev.filter(id => id !== plot.id));
-                                                    }}
-                                                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                                                    title="ลบออกจากรายการ"
-                                                >
-                                                    <TrashIcon size={16} />
-                                                </button>
+                                            <div>
+                                                <h4 className="font-bold text-[#2d4a27] leading-tight text-sm">{plot.name}</h4>
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">{plot.area}</p>
                                             </div>
                                         </div>
-
-                                        <div className="flex items-center flex-wrap gap-4 pl-1 pt-3 border-t border-gray-50 mt-1">
-                                            <div className="flex items-center gap-1.5">
-                                                <TreeIcon size={12} className="text-[#4c7c44]" />
-                                                <span className="text-[10px] font-bold text-gray-500">อายุ {plot.age || '?'} ปี</span>
-                                            </div>
-                                            <div className="flex items-center gap-1.5">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
-                                                <span className="text-[10px] font-bold text-gray-500">{plot.year ? `ปีปลูก ${plot.year}` : 'ไม่ระบุปี'}</span>
-                                            </div>
-                                            <div className="flex items-center gap-1.5 ml-auto">
-                                                <span className="px-2.5 py-1 bg-[#4c7c44]/5 text-[#4c7c44] text-[9px] font-black rounded-lg uppercase tracking-tight">
-                                                    {plot.calculationMethod === 'doa' ? 'วิธีที่ 2 (DoA)' : plot.calculationMethod === 'research' ? 'วิธีที่ 3 (Res.)' : 'วิธีที่ 1 (TGO)'}
-                                                </span>
-                                            </div>
+                                        <div className="flex items-center gap-1">
+                                            <button
+                                                onClick={() => {
+                                                    setOriginStep(1);
+                                                    setStep(1);
+                                                    startEditPlot(plot);
+                                                }}
+                                                className="p-2 text-gray-400 hover:text-[#4c7c44] hover:bg-green-50 rounded-full transition-colors"
+                                            >
+                                                <PencilIcon size={16} />
+                                            </button>
+                                            <button
+                                                onClick={() => setConfirmedShpIds(prev => prev.filter(id => id !== plot.id))}
+                                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                            >
+                                                <TrashIcon size={16} />
+                                            </button>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-
-                            <div className="mt-auto space-y-3 pt-4 border-t border-gray-100 mb-6">
-                                <button
-                                    onClick={() => setStep(1)}
-                                    className="w-full py-4 bg-white border-2 border-[#4c7c44] border-dashed text-[#4c7c44] rounded-[2rem] font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#f0fdf4] transition-all"
-                                >
-                                    <PlusIcon size={18} />
-                                    จัดการแปลงอื่นเพิ่ม
-                                </button>
-                                <button
-                                    className="w-full py-5 bg-[#4c7c44] text-white rounded-[2rem] font-bold text-sm shadow-xl shadow-[#4c7c44]/20 flex items-center justify-center gap-3 active:scale-[0.98] transition-all disabled:opacity-30"
-                                    onClick={startShpCalculation}
-                                    disabled={confirmedShpIds.length === 0}
-                                >
-                                    เริ่มคำนวณคาร์บอน ({confirmedShpIds.length} แปลง)
-                                    <ArrowRightIcon size={20} />
-                                </button>
-                            </div>
+                                    <div className="flex items-center flex-wrap gap-4 pl-1 pt-3 border-t border-gray-50 mt-1">
+                                        <div className="flex items-center gap-1.5">
+                                            <TreeIcon size={12} className="text-[#4c7c44]" />
+                                            <span className="text-[10px] font-bold text-gray-500">อายุ {plot.age} ปี</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                            <div className="w-1 h-1 rounded-full bg-gray-300" />
+                                            <span className="text-[10px] font-bold text-gray-500">ปีปลูก {plot.year || plot.plantingYear || '-'}</span>
+                                        </div>
+                                        <div className="ml-auto">
+                                            <span className="px-2.5 py-1 bg-[#4c7c44]/5 text-[#4c7c44] text-[9px] font-black rounded-lg uppercase tracking-tight">
+                                                {plot.calculationMethod === 'doa' ? 'วิธีที่ 2 (DoA)' : plot.calculationMethod === 'research' ? 'วิธีที่ 3 (Res.)' : 'วิธีที่ 1 (TGO)'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
-                    )
-                }
 
-                {/* STEP 2 or 3: RESULTS (Refined) */}
+                        <div className="mt-auto space-y-3 pt-4 border-t border-gray-100 mb-6">
+                            <button
+                                onClick={() => setSubStep('list')}
+                                className="w-full py-4 bg-white border-2 border-[#4c7c44] border-dashed text-[#4c7c44] rounded-[2rem] font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#f0fdf4] transition-all"
+                            >
+                                <PlusIcon size={18} />
+                                จัดการแปลงอื่นเพิ่ม
+                            </button>
+                            <button
+                                className="w-full py-5 bg-[#4c7c44] text-white rounded-[2rem] font-bold text-sm shadow-xl shadow-[#4c7c44]/20 flex items-center justify-center gap-3 active:scale-[0.98] transition-all disabled:opacity-30"
+                                onClick={startShpCalculation}
+                                disabled={confirmedShpIds.length === 0}
+                            >
+                                เริ่มประเมินคาร์บอน ({confirmedShpIds.length} แปลง)
+                                <ArrowRightIcon size={20} />
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* STEP 2: RESULTS (Refined) */}
                 {
-                    ((step === 2 && method === 'draw') || (step === 3 && method === 'shp')) && (
+                    step === 2 && (
                         <div className="flex flex-col h-full animate-fadeIn overflow-hidden pt-4">
 
 
@@ -1213,9 +1201,9 @@ const PlotSidebar = ({
                     )
                 }
 
-                {/* STEP 3 or 4: SUCCESS SCREEN (Simplified) */}
+                {/* STEP 3: SUCCESS SCREEN (Simplified) */}
                 {
-                    ((step === 3 && method === 'draw') || (step === 4 && method === 'shp')) && (
+                    step === 3 && (
                         <div className="flex flex-col animate-fadeIn pt-10 text-center">
                             <div className="w-24 h-24 bg-[#f0fdf4] text-[#2d992c] rounded-full flex items-center justify-center mx-auto mb-8 shadow-sm">
                                 <CheckIcon size={48} strokeWidth={4} />
