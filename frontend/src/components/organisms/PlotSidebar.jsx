@@ -480,12 +480,26 @@ const PlotSidebar = ({
                                                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">{plot.area}</p>
                                                 </div>
                                             </div>
-                                            <button
-                                                onClick={() => onDeletePlot(plot.id)}
-                                                className="p-2 text-gray-300 hover:text-red-500 transition-all"
-                                            >
-                                                <TrashIcon size={16} />
-                                            </button>
+                                            <div className="flex items-center gap-1">
+                                                <button
+                                                    onClick={() => {
+                                                        setMethod(plot.source === 'shp' ? 'shp' : 'draw');
+                                                        setStep(1);
+                                                        startEditPlot(plot);
+                                                    }}
+                                                    className="p-2 text-gray-300 hover:text-[#4c7c44] hover:bg-green-50 rounded-full transition-all"
+                                                    title="แก้ไขข้อมูล"
+                                                >
+                                                    <PencilIcon size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={() => onDeletePlot(plot.id)}
+                                                    className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
+                                                    title="ลบ"
+                                                >
+                                                    <TrashIcon size={16} />
+                                                </button>
+                                            </div>
                                         </div>
                                     ))
                                 )}
