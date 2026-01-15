@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { MapContainer, TileLayer, FeatureGroup, useMap, LayersControl, GeoJSON, ZoomControl } from 'react-leaflet'
+import { InformationCircleIcon } from '../components/atoms/Icons'
 import * as L from 'leaflet'
 import '@geoman-io/leaflet-geoman-free'
 import * as turf from '@turf/turf'
 // import shp from 'shpjs'
 import { PlotSidebar } from '../components/organisms'
+import { GuideModal } from '../components/molecules'
 import { calculateCarbon, createPlot, getPlots, deletePlot } from '../services/api'
 
 // Set default icon for Leaflet
@@ -155,6 +157,22 @@ function MapPage() {
     const [currentLayer, setCurrentLayer] = useState(null)
     const [drawingStep, setDrawingStep] = useState(null) // 'idle', 'drawing'
     const [selectedPlotId, setSelectedPlotId] = useState(null)
+    const [mapInstance, setMapInstance] = useState(null) // Added mapInstance state
+    const [showGuide, setShowGuide] = useState(false) // Added showGuide state
+
+    useEffect(() => {
+        // Always show guide on mount
+        setShowGuide(true)
+        // const seen = localStorage.getItem('seenGuide_v2')
+        // if (!seen) {
+        //     setShowGuide(true)
+        // }
+    }, [])
+
+    const handleCloseGuide = () => {
+        setShowGuide(false)
+        localStorage.setItem('seenGuide_v2', 'true')
+    }
 
     // Fetch plots on mount
     useEffect(() => {
@@ -185,11 +203,13 @@ function MapPage() {
     }
 
     const handlePlotSelect = (plot) => {
-        setSelectedPlotId(plot.id)
-        if (plot.geometry) {
+        setSelectedPlotId(plot?.id || null)
+        if (plot && plot.geometry) {
             setFocusedGeometry(plot.geometry);
+            setSelectedAreaRai(plot.areaValue || 0);
         } else {
-            alert('แปลงนี้ไม่มีข้อมูลพิกัดแผนที่');
+            setFocusedGeometry(null);
+            setSelectedAreaRai(0);
         }
     }
 
@@ -241,13 +261,13 @@ function MapPage() {
         }
     }
 
-    const handleCalculate = async (age, area) => {
+    const handleCalculate = async (age, area, method = 'tgo') => {
         setLoading(true)
         try {
             // Enhanced Formula: Using standard Thai Rubber Tree Allometric approximation
             // AGB (tons/rai) ~= 1.15 * Age - 2.0 (simplified sigmoid approximation for farmers)
             // C = AGB * 0.5; CO2 = C * 3.67
-            const result = await calculateCarbon(age, area)
+            const result = await calculateCarbon(age, area, method)
 
             // If API returns result, we use it, but ensure it meets our "Farmer-Friendly" baseline if needed
             setCalculationResult(result)
@@ -316,6 +336,12 @@ function MapPage() {
 
     // New: Handle SHP Upload
     const handleShpUpload = async (file) => {
+        // Validation: File Size (< 50MB)
+        if (file.size > 50 * 1024 * 1024) {
+            alert('ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 50MB)');
+            return;
+        }
+
         setLoading(true)
         try {
             const reader = new FileReader()
@@ -369,25 +395,41 @@ function MapPage() {
                 })
 
                 setTempPlots(prev => [...prev, ...newTempPlots])
-                alert(`นำเข้าสำเร็จ ${newTempPlots.length} แปลง`)
+                alert(`นำเข้าสำเร็จ ${newTempPlots.length} แปลง! \nระบบได้ประเมินอายุยางให้เรียบร้อยแล้ว ท่านสามารถแก้ไขได้ในขั้นตอนถัดไป`)
             }
             reader.readAsArrayBuffer(file)
         } catch (err) {
             console.error(err)
-            alert('ไม่สามารถเปิดไฟล์ SHP ได้ กรุณาใช้ไฟล์ .zip ที่ประกอบด้วย .shp, .dbf, .shx')
+            const message = "ไม่สามารถอ่านไฟล์ได้ \n\nสาเหตุที่เป็นไปได้:\n1. ไม่ใช่ไฟล์ .zip\n2. ในไฟล์ .zip ขาดไฟล์ประกอบ (.shp, .dbf, .shx)\n3. ไฟล์เสียหาย\n\nคำแนะนำ: กรุณาตรวจสอบไฟล์และลองใหม่อีกครั้ง";
+            alert(message)
         } finally {
             setLoading(false)
         }
     }
 
+    // New: Update Temp Plot Data (for multi-plot manual workflow)
+    const handleUpdateTempPlot = (id, data) => {
+        setTempPlots(prev => prev.map(p => {
+            if (p.id === id) {
+                return { ...p, ...data }
+            }
+            return p
+        }))
+        // Note: Removed setSelectedPlotId(null) call to keep plot selected during/after edit
+        // Remove current layer if it exists (cleanup drawing residue)
+        if (currentLayer) {
+            currentLayer.remove()
+            setCurrentLayer(null)
+        }
+    }
+
     // New: Bulk Calculate
-    const handleBulkCalculate = async (ids, overrideAge = null) => {
+    const handleBulkCalculate = async (ids, overrideAge = null, method = null, overrideFarmerName = null, overrideVariety = null) => {
         setLoading(true)
         let successCount = 0
         let totalCarbon = 0
         let totalCO2 = 0
         try {
-            const allPlots = [...plots, ...tempPlots]
             const updatedPlots = [...plots]
             const updatedTempPlots = [...tempPlots]
 
@@ -396,22 +438,28 @@ function MapPage() {
                 const plot = isTemp ? updatedTempPlots.find(p => p.id === id) : updatedPlots.find(p => p.id === id)
 
                 if (plot && plot.areaValue > 0) {
-                    // Use overrideAge if provided, otherwise fallback to plot.age, then default to 10
+                    // 1. Determine Age: Priority overrideAge > plot.age > default 10
                     const age = overrideAge || ((plot.age && !isNaN(plot.age)) ? parseInt(plot.age) : 10)
 
+                    // 2. Determine Method: Priority method (bulk) > plot.calculationMethod > default 'tgo'
+                    const finalMethod = method || plot.calculationMethod || 'tgo'
+
                     try {
-                        const result = await calculateCarbon(age, plot.areaValue)
+                        const result = await calculateCarbon(age, plot.areaValue, finalMethod)
 
                         totalCarbon += result.carbon_tons
                         totalCO2 += result.co2_equivalent_tons
 
-                        // Update plot with calculated data AND the used age/year
+                        // Update plot with calculated data AND the used age/year/method
                         const currentYear = new Date().getFullYear()
                         const updateData = {
                             carbon: result.carbon_tons.toFixed(2),
                             carbonData: result,
                             age: age,
-                            year: currentYear - age // Store A.D. year
+                            year: currentYear - age, // Store A.D. year
+                            farmerName: overrideFarmerName || plot.farmerName,
+                            variety: overrideVariety || plot.variety,
+                            calculationMethod: finalMethod
                         }
 
                         if (isTemp) {
@@ -652,6 +700,17 @@ function MapPage() {
             {/* Sidebar Container - Bottom Sheet on Mobile */}
             <div className="absolute bottom-0 left-0 right-0 lg:static lg:h-full lg:w-auto flex flex-col justify-end z-30 pointer-events-none max-h-[85vh]">
                 <div className="w-full h-auto lg:h-full lg:w-auto shadow-[0_-10px_40px_-5px_rgba(0,0,0,0.1)] lg:shadow-none bg-transparent pointer-events-auto">
+                    {/* UI Overlay */}
+                    <div className="absolute top-10 right-8 z-[1000] flex flex-col gap-3">
+                        <button
+                            onClick={() => setShowGuide(true)}
+                            className="w-12 h-12 bg-white rounded-2xl shadow-xl flex items-center justify-center text-[#4c7c44] hover:scale-105 active:scale-95 transition-all"
+                            title="คู่มือการใช้งาน"
+                        >
+                            <InformationCircleIcon className="w-6 h-6" />
+                        </button>
+                    </div>
+
                     <PlotSidebar
                         plots={allDisplayPlots}
                         selectedAreaRai={selectedAreaRai}
@@ -661,6 +720,7 @@ function MapPage() {
                         onSavePlot={handleSavePlot}
                         onPlotSelect={handlePlotSelect}
                         onShpUpload={handleShpUpload}
+                        onUpdateTempPlot={handleUpdateTempPlot}
                         onBulkCalculate={handleBulkCalculate}
                         onSaveAll={handleSaveAllTempPlots}
                         onDeletePlot={handleDeletePlot}
@@ -669,7 +729,10 @@ function MapPage() {
                     />
                 </div>
             </div>
-        </div>
+
+
+            <GuideModal isOpen={showGuide} onClose={handleCloseGuide} />
+        </div >
     )
 }
 

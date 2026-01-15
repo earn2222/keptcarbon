@@ -1,6 +1,20 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { BrandLogo } from '../components/atoms'
+import { MapContainer, TileLayer, useMap } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
+import '@geoman-io/leaflet-geoman-free'
+import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css'
+import * as turf from '@turf/turf'
+import L from 'leaflet'
+
+// Fix Leaflet Icon
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 /**
  * Modern Responsive Landing Page for Carbon Assessment System
@@ -28,6 +42,86 @@ function LandingPage() {
         })
     }
 
+    // --- Trial Map Logic ---
+    const [trialArea, setTrialArea] = useState({ rai: 0, ngan: 0, wah: 0, totalSqM: 0 })
+    const [estimatedCarbon, setEstimatedCarbon] = useState(0)
+
+    // Geoman Control Component
+    const GeomanController = ({ setArea, setCarbon }) => {
+        const map = useMap()
+
+        useEffect(() => {
+            // Add Controls
+            map.pm.addControls({
+                position: 'topleft',
+                drawCircle: false,
+                drawCircleMarker: false,
+                drawMarker: false,
+                drawPolyline: false,
+                drawRectangle: true,
+                drawPolygon: true,
+                drawText: false,
+                cutPolygon: false,
+                rotateMode: false,
+                editMode: true,
+                dragMode: false,
+                removalMode: true
+            })
+
+            const calculateArea = () => {
+                let totalSqM = 0;
+                map.eachLayer((layer) => {
+                    if (layer instanceof L.Polygon && !layer._pmTempLayer) {
+                        const geojson = layer.toGeoJSON();
+                        totalSqM += turf.area(geojson);
+                    }
+                });
+
+                // Convert to Rai-Ngan-Wah
+                // 1 Rai = 1600 sqm, 1 Ngan = 400 sqm, 1 Wah = 4 sqm
+                const rai = Math.floor(totalSqM / 1600);
+                const remainder1 = totalSqM % 1600;
+                const ngan = Math.floor(remainder1 / 400);
+                const remainder2 = remainder1 % 400;
+                const wah = remainder2 / 4;
+
+                setArea({
+                    rai,
+                    ngan,
+                    wah: parseFloat(wah.toFixed(1)),
+                    totalSqM
+                })
+
+                // Estimate Carbon: Approx 1.2 ton/rai * Area (Just a rough estimate for trial)
+                // Total Area in Rai (float)
+                const totalRai = totalSqM / 1600;
+                setCarbon(parseFloat((totalRai * 1.2).toFixed(2)))
+            }
+
+            map.on('pm:create', (e) => {
+                calculateArea();
+                e.layer.on('pm:edit', calculateArea);
+            });
+            map.on('pm:remove', calculateArea);
+
+            return () => {
+                // map.pm.removeControls() // Can cause issues if unmounting rapidly, but safe here
+            }
+        }, [map, setArea, setCarbon])
+
+        return null
+    }
+
+    const handleTrialSave = () => {
+        if (trialArea.totalSqM <= 0) {
+            alert("กรุณาวาดแปลงอย่างน้อย 1 แปลงก่อนบันทึกข้อมูล");
+            return;
+        }
+        if (confirm("การบันทึกข้อมูลจำเป็นต้องเข้าสู่ระบบ\n\nกด 'ตกลง' เพื่อเข้าสู่ระบบหรือสมัครสมาชิก")) {
+            window.location.href = '/login'; // Or use useNavigate if available, but simple href is fine for now
+        }
+    }
+
     return (
         <div className="min-h-screen bg-white font-sans text-gray-800">
             {/* 1. Navigation */}
@@ -52,7 +146,7 @@ function LandingPage() {
                                 </svg>
                                 แดชบอร์ด
                             </Link>
-                            <Link to="/map" className="bg-[#4c7c44] text-white px-6 py-2.5 rounded-lg font-semibold flex items-center gap-2 shadow-sm hover:bg-[#3d6336] transition-all">
+                            <Link to="/login" className="bg-[#4c7c44] text-white px-6 py-2.5 rounded-lg font-semibold flex items-center gap-2 shadow-sm hover:bg-[#3d6336] transition-all">
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
                                 </svg>
@@ -61,7 +155,7 @@ function LandingPage() {
                         </div>
 
                         {/* Mobile Login Button */}
-                        <Link to="/map" className="md:hidden bg-[#4c7c44] text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm">
+                        <Link to="/login" className="md:hidden bg-[#4c7c44] text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm">
                             เข้าสู่ระบบ
                         </Link>
                     </div>
@@ -129,6 +223,121 @@ function LandingPage() {
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* NEW: Trial Map Section (Embedded) */}
+            <section id="trial-map" className="py-20 bg-white border-b border-gray-100 scroll-mt-20">
+                <div className="container-responsive">
+                    <div className="flex flex-col md:flex-row gap-12 items-start">
+                        {/* Map Area */}
+                        <div className="w-full md:w-2/3">
+                            <div className="bg-gray-100 rounded-[32px] overflow-hidden shadow-lg border border-gray-200 h-[500px] relative z-0">
+                                <MapContainer
+                                    center={[13.7563, 100.5018]}
+                                    zoom={6}
+                                    scrollWheelZoom={false}
+                                    style={{ height: '100%', width: '100%' }}
+                                    className="z-0"
+                                >
+                                    <TileLayer
+                                        attribution='&copy; <a href="https://www.google.com/help/terms_maps/">Google</a>'
+                                        url="http://mt0.google.com/vt/lyrs=y&hl=en&x={x}&y={y}&z={z}"
+                                    />
+                                    <GeomanController setArea={setTrialArea} setCarbon={setEstimatedCarbon} />
+                                </MapContainer>
+
+                                {/* Overlay Badge */}
+                                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-4 py-2 rounded-xl text-xs font-bold text-[#4c7c44] shadow-sm z-[400]">
+                                    Trial Mode (Beta)
+                                </div>
+                            </div>
+                            <p className="text-gray-400 text-sm mt-4 text-center">
+                                * คลิกที่เครื่องมือด้านบนซ้ายของแผนที่เพื่อเริ่มวาดแปลง (สี่เหลี่ยม หรือ หลายเหลี่ยม)
+                            </p>
+                        </div>
+
+                        {/* Controls & Stats */}
+                        <div className="w-full md:w-1/3 space-y-8">
+                            <div>
+                                <h3 className="text-3xl font-bold text-[#2d4a27] mb-2">ทดลองประเมิน</h3>
+                                <p className="text-gray-500 font-medium">
+                                    ลองวาดแปลงของคุณเพื่อดูศักยภาพการกักเก็บคาร์บอนเบื้องต้น
+                                </p>
+                            </div>
+
+                            {/* Stats Card */}
+                            <div className="bg-[#f7f5f2] rounded-3xl p-8 border border-[#e0e7d5]">
+                                <div className="mb-6">
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">ขนาดพื้นที่</label>
+                                    <div className="flex items-baseline gap-2 mt-1">
+                                        <span className="text-4xl font-bold text-[#2d4a27]">{trialArea.rai}</span>
+                                        <span className="text-gray-500 font-medium">ไร่</span>
+                                        <span className="text-2xl font-bold text-[#2d4a27] ml-2">{trialArea.ngan}</span>
+                                        <span className="text-gray-500 font-medium">งาน</span>
+                                        <span className="text-2xl font-bold text-[#2d4a27] ml-2">{trialArea.wah}</span>
+                                        <span className="text-gray-500 font-medium">ตร.ว.</span>
+                                    </div>
+                                    <div className="text-xs text-gray-400 mt-1">({trialArea.totalSqM.toLocaleString()} ตร.ม.)</div>
+                                </div>
+
+                                <div className="mb-8">
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">คาร์บอนโดยประมาณ</label>
+                                    <div className="flex items-baseline gap-2 mt-1">
+                                        <span className="text-5xl font-bold text-[#4c7c44]">{estimatedCarbon}</span>
+                                        <span className="text-lg text-gray-500 font-medium">ตัน CO₂</span>
+                                    </div>
+                                    <p className="text-xs text-red-400 mt-2">* เป็นค่าประมาณการเบื้องต้นเท่านั้น</p>
+                                </div>
+
+                                <button
+                                    onClick={handleTrialSave}
+                                    className="w-full bg-[#2d4a27] text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-[#1f351b] transition-all flex items-center justify-center gap-2 active:scale-95"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                                    </svg>
+                                    บันทึกข้อมูลแปลง
+                                </button>
+                                <p className="text-center text-xs text-gray-400 mt-4">
+                                    ต้องเข้าสู่ระบบสมาชิกเพื่อบันทึก
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+
+
+            {/* NEW: Assessment Process Section */}
+            <section className="py-24 bg-[#fbfaf8]">
+                <div className="container-responsive">
+                    <div className="text-center mb-16">
+                        <h2 className="text-3xl font-bold tracking-tight text-[#2d4a27] mb-3">ขั้นตอนการประเมินและการคำนวณ</h2>
+                        <p className="text-gray-500 font-medium">กระบวนการวิเคราะห์การกักเก็บคาร์บอนที่เป็นมาตรฐาน</p>
+                        <div className="w-16 h-1 bg-[#4c7c44] mx-auto rounded-full mt-6"></div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                        {[
+                            { step: '01', title: 'กำหนดพื้นที่', desc: 'วาดขอบเขตแปลงยางพาราบนแผนที่ หรือนำเข้าไฟล์ Shapefile (.zip) ที่มีพิกัด WGS84' },
+                            { step: '02', title: 'ระบุข้อมูลเพาะปลูก', desc: 'ใส่อายุต้นยาง, ปีที่เริ่มปลูก และสายพันธุ์ (เช่น RRIM 600) เพื่อความแม่นยำในการคำนวณ' },
+                            { step: '03', title: 'เลือกสูตรคำนวณ', desc: 'รองรับมาตรฐาน TGO (อบก.), กรมวิชาการเกษตร และสมการ Allometric จากงานวิจัย' },
+                            { step: '04', title: 'สรุปผลและรายงาน', desc: 'แสดงปริมาณคาร์บอน (tCO₂e), มวลชีวภาพ และมูลค่าคาร์บอนเครดิตเบื้องต้น' }
+                        ].map((item, idx) => (
+                            <div key={idx} className="relative group">
+                                <div className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm h-full hover:shadow-lg transition-all relative z-10">
+                                    <div className="text-6xl font-black text-gray-100 mb-6 absolute top-4 right-6 group-hover:text-[#eef2e6] transition-colors">{item.step}</div>
+                                    <h3 className="text-xl font-bold text-[#2d4a27] mb-4 relative z-20">{item.title}</h3>
+                                    <p className="text-sm text-gray-500 leading-relaxed relative z-20">
+                                        {item.desc}
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             </section>
@@ -298,19 +507,28 @@ function LandingPage() {
                                     <div className="w-8 h-8 bg-[#eef2e6] rounded-lg flex items-center justify-center text-[#4c7c44]">
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                                     </div>
-                                    info@carbonassessment.th
+                                    <div>
+                                        <span className="block text-xs text-gray-400">Technical Support</span>
+                                        support@engrid.co.th
+                                    </div>
                                 </li>
                                 <li className="flex items-center gap-3">
                                     <div className="w-8 h-8 bg-[#eef2e6] rounded-lg flex items-center justify-center text-[#4c7c44]">
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
                                     </div>
-                                    02-XXX-XXXX
+                                    <div>
+                                        <span className="block text-xs text-gray-400">Call Center</span>
+                                        02-XXX-XXXX (Engrid)
+                                    </div>
                                 </li>
                                 <li className="flex items-center gap-3">
                                     <div className="w-8 h-8 bg-[#eef2e6] rounded-lg flex items-center justify-center text-[#4c7c44]">
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                     </div>
-                                    กรุงเทพมหานคร, ประเทศไทย
+                                    <div>
+                                        <span className="block text-xs text-gray-400">Location</span>
+                                        Engrid Co., Ltd. Thailand
+                                    </div>
                                 </li>
                             </ul>
                         </div>
@@ -344,7 +562,7 @@ function LandingPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 15l7-7 7 7" />
                 </svg>
             </button>
-        </div>
+        </div >
     )
 }
 

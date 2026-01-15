@@ -604,6 +604,19 @@ p,
   .animate-pulse {
     animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
+
+  @keyframes shine {
+    from {
+      transform: translateX(-100%) skewX(-25deg);
+    }
+    to {
+      transform: translateX(250%) skewX(-25deg);
+    }
+  }
+
+  .animate-shine {
+    animation: shine 1.5s ease-in-out infinite;
+  }
 }
 
 /* Animation Delays */

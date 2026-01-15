@@ -8,14 +8,15 @@ const getAuthHeaders = (contentType = 'application/json') => {
     return headers;
 };
 
-export const calculateCarbon = async (age, areaRai) => {
+export const calculateCarbon = async (age, areaRai, method = 'tgo') => {
     try {
         const response = await fetch(`${API_URL}/api/carbon/calculate`, {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify({
                 tree_age: parseInt(age),
-                area_rai: parseFloat(areaRai)
+                area_rai: parseFloat(areaRai),
+                method: method || 'tgo' // Default to TGO
             }),
         });
 
