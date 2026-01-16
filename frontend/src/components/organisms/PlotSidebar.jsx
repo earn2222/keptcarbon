@@ -18,6 +18,8 @@ import {
     InformationCircleIcon,
     SettingsIcon
 } from '../atoms/Icons'
+import { provinceCoords } from '../../data/province-coords'
+import geoData from '../../data/thailand-address.json'
 
 const PlotSidebar = ({
     plots = [],
@@ -33,7 +35,8 @@ const PlotSidebar = ({
     onDeleteAll,
     onDrawingStepChange,
     onUpdateTempPlot,
-    selectedPlotId
+    selectedPlotId,
+    onLocationSelect
 }) => {
     // Steps: 
     // 0 = Choose Method
@@ -58,6 +61,17 @@ const PlotSidebar = ({
     const [showSuccessPopup, setShowSuccessPopup] = useState(false)
     const [confirmedShpIds, setConfirmedShpIds] = useState([]) // New: track plots confirmed for batch
     const [savedStats, setSavedStats] = useState({ count: 0, area: 0, carbon: 0 })
+
+    // Geographic Data State (Using static import from thailand-address.json)
+    const [availableProvinces, setAvailableProvinces] = useState([])
+    const [availableAmphoes, setAvailableAmphoes] = useState([])
+    const [availableTambons, setAvailableTambons] = useState([])
+
+    // New: Address Search States
+    const [selectedProvince, setSelectedProvince] = useState('')
+    const [selectedAmphoe, setSelectedAmphoe] = useState('')
+    const [selectedTambon, setSelectedTambon] = useState('')
+
     const fileInputRef = useRef(null)
 
     const [isCollapsed, setIsCollapsed] = useState(false)
@@ -104,6 +118,43 @@ const PlotSidebar = ({
         }
     }, [calculationFormula])
 
+    // Initialize Geographic Data
+    useEffect(() => {
+        if (geoData.length > 0) {
+            // Extract unique provinces
+            const provinces = [...new Set(geoData.map(item => item.provinceNameTh))].sort();
+            setAvailableProvinces(provinces);
+        }
+    }, []);
+
+    // Filter Amphoes when Province changes
+    useEffect(() => {
+        if (selectedProvince && geoData.length > 0) {
+            const filtered = geoData.filter(item => item.provinceNameTh === selectedProvince);
+            const amphoes = [...new Set(filtered.map(item => item.districtNameTh))].sort();
+            setAvailableAmphoes(amphoes);
+        } else {
+            setAvailableAmphoes([]);
+        }
+        setSelectedAmphoe('');
+        setSelectedTambon('');
+    }, [selectedProvince]);
+
+    // Filter Tambons when Amphoe changes
+    useEffect(() => {
+        if (selectedAmphoe && selectedProvince && geoData.length > 0) {
+            const filtered = geoData.filter(item =>
+                item.provinceNameTh === selectedProvince &&
+                item.districtNameTh === selectedAmphoe
+            );
+            const tambons = [...new Set(filtered.map(item => item.subdistrictNameTh))].sort();
+            setAvailableTambons(tambons);
+        } else {
+            setAvailableTambons([]);
+        }
+        setSelectedTambon('');
+    }, [selectedAmphoe, selectedProvince, geoData]);
+
     // Auto-Show SHP Info
     useEffect(() => {
         if (method === 'shp') {
@@ -141,6 +192,10 @@ const PlotSidebar = ({
         setFarmerName('')
         setSelectedPlotIds([])
         setConfirmedShpIds([])
+        // Reset location search
+        setSelectedProvince('')
+        setSelectedAmphoe('')
+        setSelectedTambon('')
         setIsCollapsed(false)
         if (onDrawingStepChange) onDrawingStepChange('idle')
     }
@@ -168,6 +223,10 @@ const PlotSidebar = ({
         setSelectedAge(0) // Reset age
         setRubberVariety('')
         setCalculationFormula('')
+        // Reset location search
+        setSelectedProvince('')
+        setSelectedAmphoe('')
+        setSelectedTambon('')
         // Reset selected ID so Map knows we are creating new
         if (onPlotSelect) onPlotSelect({ id: null })
 
@@ -303,7 +362,7 @@ const PlotSidebar = ({
         const ids = plotsToSave.map(p => p.id);
 
         const totalArea = plotsToSave.reduce((sum, p) => sum + (parseFloat(p.areaValue) || 0), 0);
-        const totalCarbon = plotsToSave.reduce((sum, p) => sum + parseFloat(p.carbon || 0), 0);
+        const totalCarbon = plotsToSave.reduce((sum, p) => sum + (parseFloat(p.carbon) || 0), 0);
 
         setSavedStats({
             count: ids.length,
@@ -472,12 +531,35 @@ const PlotSidebar = ({
                                                 <LeafIcon size={24} />
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-2 mb-1">
                                                     <h4 className="font-bold text-[#2d4a27] text-sm truncate">{plot.name}</h4>
                                                     <span className="text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-tighter bg-gray-100 text-gray-500">SAVED</span>
                                                 </div>
-                                                <div className="mt-0.5 flex items-center gap-2">
-                                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">{plot.area}</p>
+
+                                                <div className="grid grid-cols-2 gap-y-1 gap-x-3">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <div className="text-[#4c7c44]"><LeafIcon size={10} /></div>
+                                                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-tight">{plot.area}</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <div className="text-[#4c7c44]"><TreeIcon size={10} /></div>
+                                                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-tight">{plot.age || '-'} ปี</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <div className="text-[#4c7c44]"><CarbonIcon size={10} /></div>
+                                                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-tight">{plot.carbon || '-'} tCO₂e</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <div className="text-gray-400"><MapPinIcon size={10} /></div>
+                                                        <p className="text-[9px] text-gray-400 font-medium">
+                                                            {plot.center ? `${plot.center.lat}, ${plot.center.lng}` : '-'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="mt-1 pt-1 border-t border-gray-50">
+                                                    <p className="text-[9px] text-gray-400 font-medium truncate">
+                                                        ต.{plot.tambon} อ.{plot.amphoe} จ.{plot.province}
+                                                    </p>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-1">
@@ -738,13 +820,86 @@ const PlotSidebar = ({
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="flex-1 flex flex-col items-center justify-center text-center py-10 mt-10">
+                                    <div className="flex-1 flex flex-col items-center justify-start py-8">
+                                        {/* Location Search Dropdowns */}
+                                        <div className="w-full space-y-4 mb-10 px-2">
+                                            <div className="space-y-1.5">
+                                                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest pl-2">จังหวัด</p>
+                                                <div className="relative">
+                                                    <select
+                                                        className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-[#2d4a27] appearance-none focus:bg-white focus:border-[#4c7c44]/20 transition-all outline-none"
+                                                        value={selectedProvince}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            setSelectedProvince(val);
+
+                                                            // Navigate map to province centroid
+                                                            if (onLocationSelect && provinceCoords[val]) {
+                                                                onLocationSelect(provinceCoords[val]);
+                                                            }
+                                                        }}
+                                                    >
+                                                        <option value="" disabled>เลือกจังหวัด</option>
+                                                        {availableProvinces.map(p => (
+                                                            <option key={p} value={p}>{p}</option>
+                                                        ))}
+                                                    </select>
+                                                    <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-300">
+                                                        <ChevronRightIcon size={16} className="rotate-90" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-1.5">
+                                                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest pl-2">อำเภอ</p>
+                                                <div className="relative">
+                                                    <select
+                                                        className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-[#2d4a27] appearance-none focus:bg-white focus:border-[#4c7c44]/20 transition-all outline-none disabled:opacity-50"
+                                                        value={selectedAmphoe}
+                                                        disabled={!selectedProvince}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            setSelectedAmphoe(val);
+                                                        }}
+                                                    >
+                                                        <option value="" disabled>{selectedProvince ? 'เลือกอำเภอ' : 'กรุณาเลือกจังหวัดก่อน'}</option>
+                                                        {availableAmphoes.map(a => (
+                                                            <option key={a} value={a}>{a}</option>
+                                                        ))}
+                                                    </select>
+                                                    <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-300">
+                                                        <ChevronRightIcon size={16} className="rotate-90" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-1.5">
+                                                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest pl-2">ตำบล</p>
+                                                <div className="relative">
+                                                    <select
+                                                        className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-[#2d4a27] appearance-none focus:bg-white focus:border-[#4c7c44]/20 transition-all outline-none disabled:opacity-50"
+                                                        value={selectedTambon}
+                                                        disabled={!selectedAmphoe}
+                                                        onChange={(e) => setSelectedTambon(e.target.value)}
+                                                    >
+                                                        <option value="" disabled>{selectedAmphoe ? 'เลือกตำบล' : 'กรุณาเลือกอำเภอก่อน'}</option>
+                                                        {availableTambons.map(t => (
+                                                            <option key={t} value={t}>{t}</option>
+                                                        ))}
+                                                    </select>
+                                                    <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-300">
+                                                        <ChevronRightIcon size={16} className="rotate-90" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <div className="w-20 h-20 bg-[#eef2e6] rounded-full flex items-center justify-center text-[#4c7c44] mb-6 animate-pulse ring-8 ring-[#eef2e6]/50">
                                             <MapPinIcon size={40} />
                                         </div>
-                                        <h3 className="text-xl font-bold text-[#2d4a27] mb-2">กำหนดพื้นที่แปลง</h3>
-                                        <p className="text-xs text-gray-400 max-w-[200px] leading-relaxed">
-                                            ใช้เครื่องมือวาดรูปบนแผนที่ เพื่อลากเส้นรอบขอบเขตแปลงยางพาราของคุณ
+                                        <h3 className="text-xl font-bold text-[#2d4a27] mb-2 text-center">กำหนดพื้นที่แปลง</h3>
+                                        <p className="text-[13px] text-gray-400 leading-relaxed text-center px-4">
+                                            ใช้เครื่องมือวาดรูปบนแผนที่ เพื่อลากเส้นรอบขอบเขต<br />แปลงยางพาราของคุณ
                                         </p>
                                     </div>
                                 )}

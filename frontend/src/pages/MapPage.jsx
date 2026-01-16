@@ -182,19 +182,39 @@ function MapPage() {
     const fetchPlots = async () => {
         try {
             const data = await getPlots();
-            const mappedPlots = data.map(p => ({
-                id: p.id,
-                name: p.name,
-                area: p.area_rai ? `${p.area_rai.toFixed(2)} ไร่` : '0 ไร่',
-                areaValue: p.area_rai || 0,
-                year: p.planting_year,
-                age: p.tree_age,
-                status: 'complete',
-                geometry: p.geometry,
-                carbon: p.carbon_tons ? p.carbon_tons.toFixed(2) : null,
-                isSaved: true,
-                source: p.notes && p.notes.includes('SHP') ? 'shp' : 'manual'
-            }));
+            const mappedPlots = data.map(p => {
+                let center = null;
+                if (p.geometry) {
+                    try {
+                        const centroid = turf.centroid(p.geometry);
+                        center = {
+                            lat: centroid.geometry.coordinates[1].toFixed(5),
+                            lng: centroid.geometry.coordinates[0].toFixed(5)
+                        };
+                    } catch (e) {
+                        console.error("Centroid calc error", e);
+                    }
+                }
+
+                return {
+                    id: p.id,
+                    name: p.name,
+                    area: p.area_rai ? `${p.area_rai.toFixed(2)} ไร่` : '0 ไร่',
+                    areaValue: p.area_rai || 0,
+                    year: p.planting_year,
+                    age: p.tree_age,
+                    status: 'complete',
+                    geometry: p.geometry,
+                    carbon: p.carbon_tons ? p.carbon_tons.toFixed(2) : null,
+                    isSaved: true,
+                    center: center,
+                    // Simulate address if not store in DB yet (for UI demo)
+                    tambon: p.tambon || 'ตำบลตัวอย่าง',
+                    amphoe: p.amphoe || 'อำเภอเมือง',
+                    province: p.province || 'จังหวัดระยอง',
+                    source: p.notes && p.notes.includes('SHP') ? 'shp' : 'manual'
+                };
+            });
             setPlots(mappedPlots);
         } catch (error) {
             console.error("Failed to load plots", error);
@@ -599,6 +619,7 @@ function MapPage() {
                 <MapContainer
                     center={center}
                     zoom={zoom}
+                    whenCreated={setMapInstance}
                     style={{ height: "100%", width: "100%" }}
                     className="z-0"
                     zoomControl={false}
@@ -726,6 +747,11 @@ function MapPage() {
                         onDeletePlot={handleDeletePlot}
                         onDeleteAll={handleDeleteAll}
                         onDrawingStepChange={setDrawingStep}
+                        onLocationSelect={(coords) => {
+                            if (mapInstance && coords) {
+                                mapInstance.flyTo(coords, 13);
+                            }
+                        }}
                     />
                 </div>
             </div>
