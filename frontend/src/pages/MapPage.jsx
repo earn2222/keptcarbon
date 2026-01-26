@@ -747,9 +747,9 @@ function MapPage() {
                         onDeletePlot={handleDeletePlot}
                         onDeleteAll={handleDeleteAll}
                         onDrawingStepChange={setDrawingStep}
-                        onLocationSelect={(coords) => {
+                        onLocationSelect={(coords, zoom) => {
                             if (mapInstance && coords) {
-                                mapInstance.flyTo(coords, 13);
+                                mapInstance.flyTo(coords, zoom || 13);
                             }
                         }}
                     />

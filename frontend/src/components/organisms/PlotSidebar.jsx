@@ -183,6 +183,38 @@ const PlotSidebar = ({
         }
     }
 
+    const handleLocationZoom = async (val, type) => {
+        if (!onLocationSelect) return;
+
+        let query = '';
+        let zoomLevel = 13;
+
+        if (type === 'province') {
+            if (provinceCoords[val]) {
+                onLocationSelect(provinceCoords[val], 10);
+                return;
+            }
+            query = val;
+            zoomLevel = 10;
+        } else if (type === 'amphoe') {
+            query = `อำเภอ${val}, จังหวัด${selectedProvince}, Thailand`;
+            zoomLevel = 13;
+        } else if (type === 'tambon') {
+            query = `ตำบล${val}, อำเภอ${selectedAmphoe}, จังหวัด${selectedProvince}, Thailand`;
+            zoomLevel = 15;
+        }
+
+        try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+            const data = await response.json();
+            if (data && data[0]) {
+                onLocationSelect([parseFloat(data[0].lat), parseFloat(data[0].lon)], zoomLevel);
+            }
+        } catch (error) {
+            console.error("Zoom failed", error);
+        }
+    };
+
     const resetWorkflow = () => {
         setStep(0)
         setMethod(null)
@@ -821,8 +853,17 @@ const PlotSidebar = ({
                                     </div>
                                 ) : (
                                     <div className="flex-1 flex flex-col items-center justify-start py-8">
+                                        {/* Define Plot Area Header */}
+                                        <div className="w-20 h-20 bg-[#eef2e6] rounded-full flex items-center justify-center text-[#4c7c44] mb-6 animate-pulse ring-8 ring-[#eef2e6]/50">
+                                            <MapPinIcon size={40} />
+                                        </div>
+                                        <h3 className="text-xl font-bold text-[#2d4a27] mb-2 text-center">กำหนดพื้นที่แปลง</h3>
+                                        <p className="text-[13px] text-gray-400 leading-relaxed text-center px-4 mb-10">
+                                            ใช้เครื่องมือวาดรูปบนแผนที่ เพื่อลากเส้นรอบขอบเขต<br />แปลงยางพาราของคุณ
+                                        </p>
+
                                         {/* Location Search Dropdowns */}
-                                        <div className="w-full space-y-4 mb-10 px-2">
+                                        <div className="w-full space-y-4 px-2">
                                             <div className="space-y-1.5">
                                                 <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest pl-2">จังหวัด</p>
                                                 <div className="relative">
@@ -832,11 +873,7 @@ const PlotSidebar = ({
                                                         onChange={(e) => {
                                                             const val = e.target.value;
                                                             setSelectedProvince(val);
-
-                                                            // Navigate map to province centroid
-                                                            if (onLocationSelect && provinceCoords[val]) {
-                                                                onLocationSelect(provinceCoords[val]);
-                                                            }
+                                                            handleLocationZoom(val, 'province');
                                                         }}
                                                     >
                                                         <option value="" disabled>เลือกจังหวัด</option>
@@ -860,6 +897,7 @@ const PlotSidebar = ({
                                                         onChange={(e) => {
                                                             const val = e.target.value;
                                                             setSelectedAmphoe(val);
+                                                            handleLocationZoom(val, 'amphoe');
                                                         }}
                                                     >
                                                         <option value="" disabled>{selectedProvince ? 'เลือกอำเภอ' : 'กรุณาเลือกจังหวัดก่อน'}</option>
@@ -880,7 +918,11 @@ const PlotSidebar = ({
                                                         className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-[#2d4a27] appearance-none focus:bg-white focus:border-[#4c7c44]/20 transition-all outline-none disabled:opacity-50"
                                                         value={selectedTambon}
                                                         disabled={!selectedAmphoe}
-                                                        onChange={(e) => setSelectedTambon(e.target.value)}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            setSelectedTambon(val);
+                                                            handleLocationZoom(val, 'tambon');
+                                                        }}
                                                     >
                                                         <option value="" disabled>{selectedAmphoe ? 'เลือกตำบล' : 'กรุณาเลือกอำเภอก่อน'}</option>
                                                         {availableTambons.map(t => (
@@ -893,14 +935,6 @@ const PlotSidebar = ({
                                                 </div>
                                             </div>
                                         </div>
-
-                                        <div className="w-20 h-20 bg-[#eef2e6] rounded-full flex items-center justify-center text-[#4c7c44] mb-6 animate-pulse ring-8 ring-[#eef2e6]/50">
-                                            <MapPinIcon size={40} />
-                                        </div>
-                                        <h3 className="text-xl font-bold text-[#2d4a27] mb-2 text-center">กำหนดพื้นที่แปลง</h3>
-                                        <p className="text-[13px] text-gray-400 leading-relaxed text-center px-4">
-                                            ใช้เครื่องมือวาดรูปบนแผนที่ เพื่อลากเส้นรอบขอบเขต<br />แปลงยางพาราของคุณ
-                                        </p>
                                     </div>
                                 )}
 
