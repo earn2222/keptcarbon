@@ -175,7 +175,7 @@ const TrashIconSmall = () => (
 // ==========================================
 // MAIN MAP COMPONENT
 // ==========================================
-function MapPage() {
+function MapPageNew() {
     const mapContainer = useRef(null)
     const map = useRef(null)
     const userMarker = useRef(null)
@@ -1010,4 +1010,4 @@ function MapPage() {
     )
 }
 
-export default MapPage
+export default MapPageNew

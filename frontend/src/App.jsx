@@ -6,6 +6,7 @@ import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import MapPage from './pages/MapPage'
+import MapPageNew from './pages/MapPageNew'
 import HistoryPage from './pages/HistoryPage'
 import ResponsiveDemo from './pages/ResponsiveDemo'
 
@@ -21,13 +22,11 @@ function App() {
             <Route path="/login" component={LoginPage} />
             <Route path="/demo" component={ResponsiveDemo} />
 
+            {/* 3D Globe Map - Full Screen */}
+            <Route path="/globe" component={MapPage} />
 
-            {/* Direct access to Map (Skip login for testing) */}
-            <Route path="/map">
-                <DashboardLayout>
-                    <MapPage />
-                </DashboardLayout>
-            </Route>
+            {/* Direct access to Map */}
+            <Route path="/map" component={MapPage} />
 
             {/* Dashboard Routes */}
             <Route path="/dashboard">
