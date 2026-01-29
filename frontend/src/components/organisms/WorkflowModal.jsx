@@ -167,44 +167,64 @@ export default function WorkflowModal({
 
         setLoading(true);
         setTimeout(() => {
-            const dbh = parseFloat(formData.dbh) || 20;
-            const height = parseFloat(formData.height) || 12;
-            const areaRai = parseFloat(formData.areaRai) || 0;
-            const totalTrees = areaRai * 70; // 70 trees per Rai
+            try {
+                const dbh = parseFloat(formData.dbh) || 20;
+                const height = parseFloat(formData.height) || 12;
+                const areaSqm = parseFloat(formData.areaSqm) || 0;
+                const areaRaiTotal = areaSqm / 1600;
 
-            let carbonPerTree = 0;
-            let resultMethod = '';
+                if (areaRaiTotal <= 0) {
+                    setLoading(false);
+                    return alert('ไม่พบข้อมูลพื้นที่แปลง กรุณาวาดแปลงใหม่อีกครั้ง');
+                }
 
-            if (calcGroup === 1) {
-                // Group 1: Manual DBH & Height
-                if (formData.methodManual === 'eq1') {
-                    carbonPerTree = 0.118 * Math.pow(dbh, 2.53);
-                    resultMethod = 'สมการ 0.118 × DBH^2.53';
+                const totalTrees = areaRaiTotal * 70; // 70 trees per Rai
+
+                let carbonPerTree = 0;
+                let resultMethod = '';
+
+                if (calcGroup === 1) {
+                    // Group 1: Manual DBH & Height
+                    if (formData.methodManual === 'eq1') {
+                        carbonPerTree = 0.118 * Math.pow(dbh, 2.53);
+                        resultMethod = 'สมการ 1: 0.118 × DBH^2.53';
+                    } else {
+                        carbonPerTree = 0.062 * Math.pow(dbh, 2.23);
+                        resultMethod = 'สมการ 2: 0.062 × DBH^2.23';
+                    }
                 } else {
-                    carbonPerTree = 0.062 * Math.pow(dbh, 2.23);
-                    resultMethod = 'สมการ 0.062 × DBH^2.23';
+                    // Group 2: Satellite (NDVI/TCARI)
+                    const { ndvi, tcari } = satData;
+                    if (formData.methodSat === 'ndvi') {
+                        carbonPerTree = 34.2 * ndvi + 5.8;
+                        resultMethod = `Satellite (NDVI: 34.2 × ${ndvi} + 5.8)`;
+                    } else {
+                        carbonPerTree = 13.57 * tcari + 7.45;
+                        resultMethod = `Satellite (TCARI: 13.57 × ${tcari} + 7.45)`;
+                    }
                 }
-            } else {
-                // Group 2: Satellite (NDVI/TCARI)
-                const { ndvi, tcari } = satData;
-                if (formData.methodSat === 'ndvi') {
-                    carbonPerTree = 34.2 * ndvi + 5.8;
-                    resultMethod = `Satellite (NDVI: 34.2 × ${ndvi} + 5.8)`;
-                } else {
-                    carbonPerTree = 13.57 * tcari + 7.45;
-                    resultMethod = `Satellite (TCARI: 13.57 × ${tcari} + 7.45)`;
-                }
+
+                // AGB (Above Ground Biomass) to Tons CO2: (AGB * trees) / 1000 * 0.47
+                const totalCarbonTons = ((carbonPerTree * totalTrees) / 1000) * 0.47;
+
+                console.log("Calculation Result:", {
+                    formula: resultMethod,
+                    agbTree: carbonPerTree,
+                    totalTons: totalCarbonTons,
+                    areaRai: areaRaiTotal
+                });
+
+                setResult({
+                    carbon: totalCarbonTons.toFixed(2),
+                    method: resultMethod
+                });
+                setLoading(false);
+                setCurrentStep(3);
+            } catch (error) {
+                console.error("Calculation Error:", error);
+                alert("เกิดข้อผิดพลาดในการคำนวณ: " + error.message);
+                setLoading(false);
             }
-
-            // AGB (Above Ground Biomass) to Tons CO2: (AGB * trees) / 1000 * 0.47 (Simplified Carbon Fraction)
-            const totalCarbonTons = ((carbonPerTree * totalTrees) / 1000) * 0.47;
-
-            setResult({
-                carbon: totalCarbonTons.toFixed(2),
-                method: resultMethod
-            });
-            setLoading(false);
-            setCurrentStep(3);
         }, 1200);
     };
 
@@ -292,8 +312,8 @@ export default function WorkflowModal({
                         <div className="space-y-6 animate-in slide-in-from-bottom-4">
                             <div className="bg-emerald-50/50 p-5 rounded-[1.5rem] flex items-center justify-between border border-emerald-100/50">
                                 <div>
-                                    <p className="text-[10px] font-medium text-emerald-600/60 uppercase tracking-widest mb-1">พื้นที่ดำเนินการ</p>
-                                    <h3 className="text-base font-medium text-slate-800">{formData.areaRai} ไร่ {formData.areaNgan} งาน {formData.areaSqWah} วา²</h3>
+                                    <h3 className="text-base font-medium text-slate-800">{(parseFloat(formData.areaSqm) / 1600).toFixed(2)} ไร่</h3>
+                                    <p className="text-[10px] text-slate-400 font-normal">{formData.areaRai} ไร่ {formData.areaNgan} งาน {formData.areaSqWah} วา²</p>
                                 </div>
                                 <Leaf className="text-emerald-500/40" size={24} strokeWidth={1.5} />
                             </div>
@@ -321,9 +341,18 @@ export default function WorkflowModal({
                                     </select>
                                 </div>
                             </div>
-                            {(!formData.farmerName || !formData.plantingYearBE || !formData.variety) && (
-                                <p className="text-[10px] text-center text-slate-400 font-normal italic animate-pulse">กรอกข้อมูลให้ครบเพื่อไปยังขั้นตอนถัดไปอัตโนมัติ</p>
-                            )}
+                            <div className="pt-4">
+                                <button
+                                    onClick={() => setCurrentStep(2)}
+                                    disabled={!formData.farmerName || !formData.plantingYearBE || !formData.variety}
+                                    className="w-full h-12 bg-emerald-600 text-white rounded-2xl text-sm font-medium shadow-md disabled:bg-slate-100 disabled:text-slate-400 transition-all"
+                                >
+                                    ถัดไป
+                                </button>
+                                {(!formData.farmerName || !formData.plantingYearBE || !formData.variety) && (
+                                    <p className="text-[10px] text-center text-slate-400 font-normal italic mt-3 animate-pulse">กรอกข้อมูลให้ครบเพื่อไปยังขั้นตอนถัดไป</p>
+                                )}
+                            </div>
                         </div>
                     )}
 
@@ -403,7 +432,7 @@ export default function WorkflowModal({
                                     </div>
                                 )}
                             </div>
-                            <button onClick={calculateCarbon} disabled={loading || (calcGroup === 1 && (!formData.dbh || !formData.height))} className="w-full h-14 bg-emerald-600 text-white rounded-2xl text-sm font-medium shadow-lg disabled:bg-slate-100 disabled:text-slate-400 transition-all flex items-center justify-center gap-2">
+                            <button onClick={calculateCarbon} disabled={loading} className="w-full h-14 bg-emerald-600 text-white rounded-2xl text-sm font-medium shadow-lg disabled:bg-slate-100 disabled:text-slate-400 transition-all flex items-center justify-center gap-2">
                                 {loading ? <Loader2 size={18} className="animate-spin" /> : <Calculator size={18} />}
                                 {loading ? 'กำลังประมวลผล...' : 'เริ่มการประมวลผล'}
                             </button>

@@ -561,10 +561,15 @@ function MapPage() {
         }
     }, [savedPlots, pendingPlots, mapLoaded]);
 
-    const handleSavePlot = (plotData, shouldAddMore = false) => {
+    const handleSavePlot = (plotData, isFinalSave = false) => {
+        if (isFinalSave) {
+            finalizeAllPending();
+            return;
+        }
+
         const timestamp = Date.now();
 
-        let geometry = plotData.geometry;
+        let geometry = plotData?.geometry;
         if (!geometry && draw.current) {
             const data = draw.current.getAll();
             if (data.features.length > 0) {
@@ -596,12 +601,22 @@ function MapPage() {
             draw.current.changeMode('simple_select');
         }
 
-        if (shouldAddMore) {
-            setWorkflowModal({ isOpen: false, mode: null });
-            startDigitizing();
-        } else {
-            setWorkflowModal({ isOpen: false, mode: null });
-            setDigitizeMode(false);
+        setWorkflowModal({ isOpen: false, mode: null });
+        setDigitizeMode(false);
+    };
+
+    const handleAddAnother = (plotData) => {
+        const timestamp = Date.now();
+        const newPlot = {
+            ...plotData,
+            id: plotData.id || timestamp,
+            isPending: true
+        };
+        setPendingPlots(prev => [...prev, newPlot]);
+
+        // Clear drawing if needed
+        if (draw.current) {
+            draw.current.deleteAll();
         }
     };
 
@@ -1405,8 +1420,12 @@ function MapPage() {
                 isOpen={workflowModal.isOpen}
                 mode={workflowModal.mode}
                 initialData={workflowModal.initialData}
+                accumulatedPlots={pendingPlots}
                 onClose={() => setWorkflowModal({ isOpen: false, mode: null })}
                 onSave={handleSavePlot}
+                onAddAnother={handleAddAnother}
+                onDeletePlot={(id) => setPendingPlots(prev => prev.filter(p => p.id !== id))}
+                onUpdatePlot={(id, data) => setPendingPlots(prev => prev.map(p => p.id === id ? { ...p, ...data } : p))}
                 onStartDrawing={() => {
                     setWorkflowModal({ ...workflowModal, isOpen: false });
                     startDigitizing();
