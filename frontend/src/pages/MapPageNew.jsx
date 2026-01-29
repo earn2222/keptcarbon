@@ -198,6 +198,11 @@ function MapPageNew() {
     const [provinceSearch, setProvinceSearch] = useState('')
     const [filteredProvinces, setFilteredProvinces] = useState(thaiProvinces)
 
+    // Multi-plot State
+    const [accumulatedPlots, setAccumulatedPlots] = useState([])
+
+    // ... (rest of search logic)
+
 
 
     // ==========================================
@@ -253,13 +258,18 @@ function MapPageNew() {
             }
 
             // Add atmosphere effect
-            map.current.setFog({
-                color: 'rgb(186, 210, 235)',
-                'high-color': 'rgb(36, 92, 223)',
-                'horizon-blend': 0.02,
-                'space-color': 'rgb(11, 11, 25)',
-                'star-intensity': 0.6
-            })
+            if (map.current.setFog) {
+                map.current.setFog({
+                    color: 'rgb(186, 210, 235)',
+                    'high-color': 'rgb(36, 92, 223)',
+                    'horizon-blend': 0.02,
+                    'space-color': 'rgb(11, 11, 25)',
+                    'star-intensity': 0.6
+                })
+            }
+
+            // Add Navigation Control (Zoom/Compass)
+            map.current.addControl(new maplibregl.NavigationControl(), 'bottom-right');
 
             setMapLoaded(true)
             startIntroAnimation()
@@ -275,6 +285,7 @@ function MapPageNew() {
                     },
                     defaultMode: 'simple_select',
                     styles: [
+                        // ACTIVE (HOT)
                         {
                             'id': 'gl-draw-polygon-fill-active',
                             'type': 'fill',
@@ -294,6 +305,27 @@ function MapPageNew() {
                                 'line-width': 3
                             }
                         },
+                        // INACTIVE (COLD)
+                        {
+                            'id': 'gl-draw-polygon-fill-inactive',
+                            'type': 'fill',
+                            'filter': ['all', ['==', '$type', 'Polygon'], ['==', 'mode', 'static']],
+                            'paint': {
+                                'fill-color': '#059669',
+                                'fill-opacity': 0.2
+                            }
+                        },
+                        {
+                            'id': 'gl-draw-polygon-stroke-inactive',
+                            'type': 'line',
+                            'filter': ['all', ['==', '$type', 'Polygon'], ['==', 'mode', 'static']],
+                            'layout': { 'line-cap': 'round', 'line-join': 'round' },
+                            'paint': {
+                                'line-color': '#059669',
+                                'line-width': 2
+                            }
+                        },
+                        // VERTICES
                         {
                             'id': 'gl-draw-polygon-and-line-vertex-active',
                             'type': 'circle',
@@ -303,6 +335,27 @@ function MapPageNew() {
                                 'circle-color': '#ffffff',
                                 'circle-stroke-color': '#059669',
                                 'circle-stroke-width': 2
+                            }
+                        },
+                        {
+                            'id': 'gl-draw-polygon-and-line-vertex-inactive',
+                            'type': 'circle',
+                            'filter': ['all', ['==', '$type', 'Point'], ['==', 'meta', 'vertex'], ['==', 'mode', 'static']],
+                            'paint': {
+                                'circle-radius': 4,
+                                'circle-color': '#ffffff',
+                                'circle-stroke-color': '#94a3b8',
+                                'circle-stroke-width': 1
+                            }
+                        },
+                        // MIDPOINTS
+                        {
+                            'id': 'gl-draw-polygon-and-line-midpoint',
+                            'type': 'circle',
+                            'filter': ['all', ['==', '$type', 'Point'], ['==', 'meta', 'midpoint']],
+                            'paint': {
+                                'circle-radius': 4,
+                                'circle-color': '#10b981'
                             }
                         }
                     ]
@@ -341,6 +394,66 @@ function MapPageNew() {
     // MAP DATA SYNC & DRAWING LOGIC
     // ==========================================
 
+
+    // ==========================================
+    // PERSIST SAVED PLOTS ON MAP
+    // ==========================================
+    useEffect(() => {
+        if (!map.current || !mapLoaded) return;
+
+        const sourceId = 'saved-plots-source';
+        const fillLayerId = 'saved-plots-fill';
+        const lineLayerId = 'saved-plots-line';
+
+        const updateMap = () => {
+            if (!map.current) return;
+            const geojson = {
+                type: 'FeatureCollection',
+                features: accumulatedPlots
+                    .filter(p => p.geometry)
+                    .map(p => ({
+                        type: 'Feature',
+                        geometry: p.geometry,
+                        properties: {
+                            id: p.id,
+                            farmerName: p.farmerName,
+                            carbon: p.carbon
+                        }
+                    }))
+            };
+
+            if (map.current.getSource(sourceId)) {
+                map.current.getSource(sourceId).setData(geojson);
+            } else {
+                map.current.addSource(sourceId, {
+                    type: 'geojson',
+                    data: geojson
+                });
+
+                map.current.addLayer({
+                    id: fillLayerId,
+                    type: 'fill',
+                    source: sourceId,
+                    paint: {
+                        'fill-color': '#059669',
+                        'fill-opacity': 0.4
+                    }
+                });
+
+                map.current.addLayer({
+                    id: lineLayerId,
+                    type: 'line',
+                    source: sourceId,
+                    paint: {
+                        'line-color': '#ffffff',
+                        'line-width': 2
+                    }
+                });
+            }
+        };
+
+        updateMap();
+    }, [accumulatedPlots, mapLoaded]);
 
     // ==========================================
     // INTRO ANIMATION - Globe to Thailand
@@ -503,7 +616,8 @@ function MapPageNew() {
                     areaSqm: areaSqm.toFixed(2),
                     areaRai: rai,
                     areaNgan: ngan,
-                    areaSqWah: sqWah
+                    areaSqWah: sqWah,
+                    geometry: data.features[0].geometry
                 }
             })
             setDigitizeMode(false)
@@ -552,17 +666,17 @@ function MapPageNew() {
                     <div className="flex items-center gap-4 text-xs">
                         <div className="flex items-center gap-1.5">
                             <span className="text-slate-400 font-medium">LAT</span>
-                            <span className="text-slate-700 font-semibold tabular-nums">{coordinates.lat}</span>
+                            <span className="text-slate-700 font-medium tabular-nums">{coordinates.lat}</span>
                         </div>
                         <div className="w-px h-4 bg-slate-200"></div>
                         <div className="flex items-center gap-1.5">
                             <span className="text-slate-400 font-medium">LNG</span>
-                            <span className="text-slate-700 font-semibold tabular-nums">{coordinates.lng}</span>
+                            <span className="text-slate-700 font-medium tabular-nums">{coordinates.lng}</span>
                         </div>
                         <div className="w-px h-4 bg-slate-200"></div>
                         <div className="flex items-center gap-1.5">
                             <span className="text-slate-400 font-medium">ZOOM</span>
-                            <span className="text-emerald-600 font-semibold tabular-nums">{coordinates.zoom}</span>
+                            <span className="text-emerald-600 font-medium tabular-nums">{coordinates.zoom}</span>
                         </div>
                     </div>
                 </div>
@@ -612,7 +726,7 @@ function MapPageNew() {
                     <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
                         <div className="p-4 border-b border-slate-100">
                             <div className="flex items-center justify-between mb-3">
-                                <h3 className="text-sm font-semibold text-slate-700">ค้นหาสถานที่</h3>
+                                <h3 className="text-sm font-medium text-slate-700">ค้นหาสถานที่</h3>
                                 <button
                                     onClick={() => setShowSearchPanel(false)}
                                     className="p-1 text-slate-400 hover:text-slate-600"
@@ -652,7 +766,7 @@ function MapPageNew() {
                 <div className="absolute top-36 right-4 z-40 w-56 animate-slideInRight">
                     <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
                         <div className="p-3 border-b border-slate-100">
-                            <h3 className="text-sm font-semibold text-slate-700">เลือกแผนที่</h3>
+                            <h3 className="text-sm font-medium text-slate-700">เลือกแผนที่</h3>
                         </div>
                         <div className="p-2">
                             {Object.entries(mapStyles).map(([key, style]) => (
@@ -717,6 +831,29 @@ function MapPageNew() {
             <div className="absolute bottom-28 right-6 z-50 flex flex-col items-end gap-4">
                 {/* Action Items */}
                 <div className={`flex flex-col gap-4 mb-2 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${showFABMenu ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-20 scale-50 pointer-events-none'}`}>
+
+                    {/* Option 0: My Dashboard */}
+                    <button
+                        onClick={() => {
+                            setShowFABMenu(false);
+                            setWorkflowModal({ isOpen: true, mode: 'list' });
+                        }}
+                        className="group flex items-center justify-end gap-3"
+                    >
+                        <div className="bg-emerald-500/90 backdrop-blur-md border border-emerald-400/30 px-4 py-2 rounded-2xl shadow-xl transform transition-all duration-300 group-hover:-translate-x-1">
+                            <span className="text-white text-[13px] font-medium tracking-wide whitespace-nowrap uppercase">รายการคาร์บอนของฉัน ({accumulatedPlots.length})</span>
+                        </div>
+                        <div className="relative">
+                            <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg transition-all duration-300 group-hover:scale-110 active:scale-95 border border-white/20">
+                                <DashboardIcon size={20} />
+                            </div>
+                            {accumulatedPlots.length > 0 && (
+                                <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 border-2 border-white rounded-full flex items-center justify-center text-[10px] font-black text-white">
+                                    {accumulatedPlots.length}
+                                </div>
+                            )}
+                        </div>
+                    </button>
 
                     {/* Option 1: Draw */}
                     <button
@@ -801,7 +938,7 @@ function MapPageNew() {
                         className="flex flex-col items-center justify-center w-14 h-12 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-500 text-white shadow-lg shadow-emerald-500/30 transition-all"
                     >
                         <MapIcon />
-                        <span className="text-[10px] mt-0.5 font-semibold">แผนที่</span>
+                        <span className="text-[10px] mt-0.5 font-medium">แผนที่</span>
                     </button>
 
                     {/* Dashboard Overview */}
@@ -850,7 +987,7 @@ function MapPageNew() {
                             <PencilIcon />
                         </div>
                         <div className="text-white">
-                            <p className="text-xs font-bold leading-none">กำลังวาดแปลงยางพารา</p>
+                            <p className="text-xs font-medium leading-none">กำลังวาดแปลงยางพารา</p>
                             <p className="text-[10px] opacity-60 mt-1 uppercase tracking-widest">จุดแปลงบนแผนที่ให้ครบทุกมุม</p>
                         </div>
                     </div>
@@ -916,13 +1053,13 @@ function MapPageNew() {
                     <div className="flex gap-2">
                         <button
                             onClick={cancelDigitizing}
-                            className="bg-white/95 backdrop-blur-md px-5 py-2.5 rounded-xl text-slate-600 font-bold text-xs shadow-xl active:scale-95 transition-all border border-slate-100"
+                            className="bg-white/95 backdrop-blur-md px-5 py-2.5 rounded-xl text-slate-600 font-medium text-xs shadow-xl active:scale-95 transition-all border border-slate-100"
                         >
                             ยกเลิก
                         </button>
                         <button
                             onClick={finishDigitizing}
-                            className="bg-emerald-600 px-5 py-2.5 rounded-xl text-white font-bold text-xs shadow-xl active:scale-95 transition-all shadow-emerald-500/30"
+                            className="bg-emerald-600 px-5 py-2.5 rounded-xl text-white font-medium text-xs shadow-xl active:scale-95 transition-all shadow-emerald-500/30"
                         >
                             เสร็จสิ้นและคำนวณ
                         </button>
@@ -935,10 +1072,46 @@ function MapPageNew() {
                 isOpen={workflowModal.isOpen}
                 mode={workflowModal.mode}
                 initialData={workflowModal.initialData}
+                accumulatedPlots={accumulatedPlots}
                 onClose={() => setWorkflowModal({ isOpen: false, mode: null })}
                 onStartDrawing={() => {
                     setWorkflowModal({ ...workflowModal, isOpen: false });
                     startDigitizing();
+                }}
+                onAddAnother={(plotData) => {
+                    // Save processed plot
+                    setAccumulatedPlots(prev => {
+                        const exists = prev.find(p => p.id === plotData.id);
+                        if (exists) return prev.map(p => p.id === plotData.id ? plotData : p);
+                        return [...prev, { ...plotData, id: plotData.id || Date.now() }];
+                    });
+
+                    // console.log("Added plot to list. Keeping modal open for summary.");
+                }}
+                onUpdatePlot={(id, updatedData) => {
+                    setAccumulatedPlots(prev => prev.map(p => p.id === id ? { ...p, ...updatedData } : p));
+                }}
+                onDeletePlot={(id) => {
+                    setAccumulatedPlots(prev => prev.filter(p => p.id !== id));
+                }}
+                onSave={(finalData, shouldClose) => {
+                    if (finalData) {
+                        setAccumulatedPlots(prev => {
+                            const exists = prev.find(p => p.id === finalData.id);
+                            if (exists) return prev.map(p => p.id === finalData.id ? finalData : p);
+                            return [...prev, { ...finalData, id: finalData.id || Date.now() }];
+                        });
+                    }
+
+                    if (shouldClose) {
+                        setWorkflowModal({ isOpen: false, mode: null });
+                        if (draw.current) draw.current.deleteAll();
+
+                        // Show success message only on final save
+                        setTimeout(() => {
+                            alert("บันทึกข้อมูลแปลงทั้งหมดเรียบร้อยแล้ว");
+                        }, 500);
+                    }
                 }}
             />
 
@@ -1003,7 +1176,7 @@ function MapPageNew() {
                 }
 
                 .mapboxgl-ctrl-group, .maplibregl-ctrl-group {
-                    display: none !important;
+                    /* display: none !important; */
                 }
             `}</style>
         </div>
