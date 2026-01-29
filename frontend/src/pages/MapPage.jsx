@@ -188,7 +188,12 @@ function MapPage() {
     const [showFABMenu, setShowFABMenu] = useState(false)
     const [workflowModal, setWorkflowModal] = useState({ isOpen: false, mode: null })
     const [digitizeMode, setDigitizeMode] = useState(false)
-    const [coordinates, setCoordinates] = useState({ lat: 0, lng: 0, zoom: 0 })
+    const [activeTool, setActiveTool] = useState(null)
+    const [savedPlots, setSavedPlots] = useState([])
+    const [pendingPlots, setPendingPlots] = useState([])
+    const [coordinates, setCoordinates] = useState({ lat: 13.7563, lng: 100.5018, zoom: 5 })
+    const [selectedPlotForPopup, setSelectedPlotForPopup] = useState(null)
+    const popupRef = useRef(null)
 
     // Draw state
     const draw = useRef(null)
@@ -248,69 +253,151 @@ function MapPage() {
             // Set globe projection (MapLibre GL v4+)
             try {
                 map.current.setProjection({ type: 'globe' })
+                console.log('Globe projection enabled');
             } catch (e) {
                 console.log('Globe projection not available, using mercator')
             }
 
-            // Add atmosphere effect
-            map.current.setFog({
-                color: 'rgb(186, 210, 235)',
-                'high-color': 'rgb(36, 92, 223)',
-                'horizon-blend': 0.02,
-                'space-color': 'rgb(11, 11, 25)',
-                'star-intensity': 0.6
-            })
+            // Add atmosphere effect (optional - only if supported)
+            try {
+                if (map.current.setFog) {
+                    map.current.setFog({
+                        color: 'rgb(186, 210, 235)',
+                        'high-color': 'rgb(36, 92, 223)',
+                        'horizon-blend': 0.02,
+                        'space-color': 'rgb(11, 11, 25)',
+                        'star-intensity': 0.6
+                    })
+                    console.log('Fog effect enabled');
+                } else {
+                    console.log('Fog effect not supported in this MapLibre version');
+                }
+            } catch (e) {
+                console.log('Failed to set fog, continuing without it:', e.message)
+            }
 
+            setMapLoaded(true)
             setMapLoaded(true)
             startIntroAnimation()
 
-            // Initialize Draw with a bit more robustness
-            console.log('Initializing Draw...');
-            try {
-                draw.current = new MapboxDraw({
-                    displayControlsDefault: false,
-                    controls: {
-                        polygon: false,
-                        trash: false
-                    },
-                    defaultMode: 'simple_select',
-                    styles: [
-                        {
-                            'id': 'gl-draw-polygon-fill-active',
-                            'type': 'fill',
-                            'filter': ['all', ['==', '$type', 'Polygon'], ['!=', 'mode', 'static']],
-                            'paint': {
-                                'fill-color': '#10b981',
-                                'fill-opacity': 0.3
+            // Initialize Draw Control
+            if (!draw.current) {
+                console.log('✨ Initializing MapboxDraw Control...');
+                try {
+                    draw.current = new MapboxDraw({
+                        displayControlsDefault: false,
+                        controls: {},
+                        defaultMode: 'simple_select',
+                        styles: [
+                            // ACTIVE (being drawn)
+                            // line stroke
+                            {
+                                "id": "gl-draw-line",
+                                "type": "line",
+                                "filter": ["all", ["==", "$type", "LineString"], ["!=", "mode", "static"]],
+                                "layout": {
+                                    "line-cap": "round",
+                                    "line-join": "round"
+                                },
+                                "paint": {
+                                    "line-color": "#10b981",
+                                    "line-dasharray": [0.2, 2],
+                                    "line-width": 2
+                                }
+                            },
+                            // polygon fill
+                            {
+                                "id": "gl-draw-polygon-fill-active",
+                                "type": "fill",
+                                "filter": ["all", ["==", "$type", "Polygon"], ["!=", "mode", "static"]],
+                                "paint": {
+                                    "fill-color": "#10b981",
+                                    "fill-outline-color": "#10b981",
+                                    "fill-opacity": 0.2
+                                }
+                            },
+                            // polygon mid points
+                            {
+                                "id": "gl-draw-polygon-midpoint",
+                                "type": "circle",
+                                "filter": ["all", ["==", "$type", "Point"], ["==", "meta", "midpoint"]],
+                                "paint": {
+                                    "circle-radius": 3,
+                                    "circle-color": "#fbb03b"
+                                }
+                            },
+                            // polygon outline stroke
+                            {
+                                "id": "gl-draw-polygon-stroke-active",
+                                "type": "line",
+                                "filter": ["all", ["==", "$type", "Polygon"], ["!=", "mode", "static"]],
+                                "layout": {
+                                    "line-cap": "round",
+                                    "line-join": "round"
+                                },
+                                "paint": {
+                                    "line-color": "#10b981",
+                                    "line-dasharray": [0.2, 2],
+                                    "line-width": 2
+                                }
+                            },
+                            // vertex point halos
+                            {
+                                "id": "gl-draw-polygon-and-line-vertex-halo-active",
+                                "type": "circle",
+                                "filter": ["all", ["==", "meta", "vertex"], ["==", "$type", "Point"], ["!=", "mode", "static"]],
+                                "paint": {
+                                    "circle-radius": 5,
+                                    "circle-color": "#FFF"
+                                }
+                            },
+                            // vertex points
+                            {
+                                "id": "gl-draw-polygon-and-line-vertex-active",
+                                "type": "circle",
+                                "filter": ["all", ["==", "meta", "vertex"], ["==", "$type", "Point"], ["!=", "mode", "static"]],
+                                "paint": {
+                                    "circle-radius": 3,
+                                    "circle-color": "#10b981"
+                                }
+                            },
+                            // STATIC
+                            {
+                                "id": "gl-draw-polygon-fill-static",
+                                "type": "fill",
+                                "filter": ["all", ["==", "$type", "Polygon"], ["==", "mode", "static"]],
+                                "paint": {
+                                    "fill-color": "#404040",
+                                    "fill-outline-color": "#404040",
+                                    "fill-opacity": 0.1
+                                }
+                            },
+                            {
+                                "id": "gl-draw-polygon-stroke-static",
+                                "type": "line",
+                                "filter": ["all", ["==", "$type", "Polygon"], ["==", "mode", "static"]],
+                                "layout": {
+                                    "line-cap": "round",
+                                    "line-join": "round"
+                                },
+                                "paint": {
+                                    "line-color": "#404040",
+                                    "line-width": 2
+                                }
                             }
-                        },
-                        {
-                            'id': 'gl-draw-polygon-stroke-active',
-                            'type': 'line',
-                            'filter': ['all', ['==', '$type', 'Polygon'], ['!=', 'mode', 'static']],
-                            'layout': { 'line-cap': 'round', 'line-join': 'round' },
-                            'paint': {
-                                'line-color': '#059669',
-                                'line-width': 3
-                            }
-                        },
-                        {
-                            'id': 'gl-draw-polygon-and-line-vertex-active',
-                            'type': 'circle',
-                            'filter': ['all', ['==', '$type', 'Point'], ['==', 'meta', 'vertex']],
-                            'paint': {
-                                'circle-radius': 6,
-                                'circle-color': '#ffffff',
-                                'circle-stroke-color': '#059669',
-                                'circle-stroke-width': 2
-                            }
-                        }
-                    ]
-                })
-                map.current.addControl(draw.current, 'top-left')
-                console.log('Draw initialized and added to map');
-            } catch (err) {
-                console.error('Failed to initialize Draw:', err);
+                        ]
+                    });
+
+                    // Add control to map
+                    if (map.current.hasControl(draw.current)) {
+                        map.current.removeControl(draw.current);
+                    }
+                    map.current.addControl(draw.current, 'top-right');
+                    console.log('✅ Draw Control added to top-right');
+
+                } catch (e) {
+                    console.error('Failed to init draw control:', e);
+                }
             }
 
             // Listen for drawing events
@@ -329,6 +416,75 @@ function MapPage() {
             })
         })
 
+        // Click handler for plots
+        map.current.on('click', 'saved-plots-layer', (e) => {
+            if (!e.features.length) return;
+            const feature = e.features[0];
+            const plotData = JSON.parse(feature.properties.allData);
+
+            // Show popup
+            const coordinates = e.lngLat;
+            const description = `
+                <div class="p-4 min-w-[220px] bg-white rounded-2xl shadow-sm">
+                    <div class="flex items-center gap-2 mb-3">
+                        <div class="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-black text-slate-800 text-[13px] leading-tight">${plotData.farmerName || 'ไม่ระบุชื่อ'}</h3>
+                            <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">${plotData.variety || 'RRIM 600'}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-2 mb-4 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                        <div class="flex justify-between items-center">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-tight">พื้นที่</span>
+                            <span class="text-[11px] font-black text-slate-700">${plotData.areaRai}-${plotData.areaNgan}-${plotData.areaSqWah} ไร่</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-tight">คาร์บอนสุทธิ</span>
+                            <span class="text-[11px] font-black text-emerald-600">${plotData.carbon || '0.00'} tCO₂e</span>
+                        </div>
+                    </div>
+
+                    <button id="edit-plot-btn" class="w-full py-2.5 bg-slate-900 text-white text-[10px] font-black rounded-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2 uppercase tracking-widest shadow-lg shadow-slate-900/10">
+                        แก้ไขข้อมูล
+                    </button>
+                </div>
+            `;
+
+            if (popupRef.current) popupRef.current.remove();
+
+            popupRef.current = new maplibregl.Popup({ closeButton: false })
+                .setLngLat(coordinates)
+                .setHTML(description)
+                .addTo(map.current);
+
+            // Add click listener to the button inside popup
+            setTimeout(() => {
+                document.getElementById('edit-plot-btn')?.addEventListener('click', () => {
+                    setWorkflowModal({
+                        isOpen: true,
+                        mode: 'draw',
+                        initialData: plotData,
+                        isEditing: true,
+                        plotId: plotData.id
+                    });
+                    if (popupRef.current) popupRef.current.remove();
+                });
+            }, 0);
+        });
+
+        // Change cursor on hover
+        map.current.on('mouseenter', 'saved-plots-layer', () => {
+            map.current.getCanvas().style.cursor = 'pointer';
+        });
+        map.current.on('mouseleave', 'saved-plots-layer', () => {
+            map.current.getCanvas().style.cursor = '';
+        });
+
         return () => {
             if (map.current) {
                 map.current.remove()
@@ -340,6 +496,138 @@ function MapPage() {
     // ==========================================
     // MAP DATA SYNC & DRAWING LOGIC
     // ==========================================
+    useEffect(() => {
+        if (!map.current || !mapLoaded) return;
+
+        const allPlots = [...savedPlots, ...pendingPlots];
+
+        // Add Source if not exists
+        if (!map.current.getSource('saved-plots')) {
+            map.current.addSource('saved-plots', {
+                type: 'geojson',
+                data: {
+                    type: 'FeatureCollection',
+                    features: allPlots.map(plot => ({
+                        type: 'Feature',
+                        geometry: plot.geometry,
+                        properties: {
+                            id: plot.id,
+                            farmerName: plot.farmerName,
+                            carbon: plot.carbon,
+                            isPending: plot.isPending || false,
+                            allData: JSON.stringify(plot)
+                        }
+                    }))
+                }
+            });
+
+            map.current.addLayer({
+                id: 'saved-plots-layer',
+                type: 'fill',
+                source: 'saved-plots',
+                layout: {},
+                paint: {
+                    'fill-color': ['case', ['get', 'isPending'], '#fbbf24', '#10b981'],
+                    'fill-opacity': 0.3,
+                    'fill-outline-color': ['case', ['get', 'isPending'], '#d97706', '#059669']
+                }
+            });
+
+            map.current.addLayer({
+                id: 'saved-plots-outline',
+                type: 'line',
+                source: 'saved-plots',
+                paint: {
+                    'line-color': ['case', ['get', 'isPending'], '#d97706', '#059669'],
+                    'line-width': 2
+                }
+            });
+        } else {
+            // Update Source
+            map.current.getSource('saved-plots').setData({
+                type: 'FeatureCollection',
+                features: allPlots.map(plot => ({
+                    type: 'Feature',
+                    geometry: plot.geometry,
+                    properties: {
+                        id: plot.id,
+                        farmerName: plot.farmerName,
+                        carbon: plot.carbon,
+                        isPending: plot.isPending || false,
+                        allData: JSON.stringify(plot)
+                    }
+                }))
+            });
+        }
+    }, [savedPlots, pendingPlots, mapLoaded]);
+
+    const handleSavePlot = (plotData, shouldAddMore = false) => {
+        const timestamp = Date.now();
+
+        let geometry = plotData.geometry;
+        if (!geometry && draw.current) {
+            const data = draw.current.getAll();
+            if (data.features.length > 0) {
+                geometry = data.features[0].geometry;
+            }
+        }
+
+        if (!geometry) {
+            alert('ไม่พบข้อมูลพิกัดแปลง กรุณาวาดใหม่อีกครั้ง');
+            return;
+        }
+
+        const newPlot = {
+            ...plotData,
+            id: plotData.id || timestamp,
+            isPending: true,
+            geometry: geometry
+        };
+
+        if (plotData.id) {
+            setPendingPlots(prev => prev.map(p => p.id === plotData.id ? newPlot : p));
+        } else {
+            setPendingPlots(prev => [...prev, newPlot]);
+        }
+
+        // Clear drawing
+        if (draw.current) {
+            draw.current.deleteAll();
+            draw.current.changeMode('simple_select');
+        }
+
+        if (shouldAddMore) {
+            setWorkflowModal({ isOpen: false, mode: null });
+            startDigitizing();
+        } else {
+            setWorkflowModal({ isOpen: false, mode: null });
+            setDigitizeMode(false);
+        }
+    };
+
+    const handleUpdateBasicInfo = (info) => {
+        setCurrentSessionInfo(info);
+        // Auto Recalculate all plots if needed
+        if (pendingPlots.length > 0) {
+            const updatedPlots = pendingPlots.map(plot => {
+                // Mock recalculation logic
+                const age = new Date().getFullYear() - parseInt(info.plantingYear);
+                const newCarbon = (parseFloat(plot.areaSqm) * 0.05 * (age / 10)).toFixed(2);
+                return { ...plot, ...info, age, carbon: newCarbon };
+            });
+            setPendingPlots(updatedPlots);
+        }
+    };
+
+    const finalizeAllPending = () => {
+        if (pendingPlots.length === 0) return;
+
+        // Move all from pending to saved
+        const newlySaved = pendingPlots.map(p => ({ ...p, isPending: false }));
+        setSavedPlots(prev => [...prev, ...newlySaved]);
+        setPendingPlots([]);
+        alert(`บันทึกเรียบร้อยทั้งหมด ${newlySaved.length} แปลง!`);
+    };
 
 
     // ==========================================
@@ -471,51 +759,168 @@ function MapPage() {
     // DIGITIZE LOGIC
     // ==========================================
     const startDigitizing = () => {
-        console.log('Attempting to start digitizing...', draw.current);
+        console.log('Attempting to start digitizing...', {
+            drawExists: !!draw.current,
+            mapExists: !!map.current,
+            mapLoaded
+        });
+
         if (!draw.current) {
             alert('เครื่องมือวาดกำลังโหลด กรุณารอสักครู่...');
             return;
         }
-        setDigitizeMode(true);
-        draw.current.changeMode('draw_polygon');
+
+        try {
+            setDigitizeMode(true);
+            console.log('Setting mode to draw_polygon');
+            draw.current.changeMode('draw_polygon');
+            console.log('Draw mode changed successfully');
+        } catch (err) {
+            console.error('Failed to start drawing:', err);
+            alert('เกิดข้อผิดพลาดในการเปิดเครื่องมือวาด กรุณาลองใหม่อีกครั้ง');
+        }
     }
 
     const cancelDigitizing = () => {
         if (!draw.current) return
-        draw.current.changeMode('simple_select')
-        draw.current.deleteAll()
-        setDigitizeMode(false)
+        try {
+            draw.current.changeMode('simple_select')
+            draw.current.deleteAll()
+            setDigitizeMode(false)
+            console.log('Digitizing cancelled');
+        } catch (err) {
+            console.error('Error cancelling:', err);
+        }
     }
 
     const finishDigitizing = () => {
-        const data = draw.current.getAll()
-        if (data.features.length > 0) {
-            const areaSqm = turf.area(data.features[0])
-            const areaRaiTotal = areaSqm / 1600
-            const rai = Math.floor(areaRaiTotal)
-            const ngan = Math.floor((areaRaiTotal - rai) * 4)
-            const sqWah = ((areaRaiTotal - rai - ngan / 4) * 400).toFixed(1)
+        if (!draw.current) {
+            alert('ไม่พบเครื่องมือวาด');
+            return;
+        }
 
-            setWorkflowModal({
-                isOpen: true,
-                mode: 'draw',
-                initialData: {
-                    areaSqm: areaSqm.toFixed(2),
-                    areaRai: rai,
-                    areaNgan: ngan,
-                    areaSqWah: sqWah
-                }
-            })
-            setDigitizeMode(false)
+        try {
+            const data = draw.current.getAll()
+
+            if (data.features.length > 0) {
+                const currentFeature = data.features[0];
+                const areaSqm = turf.area(currentFeature);
+                const areaRaiTotal = areaSqm / 1600;
+                const rai = Math.floor(areaRaiTotal);
+                const ngan = Math.floor((areaRaiTotal - rai) * 4);
+                const sqWah = ((areaRaiTotal - rai - ngan / 4) * 400).toFixed(1);
+
+                setWorkflowModal({
+                    isOpen: true,
+                    mode: 'draw',
+                    initialData: {
+                        geometry: currentFeature.geometry,
+                        areaSqm: areaSqm.toFixed(2),
+                        areaRai: rai,
+                        areaNgan: ngan,
+                        areaSqWah: sqWah
+                    }
+                });
+                console.log('Digitizing finished, current plot area calculated');
+            } else {
+                alert('กรุณาวาดพื้นที่บนแผนที่ก่อน');
+            }
+        } catch (err) {
+            console.error('Error finishing digitizing:', err);
+            alert('เกิดข้อผิดพลาดในการคำนวณพื้นที่');
         }
     }
 
     function updateArea(e) {
-        const data = draw.current.getAll()
-        if (data.features.length > 0) {
-            // Can show live area HUD here if needed
+        if (!draw.current) return;
+        try {
+            const data = draw.current.getAll()
+            if (data.features.length > 0) {
+                // Can show live area HUD here if needed
+                console.log('Area updated:', turf.area(data.features[0]));
+            }
+        } catch (err) {
+            console.error('Error updating area:', err);
         }
     }
+
+    // ==========================================
+    // DRAWING TOOLBAR TOOL MANAGEMENT
+    // ==========================================
+    const switchTool = (tool) => {
+        if (!draw.current || !digitizeMode) return;
+
+        try {
+            // If clicking the same tool, deactivate it
+            if (activeTool === tool) {
+                draw.current.changeMode('simple_select');
+                setActiveTool(null);
+                return;
+            }
+
+            // Switch to the new tool
+            switch (tool) {
+                case 'draw':
+                    draw.current.changeMode('draw_polygon');
+                    setActiveTool('draw');
+                    break;
+                case 'edit':
+                    const features = draw.current.getAll().features;
+                    if (features.length > 0) {
+                        draw.current.changeMode('direct_select', { featureId: features[0].id });
+                        setActiveTool('edit');
+                    } else {
+                        alert('กรุณาวาดแปลงก่อน');
+                    }
+                    break;
+                case 'select':
+                    draw.current.changeMode('simple_select');
+                    setActiveTool('select');
+                    break;
+                default:
+                    draw.current.changeMode('simple_select');
+                    setActiveTool(null);
+            }
+        } catch (err) {
+            console.error('Error switching tool:', err);
+        }
+    };
+
+    const handleDeletePlot = () => {
+        if (!draw.current) return;
+
+        const features = draw.current.getAll().features;
+        if (features.length === 0) {
+            alert('ไม่มีแปลงให้ลบ');
+            return;
+        }
+
+        // Confirmation dialog
+        const confirmed = window.confirm(
+            `คุณต้องการลบแปลงทั้งหมด ${features.length} แปลงใช่หรือไม่?\n\nการกระทำนี้ไม่สามารถย้อนกลับได้`
+        );
+
+        if (confirmed) {
+            try {
+                const ids = features.map(f => f.id);
+                draw.current.delete(ids);
+                setActiveTool(null);
+                console.log(`Deleted ${ids.length} plot(s)`);
+            } catch (err) {
+                console.error('Error deleting plots:', err);
+                alert('เกิดข้อผิดพลาดในการลบแปลง');
+            }
+        }
+    };
+
+    // Auto-activate draw tool when digitize mode starts
+    useEffect(() => {
+        if (digitizeMode && draw.current) {
+            setActiveTool('draw');
+        } else {
+            setActiveTool(null);
+        }
+    }, [digitizeMode]);
 
     // ==========================================
     // NAVIGATION HANDLERS
@@ -701,7 +1106,7 @@ function MapPage() {
             {/* ==========================================
                 MY LOCATION BUTTON (Bottom Left)
             ========================================== */}
-            <div className="absolute bottom-28 left-4 z-30">
+            <div className="absolute bottom-28 left-4 z-30 flex flex-col gap-2">
                 <button
                     onClick={locateUser}
                     className="w-12 h-12 rounded-2xl bg-white/95 backdrop-blur-xl flex items-center justify-center text-emerald-500 hover:text-emerald-600 hover:bg-white shadow-xl transition-all active:scale-95 border border-white/20"
@@ -709,6 +1114,18 @@ function MapPage() {
                 >
                     <LocationIcon />
                 </button>
+
+                {pendingPlots.length > 0 && !digitizeMode && (
+                    <button
+                        onClick={finalizeAllPending}
+                        className="h-12 px-4 rounded-full bg-emerald-600 text-white flex items-center justify-center gap-2 shadow-xl animate-bounce-subtle border-2 border-white/40"
+                    >
+                        <div className="w-6 h-6 rounded-full bg-white text-emerald-600 text-[10px] font-black flex items-center justify-center">
+                            {pendingPlots.length}
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-wider">บันทึกทั้งหมด</span>
+                    </button>
+                )}
             </div>
 
             {/* ==========================================
@@ -843,92 +1260,145 @@ function MapPage() {
 
             {/* DIGITIZING HUD & TOOLBAR */}
             {digitizeMode && (
-                <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[60] flex flex-col items-center gap-4">
-                    {/* Floating Step Guide */}
-                    <div className="bg-slate-900/95 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/20 shadow-2xl flex items-center gap-4 animate-bounce-subtle">
-                        <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white shrink-0">
-                            <PencilIcon />
-                        </div>
-                        <div className="text-white">
-                            <p className="text-xs font-bold leading-none">กำลังวาดแปลงยางพารา</p>
-                            <p className="text-[10px] opacity-60 mt-1 uppercase tracking-widest">จุดแปลงบนแผนที่ให้ครบทุกมุม</p>
+                <>
+                    {/* 1. TOP INSTRUCTION GUIDE - Multi-mode */}
+                    <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[110] animate-slide-down">
+                        <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-full border border-slate-200/50 shadow-lg flex items-center gap-2.5">
+                            <div className="w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0">
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                            </div>
+                            <div className="text-slate-700 flex items-center gap-2">
+                                <div className="flex flex-col">
+                                    <span className="text-xs font-bold leading-none tracking-tight">โหมดวาดแปลง</span>
+                                    <span className="text-[9px] text-slate-400 mt-0.5">คลิกบนแผนที่เพื่อวาดรูปทรง</span>
+                                </div>
+                                {pendingPlots.length > 0 && (
+                                    <div className="ml-2 pl-3 border-l border-slate-200 flex items-center gap-1.5">
+                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                        <span className="text-[10px] font-black text-emerald-600 uppercase">คำนวณแล้ว {pendingPlots.length} แปลง</span>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
 
-                    {/* Vertical Toolbar (Matches User Screenshot) */}
-                    <div className="fixed top-24 left-6 z-[999] flex flex-col items-center bg-white rounded-2xl shadow-2xl border border-slate-200 p-2 gap-1.5" style={{ zIndex: 9999 }}>
-                        {/* Draw Polygon */}
-                        <button
-                            onClick={() => {
-                                console.log('Draw polygon clicked');
-                                if (draw.current) draw.current.changeMode('draw_polygon');
-                            }}
-                            className="w-14 h-14 flex items-center justify-center rounded-xl text-slate-600 hover:text-emerald-500 hover:bg-emerald-50 transition-all border border-transparent hover:border-emerald-200 active:scale-95"
-                            title="วาดรูปแปลง"
-                        >
-                            <DrawPolygonIcon />
-                        </button>
+                    {/* 2. DRAWING TOOLBAR - Ultra Minimalist Pill */}
+                    <div className="fixed left-6 top-1/2 -translate-y-1/2 z-[110] animate-slide-right">
+                        <div className="bg-white/80 backdrop-blur-md rounded-full shadow-xl border border-white/40 p-1.5 flex flex-col gap-1.5">
+                            {/* Draw Polygon Tool */}
+                            <button
+                                onClick={() => switchTool('draw')}
+                                className={`w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300 group relative
+                                    ${activeTool === 'draw'
+                                        ? 'bg-emerald-500 text-white shadow-md'
+                                        : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
+                                    }`}
+                            >
+                                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 2L2 9l4 12h12l4-12L12 2z" />
+                                    <circle cx="12" cy="2" r="1.2" fill="currentColor" opacity={activeTool === 'draw' ? 1 : 0.5} />
+                                    <circle cx="2" cy="9" r="1.2" fill="currentColor" opacity={activeTool === 'draw' ? 1 : 0.5} />
+                                    <circle cx="6" cy="21" r="1.2" fill="currentColor" opacity={activeTool === 'draw' ? 1 : 0.5} />
+                                    <circle cx="18" cy="21" r="1.2" fill="currentColor" opacity={activeTool === 'draw' ? 1 : 0.5} />
+                                    <circle cx="22" cy="9" r="1.2" fill="currentColor" opacity={activeTool === 'draw' ? 1 : 0.5} />
+                                </svg>
+                                {activeTool === 'draw' && <span className="absolute -right-1 top-1/2 -translate-y-1/2 w-1 h-3 bg-emerald-500 rounded-full" />}
 
-                        {/* Direct Select (Edit Nodes) */}
-                        <button
-                            onClick={() => {
-                                console.log('Direct select clicked');
-                                if (draw.current) {
-                                    const features = draw.current.getAll().features;
-                                    if (features.length > 0) {
-                                        draw.current.changeMode('direct_select', { featureId: features[0].id });
-                                    }
-                                }
-                            }}
-                            className="w-14 h-14 flex items-center justify-center rounded-xl text-slate-600 hover:text-emerald-500 hover:bg-emerald-50 transition-all active:scale-95"
-                            title="แก้ไขจุด"
-                        >
-                            <PointerIcon />
-                        </button>
+                                {/* TOOLTIP */}
+                                <div className="absolute left-full ml-3 px-2 py-1.5 bg-slate-900/90 backdrop-blur-sm text-white text-[10px] font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap shadow-xl translate-x-1 group-hover:translate-x-0">
+                                    วาดแปลงใหม่
+                                    <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-y-4 border-y-transparent border-r-4 border-r-slate-900/90" />
+                                </div>
+                            </button>
 
-                        {/* Simple Select (Move) */}
-                        <button
-                            onClick={() => {
-                                console.log('Simple select clicked');
-                                if (draw.current) draw.current.changeMode('simple_select');
-                            }}
-                            className="w-14 h-14 flex items-center justify-center rounded-xl text-slate-600 hover:text-emerald-500 hover:bg-emerald-50 transition-all active:scale-95"
-                            title="เครื่องมือเลือก"
-                        >
-                            <MoveIcon />
-                        </button>
+                            {/* Edit Vertices Tool */}
+                            <button
+                                onClick={() => switchTool('edit')}
+                                className={`w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300 group relative
+                                    ${activeTool === 'edit'
+                                        ? 'bg-blue-500 text-white shadow-md'
+                                        : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
+                                    }`}
+                            >
+                                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                    <rect x="5" y="5" width="4" height="4" rx="0.5" />
+                                    <rect x="15" y="5" width="4" height="4" rx="0.5" />
+                                    <rect x="5" y="15" width="4" height="4" rx="0.5" />
+                                    <rect x="15" y="15" width="4" height="4" rx="0.5" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6M7 9v6M17 9v6M9 17h6" strokeDasharray="1 2" strokeOpacity={0.5} />
+                                </svg>
+                                {activeTool === 'edit' && <span className="absolute -right-1 top-1/2 -translate-y-1/2 w-1 h-3 bg-blue-500 rounded-full" />}
 
-                        <div className="w-10 h-[1px] bg-slate-200 my-1"></div>
+                                {/* TOOLTIP */}
+                                <div className="absolute left-full ml-3 px-2 py-1.5 bg-slate-900/90 backdrop-blur-sm text-white text-[10px] font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap shadow-xl translate-x-1 group-hover:translate-x-0">
+                                    แก้ไขจุดมุม
+                                    <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-y-4 border-y-transparent border-r-4 border-r-slate-900/90" />
+                                </div>
+                            </button>
 
-                        {/* Delete */}
-                        <button
-                            onClick={() => {
-                                console.log('Trash clicked');
-                                if (draw.current) draw.current.trash();
-                            }}
-                            className="w-14 h-14 flex items-center justify-center rounded-xl text-red-500 hover:text-red-600 hover:bg-red-50 transition-all active:scale-95"
-                            title="ลบส่วนที่เลือก"
-                        >
-                            <TrashIconSmall />
-                        </button>
+                            {/* Select / Move Tool */}
+                            <button
+                                onClick={() => switchTool('select')}
+                                className={`w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300 group relative
+                                    ${activeTool === 'select'
+                                        ? 'bg-orange-500 text-white shadow-md'
+                                        : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
+                                    }`}
+                            >
+                                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 13l6 6" strokeOpacity={0.6} />
+                                </svg>
+                                {activeTool === 'select' && <span className="absolute -right-1 top-1/2 -translate-y-1/2 w-1 h-3 bg-orange-500 rounded-full" />}
+
+                                {/* TOOLTIP */}
+                                <div className="absolute left-full ml-3 px-2 py-1.5 bg-slate-900/90 backdrop-blur-sm text-white text-[10px] font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap shadow-xl translate-x-1 group-hover:translate-x-0">
+                                    เลือก / ย้ายแปลง
+                                    <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-y-4 border-y-transparent border-r-4 border-r-slate-900/90" />
+                                </div>
+                            </button>
+
+                            <div className="mx-2 h-px bg-slate-200/50 my-0.5"></div>
+
+                            {/* Delete Tool */}
+                            <button
+                                onClick={handleDeletePlot}
+                                className="w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300 text-slate-400 hover:bg-red-50 hover:text-red-500 group relative"
+                            >
+                                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+
+                                {/* TOOLTIP */}
+                                <div className="absolute left-full ml-3 px-2 py-1.5 bg-red-600/90 backdrop-blur-sm text-white text-[10px] font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap shadow-xl translate-x-1 group-hover:translate-x-0">
+                                    ลบแปลงที่เลือก
+                                    <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-y-4 border-y-transparent border-r-4 border-r-red-600/90" />
+                                </div>
+                            </button>
+                        </div>
                     </div>
 
-                    <div className="flex gap-2">
+                    {/* 3. ACTION BUTTONS - Simplified for Mobile */}
+                    <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[110] flex gap-2 animate-slide-up">
                         <button
                             onClick={cancelDigitizing}
-                            className="bg-white/95 backdrop-blur-md px-5 py-2.5 rounded-xl text-slate-600 font-bold text-xs shadow-xl active:scale-95 transition-all border border-slate-100"
+                            className="bg-white/90 backdrop-blur-md px-6 py-2.5 rounded-full text-slate-500 font-bold text-[11px] shadow-lg border border-white/60 hover:bg-white active:scale-95 transition-all uppercase tracking-wider"
                         >
                             ยกเลิก
                         </button>
+
                         <button
                             onClick={finishDigitizing}
-                            className="bg-emerald-600 px-5 py-2.5 rounded-xl text-white font-bold text-xs shadow-xl active:scale-95 transition-all shadow-emerald-500/30"
+                            className="bg-emerald-600 px-8 py-2.5 rounded-full text-white font-black text-[11px] shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 active:scale-95 transition-all flex items-center gap-2 uppercase tracking-wider"
                         >
-                            เสร็จสิ้นและคำนวณ
+                            <span>วาดเสร็จแล้ว</span>
                         </button>
                     </div>
-                </div>
-            )}
+                </>
+            )
+            }
 
             {/* Workflow Modal Integration */}
             <WorkflowModal
@@ -936,6 +1406,7 @@ function MapPage() {
                 mode={workflowModal.mode}
                 initialData={workflowModal.initialData}
                 onClose={() => setWorkflowModal({ isOpen: false, mode: null })}
+                onSave={handleSavePlot}
                 onStartDrawing={() => {
                     setWorkflowModal({ ...workflowModal, isOpen: false });
                     startDigitizing();
@@ -949,6 +1420,33 @@ function MapPage() {
                     height: 24px;
                 }
                 
+                /* FORCE SHOW DRAW CONTROLS */
+                .mapboxgl-ctrl-top-right .mapboxgl-ctrl-group,
+                .maplibregl-ctrl-top-right .maplibregl-ctrl-group {
+                    display: flex !important;
+                    flex-direction: column !important;
+                    margin-top: 70px !important;
+                    background: white !important;
+                    opacity: 1 !important;
+                    visibility: visible !important;
+                    z-index: 99 !important;
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+                    border-radius: 12px !important;
+                }
+
+                .mapboxgl-ctrl-group button,
+                .maplibregl-ctrl-group button {
+                    width: 40px !important;
+                    height: 40px !important;
+                    background-color: white !important;
+                    border-bottom: 1px solid #eee !important;
+                }
+
+                .mapboxgl-ctrl-group button:last-child,
+                .maplibregl-ctrl-group button:last-child {
+                    border-bottom: none !important;
+                }
+
                 .user-marker-pulse {
                     position: absolute;
                     width: 40px;
@@ -960,7 +1458,7 @@ function MapPage() {
                     border-radius: 50%;
                     animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
                 }
-                
+
                 .user-marker-dot {
                     position: absolute;
                     width: 16px;
@@ -973,7 +1471,7 @@ function MapPage() {
                     border-radius: 50%;
                     box-shadow: 0 2px 8px rgba(0,0,0,0.3);
                 }
-                
+
                 @keyframes pulse-ring {
                     0% {
                         transform: translate(-50%, -50%) scale(0.5);
@@ -984,15 +1482,15 @@ function MapPage() {
                         opacity: 0;
                     }
                 }
-                
+
                 .maplibregl-canvas {
                     outline: none;
                 }
-                
+
                 .maplibregl-ctrl-attrib {
                     display: none !important;
                 }
-                
+
                 .maplibregl-ctrl-logo {
                     display: none !important;
                 }
@@ -1001,12 +1499,8 @@ function MapPage() {
                     0%, 100% { transform: translateY(0); }
                     50% { transform: translateY(-5px); }
                 }
-
-                .mapboxgl-ctrl-group, .maplibregl-ctrl-group {
-                    display: none !important;
-                }
             `}</style>
-        </div>
+        </div >
     )
 }
 

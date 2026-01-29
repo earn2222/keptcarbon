@@ -17,11 +17,11 @@ const LeafWhiteIcon = () => (
 
 const StepIndicator = ({ currentStep, totalSteps = 4 }) => {
     return (
-        <div className="flex items-center gap-2 mb-8">
+        <div className="flex items-center gap-1.5 mb-10 overflow-hidden">
             {[...Array(totalSteps)].map((_, i) => (
                 <div
                     key={i}
-                    className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${i + 1 <= currentStep ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-slate-200'
+                    className={`h-1 flex-1 rounded-full transition-all duration-700 ${i + 1 <= currentStep ? 'bg-emerald-500' : 'bg-slate-100'
                         }`}
                 />
             ))}
@@ -29,7 +29,7 @@ const StepIndicator = ({ currentStep, totalSteps = 4 }) => {
     );
 };
 
-export default function WorkflowModal({ isOpen, onClose, mode, initialData, onStartDrawing, onFileUpload }) {
+export default function WorkflowModal({ isOpen, onClose, mode, initialData, onStartDrawing, onFileUpload, onSave }) {
     const [step, setStep] = useState(1);
     const [unit, setUnit] = useState('rai');
     const [calcGroup, setCalcGroup] = useState(1);
@@ -58,17 +58,36 @@ export default function WorkflowModal({ isOpen, onClose, mode, initialData, onSt
 
     // Sync initialData
     useEffect(() => {
-        if (initialData) {
+        if (initialData && isOpen) {
             setFormData(prev => ({
                 ...prev,
+                farmerName: initialData.farmerName || '',
+                variety: initialData.variety || 'RRIM 600',
                 areaRai: initialData.areaRai || '',
                 areaNgan: initialData.areaNgan || '',
                 areaSqWah: initialData.areaSqWah || '',
-                areaSqm: initialData.areaSqm || ''
+                areaSqm: initialData.areaSqm || '',
+                plantingYear: initialData.plantingYear || (new Date().getFullYear() - 10),
+                age: initialData.age || 10,
+                dbh: initialData.dbh || '',
+                height: initialData.height || '',
+                id: initialData.id || null
             }));
-            setStep(1);
+
+            // If it's an existing successful result, we might want to skip to result step
+            if (initialData.carbon) {
+                setResult({
+                    carbon: initialData.carbon,
+                    area: `${initialData.areaRai}-${initialData.areaNgan}-${initialData.areaSqWah} ไร่`,
+                    age: initialData.age,
+                    method: initialData.method || 'ประวัติเดิม'
+                });
+            } else {
+                setResult(null);
+                setStep(1);
+            }
         }
-    }, [initialData]);
+    }, [initialData, isOpen]);
 
     const [isCalculating, setIsCalculating] = useState(false);
     const [result, setResult] = useState(null);
@@ -205,31 +224,26 @@ export default function WorkflowModal({ isOpen, onClose, mode, initialData, onSt
             />
 
             {/* Modal Content */}
-            <div className="relative w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl overflow-hidden animate-modalIn">
+            <div className="relative w-full max-w-lg bg-white/95 backdrop-blur-2xl rounded-[3rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)] overflow-hidden animate-modalIn border border-white/50">
                 {/* Header */}
-                <div className="px-8 pt-8 pb-4 flex items-center justify-between">
-                    <div>
-                        <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
-                            {mode === 'draw' ? 'ดิจิไตส์แปลงยางพารา' : 'นำเข้าแปลง SHP'}
-                        </h2>
-                        <p className="text-slate-400 text-xs font-medium uppercase tracking-widest mt-1">
-                            ขั้นตอนที่ {step} จาก 4
-                        </p>
+                <div className="px-10 pt-10 pb-6">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em]">Step {step === 0.5 ? 'Selection' : step} of 4</span>
+                        <button
+                            onClick={onClose}
+                            className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-all hover:rotate-90"
+                        >
+                            <CloseIcon />
+                        </button>
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors"
-                    >
-                        <CloseIcon />
-                    </button>
-                </div>
-
-                <div className="px-8 pb-4">
-                    <StepIndicator currentStep={step} />
+                    <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-6">
+                        {mode === 'draw' ? 'รายละเอียดเเปลง' : 'นำเข้าข้อมูล SHP'}
+                    </h2>
+                    <StepIndicator currentStep={step === 0.5 ? 1 : step} />
                 </div>
 
                 {/* Body Content */}
-                <div className="px-8 pb-8 max-h-[70vh] overflow-y-auto scrollbar-hide">
+                <div className="px-10 pb-10 max-h-[70vh] overflow-y-auto scrollbar-hide">
 
                     {/* STEP 0.5: SHP Plot Selection (Import Mode Only) */}
                     {step === 0.5 && mode === 'import' && (
@@ -245,8 +259,8 @@ export default function WorkflowModal({ isOpen, onClose, mode, initialData, onSt
                                         key={plot.id}
                                         onClick={() => togglePlotSelection(plot.id)}
                                         className={`w-full p-4 rounded-2xl border-2 transition-all text-left ${selectedPlots.includes(plot.id)
-                                                ? 'border-emerald-500 bg-emerald-50'
-                                                : 'border-slate-100 bg-white hover:border-slate-200'
+                                            ? 'border-emerald-500 bg-emerald-50'
+                                            : 'border-slate-100 bg-white hover:border-slate-200'
                                             }`}
                                     >
                                         <div className="flex items-center justify-between">
@@ -271,56 +285,60 @@ export default function WorkflowModal({ isOpen, onClose, mode, initialData, onSt
                             <button
                                 onClick={proceedWithSelectedPlots}
                                 disabled={selectedPlots.length === 0}
-                                className="w-full py-5 bg-emerald-600 text-white rounded-2xl font-bold shadow-xl hover:bg-emerald-700 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="w-full py-5 bg-emerald-600 text-white rounded-2xl font-bold font-black shadow-xl hover:bg-emerald-700 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 ดำเนินการต่อ ({selectedPlots.length} แปลง)
                             </button>
                         </div>
                     )}
 
-                    {/* STEP 1: Basic Info */}
+                    {/* STEP 1: Basic Info - Simplified */}
                     {step === 1 && (
-                        <div className="space-y-6 animate-fadeIn">
-                            <div className="space-y-2">
-                                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">ชื่อเกษตรกร</label>
+                        <div className="space-y-8 animate-fadeIn">
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">เจ้าของเเปลง</label>
                                 <input
                                     type="text"
-                                    placeholder="ระบุชื่อ-นามสกุล"
-                                    className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-slate-700 placeholder:text-slate-300 focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium"
+                                    placeholder="ระบุชื่อ-นามสกุล หรือชื่อเเปลง"
+                                    className="w-full bg-slate-50 border-none rounded-3xl px-7 py-5 text-slate-800 placeholder:text-slate-300 focus:ring-2 focus:ring-emerald-500/10 transition-all font-bold text-lg"
                                     value={formData.farmerName}
                                     onChange={e => setFormData({ ...formData, farmerName: e.target.value })}
                                 />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">ปีที่ปลูก (พ.ศ.)</label>
+                                <div className="space-y-4">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">ปีที่เริ่มปลูก</label>
                                     <input
                                         type="number"
-                                        placeholder="เช่น 2555"
-                                        className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-slate-700 font-medium"
+                                        placeholder="พ.ศ."
+                                        className="w-full bg-slate-50 border-none rounded-3xl px-7 py-5 text-slate-800 font-bold text-lg"
                                         value={formData.plantingYear}
                                         onChange={e => setFormData({ ...formData, plantingYear: e.target.value })}
                                     />
                                 </div>
-                                <div className="space-y-2 text-center flex flex-col justify-center">
-                                    <span className="text-[10px] font-bold text-slate-300 uppercase">อายุต้นยางปัจจุบัน</span>
-                                    <span className="text-2xl font-black text-emerald-600">{formData.age} ปี</span>
+                                <div className="bg-emerald-50 rounded-3xl flex flex-col items-center justify-center border border-emerald-100/50">
+                                    <span className="text-[9px] font-black text-emerald-600/70 uppercase tracking-widest">อายุต้นยาง</span>
+                                    <span className="text-3xl font-black text-emerald-600 mt-1">{formData.age}<span className="text-xs ml-1">ปี</span></span>
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">พันธุ์ยางพารา</label>
-                                <select
-                                    className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-slate-700 font-medium appearance-none"
-                                    value={formData.variety}
-                                    onChange={e => setFormData({ ...formData, variety: e.target.value })}
-                                >
-                                    <option>RRIM 600</option>
-                                    <option>RRIT 251</option>
-                                    <option>PB 235</option>
-                                    <option>GT 1</option>
-                                </select>
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">สายพันธุ์ยางพารา</label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {['RRIM 600', 'RRIT 251', 'PB 235', 'อื่นๆ'].map(v => (
+                                        <button
+                                            key={v}
+                                            onClick={() => setFormData({ ...formData, variety: v })}
+                                            className={`py-4 rounded-2xl border-2 transition-all font-bold text-sm ${formData.variety === v
+                                                ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                                                : 'border-slate-50 bg-slate-50 text-slate-400 hover:border-slate-200'
+                                                }`}
+                                        >
+                                            {v}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
 
                             {/* SHP Upload Button (Import Mode) */}
@@ -348,125 +366,123 @@ export default function WorkflowModal({ isOpen, onClose, mode, initialData, onSt
 
                             <button
                                 onClick={handleNext}
-                                className="w-full py-5 bg-slate-900 text-white rounded-2xl font-bold shadow-xl hover:bg-slate-800 transition-all active:scale-[0.98] mt-4"
+                                className="w-full py-5 bg-slate-900 text-white rounded-[2rem] font-bold shadow-xl hover:bg-slate-800 transition-all active:scale-[0.98] mt-4 uppercase tracking-widest text-sm"
                             >
                                 ถัดไป
                             </button>
                         </div>
                     )}
 
-                    {/* STEP 2: Area & Method */}
+                    {/* STEP 2: Area & Method - Minimalist */}
                     {step === 2 && (
-                        <div className="space-y-6 animate-fadeIn">
-                            <div className="flex items-center justify-between">
-                                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">ขนาดพื้นที่</label>
-                                <div className="flex bg-slate-100 p-1 rounded-xl">
-                                    <button
-                                        onClick={() => setUnit('rai')}
-                                        className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all ${unit === 'rai' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}
-                                    >
-                                        ไร่-งาน-ตรว.
-                                    </button>
-                                    <button
-                                        onClick={() => setUnit('sqm')}
-                                        className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all ${unit === 'sqm' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}
-                                    >
-                                        ตารางเมตร
-                                    </button>
+                        <div className="space-y-8 animate-fadeIn">
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between pl-1">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ขนาดพื้นที่เเปลง</label>
+                                    <div className="flex bg-slate-100 p-0.5 rounded-xl">
+                                        <button onClick={() => setUnit('rai')} className={`px-3 py-1 text-[9px] font-black rounded-lg transition-all ${unit === 'rai' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}>RAI</button>
+                                        <button onClick={() => setUnit('sqm')} className={`px-3 py-1 text-[9px] font-black rounded-lg transition-all ${unit === 'sqm' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}>M²</button>
+                                    </div>
                                 </div>
+
+                                {unit === 'rai' ? (
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <div className="bg-slate-50 p-4 rounded-[2rem] border border-slate-100/50">
+                                            <input type="number" className="w-full bg-transparent border-none p-0 text-center font-black text-xl text-slate-800" value={formData.areaRai} onChange={e => setFormData({ ...formData, areaRai: e.target.value })} />
+                                            <div className="text-[8px] text-center text-slate-400 font-black uppercase mt-1 tracking-tighter">ไร่</div>
+                                        </div>
+                                        <div className="bg-slate-50 p-4 rounded-[2rem] border border-slate-100/50">
+                                            <input type="number" className="w-full bg-transparent border-none p-0 text-center font-black text-xl text-slate-800" value={formData.areaNgan} onChange={e => setFormData({ ...formData, areaNgan: e.target.value })} />
+                                            <div className="text-[8px] text-center text-slate-400 font-black uppercase mt-1 tracking-tighter">งาน</div>
+                                        </div>
+                                        <div className="bg-slate-50 p-4 rounded-[2rem] border border-slate-100/50">
+                                            <input type="number" className="w-full bg-transparent border-none p-0 text-center font-black text-xl text-slate-800" value={formData.areaSqWah} onChange={e => setFormData({ ...formData, areaSqWah: e.target.value })} />
+                                            <div className="text-[8px] text-center text-slate-400 font-black uppercase mt-1 tracking-tighter">ตร.ว.</div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100/50">
+                                        <input type="number" className="w-full bg-transparent border-none p-0 text-center font-black text-3xl text-emerald-600" value={formData.areaSqm} onChange={e => setFormData({ ...formData, areaSqm: e.target.value })} />
+                                        <div className="text-[9px] text-center text-slate-400 font-black uppercase mt-2">ตารางเมตร</div>
+                                    </div>
+                                )}
                             </div>
 
-                            {unit === 'rai' ? (
-                                <div className="grid grid-cols-3 gap-3">
-                                    <div className="bg-slate-50 p-3 rounded-2xl">
-                                        <input type="number" placeholder="0" className="w-full bg-transparent border-none p-0 text-center font-bold text-lg" value={formData.areaRai} onChange={e => setFormData({ ...formData, areaRai: e.target.value })} />
-                                        <div className="text-[9px] text-center text-slate-400 font-bold uppercase mt-1">ไร่</div>
-                                    </div>
-                                    <div className="bg-slate-50 p-3 rounded-2xl">
-                                        <input type="number" placeholder="0" className="w-full bg-transparent border-none p-0 text-center font-bold text-lg" value={formData.areaNgan} onChange={e => setFormData({ ...formData, areaNgan: e.target.value })} />
-                                        <div className="text-[9px] text-center text-slate-400 font-bold uppercase mt-1">งาน</div>
-                                    </div>
-                                    <div className="bg-slate-50 p-3 rounded-2xl">
-                                        <input type="number" placeholder="0" className="w-full bg-transparent border-none p-0 text-center font-bold text-lg" value={formData.areaSqWah} onChange={e => setFormData({ ...formData, areaSqWah: e.target.value })} />
-                                        <div className="text-[9px] text-center text-slate-400 font-bold uppercase mt-1">ตร.ว.</div>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="bg-slate-50 p-4 rounded-2xl">
-                                    <input type="number" placeholder="0.00" className="w-full bg-transparent border-none p-0 text-center font-black text-2xl text-emerald-600" value={formData.areaSqm} onChange={e => setFormData({ ...formData, areaSqm: e.target.value })} />
-                                    <div className="text-[10px] text-center text-slate-400 font-bold uppercase mt-1">ตารางเมตร</div>
-                                </div>
-                            )}
-
-                            <div className="space-y-3">
-                                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">เลือกกลุ่มวิธีคำนวณ</label>
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">เลือกวิธีประเมินคาร์บอน</label>
                                 <div className="grid grid-cols-2 gap-3">
                                     <button
                                         onClick={() => setCalcGroup(1)}
-                                        className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${calcGroup === 1 ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-100 text-slate-400'}`}
+                                        className={`p-6 rounded-[2rem] border-2 transition-all flex flex-col items-center gap-3 ${calcGroup === 1 ? 'border-slate-900 bg-slate-900 text-white shadow-xl' : 'border-slate-50 bg-slate-50 text-slate-400 hover:border-slate-200'}`}
                                     >
-                                        <div className="text-[10px] font-black uppercase">กลุ่ม 1</div>
-                                        <div className="text-xs font-bold text-center">คำนวณด้วยตัวเอง</div>
+                                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" strokeWidth={2} /></svg>
+                                        <div className="text-[10px] font-black uppercase tracking-tighter">วัดระดับพื้นดิน</div>
                                     </button>
                                     <button
                                         onClick={() => setCalcGroup(2)}
-                                        className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${calcGroup === 2 ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-100 text-slate-400'}`}
+                                        className={`p-6 rounded-[2rem] border-2 transition-all flex flex-col items-center gap-3 ${calcGroup === 2 ? 'border-slate-900 bg-slate-900 text-white shadow-xl' : 'border-slate-50 bg-slate-50 text-slate-400 hover:border-slate-200'}`}
                                     >
-                                        <div className="text-[10px] font-black uppercase">กลุ่ม 2</div>
-                                        <div className="text-xs font-bold text-center">ภาพถ่ายดาวเทียม</div>
+                                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeWidth={2} /></svg>
+                                        <div className="text-[10px] font-black uppercase tracking-tighter">ภาพถ่ายดาวเทียม</div>
                                     </button>
                                 </div>
                             </div>
 
                             {/* Conditional Inputs */}
-                            <div className="bg-slate-900 rounded-[2rem] p-6 text-white space-y-4">
+                            <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white space-y-6 shadow-xl">
                                 {calcGroup === 1 ? (
                                     <>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
-                                                <span className="text-[9px] font-bold opacity-60 uppercase tracking-widest pl-1">เส้นผ่าศูนย์กลาง (DBH)</span>
-                                                <input type="number" placeholder="ซม." className="w-full bg-white/10 border-none rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-white/20" value={formData.dbh} onChange={e => setFormData({ ...formData, dbh: e.target.value })} />
+                                                <span className="text-[9px] font-black opacity-40 uppercase tracking-widest pl-1">เส้นผ่าศูนย์กลาง (DBH)</span>
+                                                <input type="number" placeholder="ซม." className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:ring-1 focus:ring-emerald-500/50 transition-all font-bold" value={formData.dbh} onChange={e => setFormData({ ...formData, dbh: e.target.value })} />
                                             </div>
                                             <div className="space-y-2">
-                                                <span className="text-[9px] font-bold opacity-60 uppercase tracking-widest pl-1">ความสูง (H)</span>
-                                                <input type="number" placeholder="เมตร" className="w-full bg-white/10 border-none rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-white/20" value={formData.height} onChange={e => setFormData({ ...formData, height: e.target.value })} />
+                                                <span className="text-[9px] font-black opacity-40 uppercase tracking-widest pl-1">ความสูง (H)</span>
+                                                <input type="number" placeholder="เมตร" className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:ring-1 focus:ring-emerald-500/50 transition-all font-bold" value={formData.height} onChange={e => setFormData({ ...formData, height: e.target.value })} />
                                             </div>
                                         </div>
                                         <div className="space-y-3">
-                                            <span className="text-[9px] font-bold opacity-60 uppercase tracking-widest pl-1">เลือกสมการ</span>
+                                            <span className="text-[9px] font-black opacity-40 uppercase tracking-widest pl-1">เลือกรูปแบบสมการ</span>
                                             <div className="space-y-2">
-                                                <label className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition-colors">
-                                                    <input type="radio" name="eq_manual" checked={formData.methodManual === 'eq1'} onChange={() => setFormData({ ...formData, methodManual: 'eq1' })} className="accent-emerald-400" />
-                                                    <span className="text-[10px] font-mono opacity-80">AGB = 0.118 × DBH^2.53</span>
+                                                <label className={`flex items-center gap-4 p-4 rounded-2xl border transition-all cursor-pointer ${formData.methodManual === 'eq1' ? 'bg-emerald-500/20 border-emerald-500/50' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}>
+                                                    <input type="radio" name="eq_manual" checked={formData.methodManual === 'eq1'} onChange={() => setFormData({ ...formData, methodManual: 'eq1' })} className="accent-emerald-400 w-4 h-4" />
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[10px] font-mono font-bold text-emerald-400">AGB = 0.118 × DBH^2.53</span>
+                                                        <span className="text-[8px] font-bold opacity-40 uppercase tracking-tighter mt-0.5">Primary Growth Formula</span>
+                                                    </div>
                                                 </label>
-                                                <label className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition-colors">
-                                                    <input type="radio" name="eq_manual" checked={formData.methodManual === 'eq2'} onChange={() => setFormData({ ...formData, methodManual: 'eq2' })} className="accent-emerald-400" />
-                                                    <span className="text-[10px] font-mono opacity-80">AGB = 0.062 × DBH^2.23</span>
+                                                <label className={`flex items-center gap-4 p-4 rounded-2xl border transition-all cursor-pointer ${formData.methodManual === 'eq2' ? 'bg-emerald-500/20 border-emerald-500/50' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}>
+                                                    <input type="radio" name="eq_manual" checked={formData.methodManual === 'eq2'} onChange={() => setFormData({ ...formData, methodManual: 'eq2' })} className="accent-emerald-400 w-4 h-4" />
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[10px] font-mono font-bold text-emerald-400">AGB = 0.062 × DBH^2.23</span>
+                                                        <span className="text-[8px] font-bold opacity-40 uppercase tracking-tighter mt-0.5">Secondary Growth Formula</span>
+                                                    </div>
                                                 </label>
                                             </div>
                                         </div>
                                     </>
                                 ) : (
                                     <div className="space-y-4">
-                                        <div className="p-4 bg-emerald-500/20 border border-emerald-500/20 rounded-2xl flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center animate-pulse">
+                                        <div className="p-5 bg-emerald-500/10 border border-emerald-500/20 rounded-3xl flex items-center gap-5">
+                                            <div className="w-12 h-12 rounded-2xl bg-emerald-500 flex items-center justify-center animate-pulse shadow-lg shadow-emerald-500/20 text-white">
                                                 <LeafWhiteIcon />
                                             </div>
                                             <div className="text-xs">
-                                                <p className="font-bold">เชื่อมต่อ Google Earth Engine</p>
-                                                <p className="opacity-60 text-[10px]">ระบบจะดึงค่า NDVI และ TCARI อัตโนมัติ</p>
+                                                <p className="font-black tracking-tight">Google Earth Engine</p>
+                                                <p className="opacity-40 text-[9px] font-bold uppercase mt-1 tracking-widest">Auto NDVI/TCARI Sync</p>
                                             </div>
                                         </div>
                                         <div className="space-y-3">
-                                            <span className="text-[9px] font-bold opacity-60 uppercase tracking-widest pl-1">เลือกสมการดาวเทียม</span>
+                                            <span className="text-[9px] font-black opacity-40 uppercase tracking-widest pl-1">เลือกรูปแบบสมการ</span>
                                             <div className="space-y-2">
-                                                <label className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition-colors">
-                                                    <input type="radio" name="eq_sat" checked={formData.methodSat === 'ndvi'} onChange={() => setFormData({ ...formData, methodSat: 'ndvi' })} className="accent-emerald-400" />
-                                                    <span className="text-[10px] font-mono opacity-80">AGB = 34.2 × NDVI + 5.8</span>
+                                                <label className={`flex items-center gap-4 p-4 rounded-2xl border transition-all cursor-pointer ${formData.methodSat === 'ndvi' ? 'bg-emerald-500/20 border-emerald-500/50' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}>
+                                                    <input type="radio" name="eq_sat" checked={formData.methodSat === 'ndvi'} onChange={() => setFormData({ ...formData, methodSat: 'ndvi' })} className="accent-emerald-400 w-4 h-4" />
+                                                    <span className="text-[10px] font-mono font-bold text-emerald-400">AGB = 34.2 × NDVI + 5.8</span>
                                                 </label>
-                                                <label className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition-colors">
-                                                    <input type="radio" name="eq_sat" checked={formData.methodSat === 'tcari'} onChange={() => setFormData({ ...formData, methodSat: 'tcari' })} className="accent-emerald-400" />
-                                                    <span className="text-[10px] font-mono opacity-80">AGB = 13.57 × TCARI + 7.45</span>
+                                                <label className={`flex items-center gap-4 p-4 rounded-2xl border transition-all cursor-pointer ${formData.methodSat === 'tcari' ? 'bg-emerald-500/20 border-emerald-500/50' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}>
+                                                    <input type="radio" name="eq_sat" checked={formData.methodSat === 'tcari'} onChange={() => setFormData({ ...formData, methodSat: 'tcari' })} className="accent-emerald-400 w-4 h-4" />
+                                                    <span className="text-[10px] font-mono font-bold text-emerald-400">AGB = 13.57 × TCARI + 7.45</span>
                                                 </label>
                                             </div>
                                         </div>
@@ -475,12 +491,12 @@ export default function WorkflowModal({ isOpen, onClose, mode, initialData, onSt
                             </div>
 
                             <div className="flex gap-4">
-                                <button onClick={handleBack} className="w-1/3 py-5 bg-slate-100 text-slate-500 rounded-2xl font-bold transition-all active:scale-[0.98]">ย้อนกลับ</button>
+                                <button onClick={handleBack} className="w-1/3 py-5 bg-slate-100 text-slate-400 rounded-[2rem] font-black text-[10px] uppercase tracking-widest transition-all active:scale-[0.98]">ย้อนกลับ</button>
                                 <button
                                     onClick={calculateLocalCarbon}
-                                    className="flex-1 py-5 bg-emerald-600 text-white rounded-2xl font-bold shadow-xl shadow-emerald-500/20 hover:bg-emerald-700 transition-all active:scale-[0.98]"
+                                    className="flex-1 py-5 bg-emerald-600 text-white rounded-[2rem] font-black shadow-2xl shadow-emerald-500/20 hover:bg-emerald-700 transition-all active:scale-[0.98] uppercase tracking-[0.2em] text-[11px]"
                                 >
-                                    คำนวณคาร์บอน
+                                    ประมวลผลคาร์บอน
                                 </button>
                             </div>
                         </div>
@@ -488,92 +504,102 @@ export default function WorkflowModal({ isOpen, onClose, mode, initialData, onSt
 
                     {/* STEP 3: Results & Preview */}
                     {step === 3 && (
-                        <div className="space-y-6 animate-fadeIn">
-                            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl">
-                                <div className="absolute top-0 right-0 p-8 opacity-10">
+                        <div className="space-y-8 animate-fadeIn">
+                            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-[3rem] p-10 text-white relative overflow-hidden shadow-2xl border border-white/5">
+                                <div className="absolute top-0 right-0 p-10 opacity-5">
                                     <LeafWhiteIcon />
                                 </div>
                                 <div className="text-center relative z-10">
-                                    <p className="text-[11px] font-black uppercase tracking-[3px] opacity-60 mb-2">ค่ากักเก็บคาร์บอนสุทธิ</p>
-                                    <h2 className="text-6xl font-black text-emerald-400 tabular-nums">
+                                    <p className="text-[10px] font-black uppercase tracking-[4px] text-emerald-400/80 mb-4">ค่ากักเก็บคาร์บอนสุทธิ</p>
+                                    <h2 className="text-7xl font-black text-white tabular-nums tracking-tighter">
                                         {result?.carbon}
                                     </h2>
-                                    <p className="text-sm font-bold mt-2 opacity-80">ตันคาร์บอน (tCO2e)</p>
+                                    <p className="text-xs font-bold mt-4 opacity-40 uppercase tracking-widest">Metric Tons (tCO₂e)</p>
                                 </div>
 
-                                <div className="mt-8 grid grid-cols-2 gap-y-4 gap-x-6 border-t border-white/10 pt-8">
+                                <div className="mt-10 grid grid-cols-2 gap-y-6 gap-x-8 border-t border-white/10 pt-10">
                                     <div className="space-y-1">
-                                        <p className="text-[9px] font-bold opacity-40 uppercase tracking-widest">ชื่อเกษตรกร</p>
-                                        <p className="text-xs font-bold truncate">{formData.farmerName || '-'}</p>
+                                        <p className="text-[9px] font-black opacity-30 uppercase tracking-widest">เจ้าของเเปลง</p>
+                                        <p className="text-sm font-black truncate">{formData.farmerName || '-'}</p>
                                     </div>
                                     <div className="space-y-1">
-                                        <p className="text-[9px] font-bold opacity-40 uppercase tracking-widest">ขนาดพื้นที่</p>
-                                        <p className="text-xs font-bold">{result?.area}</p>
+                                        <p className="text-[9px] font-black opacity-30 uppercase tracking-widest">พื้นที่เเปลง</p>
+                                        <p className="text-sm font-black">{result?.area}</p>
                                     </div>
                                     <div className="space-y-1">
-                                        <p className="text-[9px] font-bold opacity-40 uppercase tracking-widest">อายุต้นยาง</p>
-                                        <p className="text-xs font-bold text-emerald-400">{result?.age} ปี</p>
+                                        <p className="text-[9px] font-black opacity-30 uppercase tracking-widest">อายุต้นยาง</p>
+                                        <p className="text-sm font-black text-emerald-400">{result?.age} ปี</p>
                                     </div>
                                     <div className="space-y-1">
-                                        <p className="text-[9px] font-bold opacity-40 uppercase tracking-widest">สายพันธุ์</p>
-                                        <p className="text-xs font-bold">{formData.variety}</p>
+                                        <p className="text-[9px] font-black opacity-30 uppercase tracking-widest">วิธีการ</p>
+                                        <p className="text-[10px] font-black uppercase leading-tight">{result?.method}</p>
                                     </div>
                                 </div>
                             </div>
 
                             <div className="space-y-4">
-                                <p className="text-center text-[10px] text-slate-400 font-bold uppercase tracking-widest">วิธีคำนวณ: {result?.method}</p>
+                                <button
+                                    onClick={() => onSave({ ...formData, carbon: result?.carbon, method: result?.method }, true)}
+                                    className="w-full py-6 bg-slate-900 text-white rounded-[2rem] font-black shadow-xl hover:bg-slate-800 transition-all active:scale-[0.98] flex items-center justify-center gap-3 uppercase tracking-[0.2em] text-[10px]"
+                                >
+                                    <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                    </svg>
+                                    บันทึกเเละวาดเเปลงเพิ่ม
+                                </button>
+
                                 <button
                                     onClick={handleNext}
-                                    className="w-full py-5 bg-emerald-600 text-white rounded-2xl font-bold shadow-xl hover:bg-emerald-700 transition-all active:scale-[0.98]"
+                                    className="w-full py-6 bg-emerald-600 text-white rounded-[2rem] font-black shadow-2xl shadow-emerald-500/30 hover:bg-emerald-700 transition-all active:scale-[0.98] uppercase tracking-[0.2em] text-[11px]"
                                 >
-                                    ต่อไปเพื่อบันทึกผล
+                                    สรุปข้อมูลเพื่อบันทึก
                                 </button>
-                                <button onClick={handleBack} className="w-full py-3 text-slate-400 text-sm font-bold hover:text-slate-600 transition-colors">แก้ไขข้อมูล</button>
+
+                                <button onClick={handleBack} className="w-full py-3 text-slate-300 text-[10px] font-black hover:text-slate-600 transition-colors uppercase tracking-[0.3em]">ย้อนกลับไปเเก้ไข</button>
                             </div>
                         </div>
                     )}
 
-                    {/* STEP 4: Confirm & Save */}
+                    {/* STEP 4: Confirm & Save - Minimalist Card */}
                     {step === 4 && (
-                        <div className="space-y-6 animate-fadeIn">
-                            <div className="p-6 bg-amber-50 rounded-3xl border border-amber-100">
-                                <div className="flex gap-4">
-                                    <div className="w-10 h-10 rounded-2xl bg-amber-500 flex items-center justify-center text-white shrink-0 shadow-lg shadow-amber-500/30">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
-                                    </div>
-                                    <div>
-                                        <h4 className="text-sm font-bold text-slate-800">ตรวจสอบข้อมูลเป็นครั้งสุดท้าย</h4>
-                                        <p className="text-slate-500 text-xs mt-1">กรุณายืนยันความถูกต้องของข้อมูลก่อนทำการบันทึกลงสู่ระบบฐานข้อมูล</p>
-                                    </div>
+                        <div className="space-y-8 animate-fadeIn">
+                            <div className="p-8 bg-emerald-50 rounded-[2.5rem] border border-emerald-100/50 flex flex-col items-center text-center">
+                                <div className="w-16 h-16 rounded-full bg-emerald-500 text-white flex items-center justify-center mb-4 shadow-xl shadow-emerald-500/20">
+                                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path d="M5 13l4 4L19 7" /></svg>
                                 </div>
+                                <h4 className="text-xl font-black text-slate-900">บันทึกข้อมูลสำเร็จ</h4>
+                                <p className="text-slate-500 text-sm mt-2 font-medium">ข้อมูลแปลงของคุณพร้อมสำหรับ<br />การแสดงผลในหน้าแดชบอร์ดแล้ว</p>
                             </div>
 
-                            <div className="space-y-3 bg-slate-50 p-6 rounded-3xl">
-                                <div className="flex justify-between items-center py-2 border-b border-slate-200/50">
-                                    <span className="text-[11px] font-bold text-slate-400 uppercase">ชื่อเจ้าของแปลง</span>
-                                    <span className="text-sm font-bold text-slate-700">{formData.farmerName}</span>
+                            <div className="bg-slate-50 p-8 rounded-[2.5rem] space-y-4 border border-slate-100">
+                                <div className="flex justify-between items-center py-2 border-b border-slate-200/40">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ชื่อเกษตรกร</span>
+                                    <span className="text-sm font-black text-slate-700">{formData.farmerName || 'ไม่ระบุ'}</span>
                                 </div>
-                                <div className="flex justify-between items-center py-2 border-b border-slate-200/50">
-                                    <span className="text-[11px] font-bold text-slate-400 uppercase">พื้นที่ทั้งหมด</span>
-                                    <span className="text-sm font-bold text-slate-700">{result?.area}</span>
+                                <div className="flex justify-between items-center py-2 border-b border-slate-200/40">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">พื้นที่</span>
+                                    <span className="text-sm font-black text-slate-700">{result?.area}</span>
                                 </div>
-                                <div className="flex justify-between items-center py-2">
-                                    <span className="text-[11px] font-bold text-slate-400 uppercase">ยอดรวมคาร์บอน</span>
-                                    <span className="text-lg font-black text-emerald-600">{result?.carbon} Tons</span>
+                                <div className="flex justify-between items-center pt-2">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ยอดรวมคาร์บอนสถิติ</span>
+                                    <span className="text-2xl font-black text-emerald-600">{result?.carbon} <span className="text-xs">Tons</span></span>
                                 </div>
                             </div>
 
                             <button
                                 onClick={() => {
-                                    alert('บันทึกข้อมูลสำเร็จ!');
-                                    onClose();
+                                    if (onSave) {
+                                        onSave({ ...formData, carbon: result?.carbon, method: result?.method }, false);
+                                    } else {
+                                        alert('บันทึกข้อมูลสำเร็จ!');
+                                        onClose();
+                                    }
                                 }}
-                                className="w-full py-5 bg-slate-900 text-white rounded-2xl font-bold shadow-2xl hover:shadow-emerald-500/20 transition-all active:scale-[0.98] mt-4"
+                                className="w-full py-6 bg-slate-900 text-white rounded-[2rem] font-black shadow-2xl hover:bg-slate-800 transition-all active:scale-[0.98] mt-4 uppercase tracking-[0.2em] text-sm"
                             >
-                                ยืนยันและบันทึกผล
+                                ยืนยันเเละเสร็จสิ้น
                             </button>
-                            <button onClick={handleBack} className="w-full py-3 text-slate-400 text-sm font-bold hover:text-slate-600 transition-colors">ย้อนกลับ</button>
+                            <button onClick={handleBack} className="w-full py-3 text-slate-300 text-[10px] font-black hover:text-slate-600 transition-colors uppercase tracking-[0.3em]">แก้รายละเอียดอีกครั้ง</button>
                         </div>
                     )}
                 </div>
@@ -581,7 +607,7 @@ export default function WorkflowModal({ isOpen, onClose, mode, initialData, onSt
 
             <style>{`
                 @keyframes modalIn {
-                    from { opacity: 0; transform: translateY(40px) scale(0.9); }
+                    from { opacity: 0; transform: translateY(40px) scale(0.95); }
                     to { opacity: 1; transform: translateY(0) scale(1); }
                 }
                 @keyframes fadeIn {
