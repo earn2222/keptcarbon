@@ -425,44 +425,90 @@ function MapPage() {
             // Show popup
             const coordinates = e.lngLat;
             const description = `
-                <div class="p-4 min-w-[220px] bg-white rounded-2xl shadow-sm">
-                    <div class="flex items-center gap-2 mb-3">
-                        <div class="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                <path d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="font-black text-slate-800 text-[13px] leading-tight">${plotData.farmerName || 'ไม่ระบุชื่อ'}</h3>
-                            <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">${plotData.variety || 'RRIM 600'}</p>
-                        </div>
-                    </div>
+                <div class="relative w-[280px] bg-white rounded-2xl shadow-xl overflow-hidden font-sans ring-1 ring-black/5">
                     
-                    <div class="space-y-2 mb-4 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                        <div class="flex justify-between items-center">
-                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-tight">พื้นที่</span>
-                            <span class="text-[11px] font-black text-slate-700">${plotData.areaRai}-${plotData.areaNgan}-${plotData.areaSqWah} ไร่</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-tight">คาร์บอนสุทธิ</span>
-                            <span class="text-[11px] font-black text-emerald-600">${plotData.carbon || '0.00'} tCO₂e</span>
-                        </div>
+                    <!-- Top Controls -->
+                    <div class="absolute top-3 right-3 flex items-center gap-1 z-10 transition-opacity duration-200">
+                        <button id="edit-plot-btn" class="p-1.5 rounded-full bg-white text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all border border-gray-100 shadow-sm" title="แก้ไขข้อมูล">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        </button>
+                        <button id="close-popup-btn" class="p-1.5 rounded-full bg-white text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all border border-gray-100 shadow-sm" title="ปิด">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
                     </div>
 
-                    <button id="edit-plot-btn" class="w-full py-2.5 bg-slate-900 text-white text-[10px] font-black rounded-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2 uppercase tracking-widest shadow-lg shadow-slate-900/10">
-                        แก้ไขข้อมูล
-                    </button>
+                    <div class="p-5 pt-6">
+                        <!-- Header -->
+                        <div class="flex items-start gap-3 mb-4 pr-16 pl-1 pt-1">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-sm shrink-0">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-gray-800 text-sm leading-tight line-clamp-1">${plotData.farmerName || 'ไม่ระบุชื่อ'}</h3>
+                                <p class="text-xs text-gray-500 mt-1 font-medium bg-gray-50 px-2 py-0.5 rounded-full inline-block border border-gray-100">${plotData.variety || 'ไม่ระบุพันธุ์'}</p>
+                            </div>
+                        </div>
+
+                        <!-- Stats -->
+                        <div class="space-y-3 px-1">
+                            <!-- Area -->
+                            <div class="flex justify-between items-start text-xs border-b border-dashed border-gray-100 pb-2">
+                                <span class="text-gray-400 font-medium mt-0.5">พื้นที่</span>
+                                <div class="text-right">
+                                    <div class="font-bold text-gray-700 text-sm tracking-tight">${plotData.areaRai}-${plotData.areaNgan}-${plotData.areaSqWah} ไร่</div>
+                                    <div class="text-[10px] text-gray-400 mt-0.5 font-medium bg-gray-50 px-1.5 rounded inline-block">
+                                        ${parseFloat(plotData.areaSqm || 0).toLocaleString()} ม²
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Year & Age -->
+                            <div class="flex justify-between items-center text-xs border-b border-dashed border-gray-100 pb-2">
+                                <span class="text-gray-400 font-medium">ปีที่ปลูก (พ.ศ.)</span>
+                                <div class="text-right">
+                                     <span class="font-semibold text-gray-700">${plotData.plantingYearBE || '-'}</span>
+                                     <span class="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded ml-1 font-medium">อายุ ${plotData.age || 0} ปี</span>
+                                </div>
+                            </div>
+
+                             <!-- Method -->
+                            <div class="flex justify-between items-center text-xs pb-2">
+                                <span class="text-gray-400 font-medium">วิธีคำนวณ</span>
+                                <span class="font-medium text-gray-600 bg-gray-50 px-2 py-0.5 rounded-md text-[10px] border border-gray-100">
+                                    ${plotData.method || 'Manual'}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Carbon Card -->
+                        <div class="mt-4 bg-gradient-to-r from-emerald-500 to-green-600 rounded-xl p-3.5 text-white shadow-lg shadow-emerald-200/50 ring-1 ring-white/20">
+                            <div class="flex justify-between items-center mb-1">
+                                <div class="text-[10px] font-medium opacity-90 uppercase tracking-widest">คาร์บอนเครดิต</div>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-80"><path d="M2 22h20M12 2v20M2 12h20M12 2l10 10-10 10-10-10 10-10z"/></svg>
+                            </div>
+                            <div class="flex items-baseline justify-between">
+                                <div class="flex items-baseline gap-1">
+                                    <span class="text-2xl font-bold tracking-tight">${plotData.carbon || '0.00'}</span>
+                                    <span class="text-[10px] font-medium opacity-80">tCO₂e</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             `;
 
             if (popupRef.current) popupRef.current.remove();
 
-            popupRef.current = new maplibregl.Popup({ closeButton: false })
+            popupRef.current = new maplibregl.Popup({
+                closeButton: false,
+                maxWidth: 'none',
+                className: 'minimal-popup'
+            })
                 .setLngLat(coordinates)
                 .setHTML(description)
                 .addTo(map.current);
 
-            // Add click listener to the button inside popup
+            // Add click listener to the buttons inside popup
             setTimeout(() => {
                 document.getElementById('edit-plot-btn')?.addEventListener('click', () => {
                     setWorkflowModal({
@@ -472,6 +518,10 @@ function MapPage() {
                         isEditing: true,
                         plotId: plotData.id
                     });
+                    if (popupRef.current) popupRef.current.remove();
+                });
+
+                document.getElementById('close-popup-btn')?.addEventListener('click', () => {
                     if (popupRef.current) popupRef.current.remove();
                 });
             }, 0);

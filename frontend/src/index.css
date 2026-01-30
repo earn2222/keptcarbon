@@ -845,3 +845,24 @@ p,
     scroll-behavior: auto !important;
   }
 }
+
+/* ==========================================
+   CUSTOM MAP POPUP STYLES
+   ========================================== */
+
+.minimal-popup .maplibregl-popup-content {
+    background: transparent !important;
+    padding: 0 !important;
+    border-radius: 20px !important;
+    box-shadow: none !important;
+}
+
+.minimal-popup .maplibregl-popup-tip {
+    border-top-color: white !important;
+    margin-bottom: -1px; /* seamless connection */
+}
+
+/* Remove default close button since we added a custom one */
+.minimal-popup .maplibregl-popup-close-button {
+    display: none !important;
+}
