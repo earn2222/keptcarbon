@@ -4,7 +4,7 @@ import shp from 'shpjs';
 import {
     Loader2, Trash2, Edit3, Leaf, Zap,
     Calculator, Upload, X, ChevronRight, ArrowLeft,
-    CheckCircle2, Map, TreeDeciduous
+    CheckCircle2, Map, TreeDeciduous, List, Repeat
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 
@@ -49,6 +49,7 @@ export default function WorkflowModal({
     const [selectedShpPlotId, setSelectedShpPlotId] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
     const [shpError, setShpError] = useState(null);
+    const [useMetricUnit, setUseMetricUnit] = useState(false); // Toggle for Rai/Sqm
 
     const containerRef = useRef(null);
 
@@ -340,6 +341,9 @@ export default function WorkflowModal({
                     {currentStep === 0 && (
                         <div className="space-y-5 pt-4">
                             <div className="text-center">
+                                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+                                    <Upload size={32} className="text-white" />
+                                </div>
                                 <h2 className="text-xl font-semibold text-gray-800">นำเข้าไฟล์ Shapefile</h2>
                                 <p className="text-sm text-gray-500 mt-1">เลือกไฟล์ .zip ที่มีข้อมูลแปลง</p>
                             </div>
@@ -382,18 +386,33 @@ export default function WorkflowModal({
                                                         : "bg-gray-50 border-transparent active:bg-gray-100"
                                                 )}
                                             >
+                                                {/* SVG Preview */}
                                                 <div className={cn(
-                                                    "w-12 h-12 rounded-xl flex items-center justify-center shrink-0",
+                                                    "w-14 h-14 rounded-xl flex items-center justify-center shrink-0 p-2",
                                                     selectedShpPlotId === p.id
                                                         ? "bg-emerald-500"
                                                         : "bg-white border-2 border-gray-200"
                                                 )}>
-                                                    <Map size={22} className={selectedShpPlotId === p.id ? "text-white" : "text-gray-400"} />
+                                                    {p.svgPath ? (
+                                                        <svg viewBox="0 0 100 100" className="w-full h-full">
+                                                            <polygon
+                                                                points={p.svgPath}
+                                                                fill={selectedShpPlotId === p.id ? "rgba(255,255,255,0.3)" : "rgba(16,185,129,0.3)"}
+                                                                stroke={selectedShpPlotId === p.id ? "#ffffff" : "#10b981"}
+                                                                strokeWidth="2"
+                                                            />
+                                                        </svg>
+                                                    ) : (
+                                                        <Map size={22} className={selectedShpPlotId === p.id ? "text-white" : "text-gray-400"} />
+                                                    )}
                                                 </div>
                                                 <div className="flex-1 text-left min-w-0">
                                                     <p className="text-base font-semibold text-gray-800 truncate">{p.farmerName}</p>
                                                     <p className="text-sm text-gray-600 mt-0.5">
                                                         {p.areaRai}-{p.areaNgan}-{p.areaSqWah} ไร่
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 mt-0.5">
+                                                        {parseFloat(p.areaSqm).toLocaleString()} ตร.ม.
                                                     </p>
                                                 </div>
                                                 {selectedShpPlotId === p.id && (
@@ -418,22 +437,42 @@ export default function WorkflowModal({
                     {currentStep === 1 && (
                         <div className="space-y-5 pt-4">
                             <div className="text-center">
-                                <div className="w-16 h-16 bg-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+                                <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg animate-pulse">
                                     <TreeDeciduous size={32} className="text-white" />
                                 </div>
                                 <h2 className="text-xl font-semibold text-gray-800">ข้อมูลแปลงยางพารา</h2>
                                 <p className="text-sm text-gray-500 mt-1">กรอกข้อมูลเกษตรกรและแปลงปลูก</p>
                             </div>
 
-                            {/* Area Display */}
-                            <div className="text-center p-5 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-2xl border border-emerald-200">
+                            {/* Area Display with Toggle */}
+                            <div className="text-center p-5 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-2xl border border-emerald-200 relative">
+                                <button
+                                    onClick={() => setUseMetricUnit(!useMetricUnit)}
+                                    className="absolute top-3 right-3 w-8 h-8 bg-white hover:bg-emerald-50 rounded-lg flex items-center justify-center transition-colors shadow-sm"
+                                    title="สลับหน่วย"
+                                >
+                                    <Repeat size={16} className="text-emerald-600" />
+                                </button>
                                 <p className="text-xs text-emerald-700 font-medium mb-1">พื้นที่แปลง</p>
-                                <p className="text-2xl font-bold text-gray-800">
-                                    {formData.areaRai}-{formData.areaNgan}-{parseFloat(formData.areaSqWah).toFixed(1)} ไร่
-                                </p>
-                                <p className="text-xs text-emerald-600 mt-1 font-medium">
-                                    {parseFloat(formData.areaSqm || 0).toLocaleString()} ตร.ม.
-                                </p>
+                                {useMetricUnit ? (
+                                    <>
+                                        <p className="text-2xl font-bold text-gray-800">
+                                            {parseFloat(formData.areaSqm || 0).toLocaleString()} ตร.ม.
+                                        </p>
+                                        <p className="text-xs text-emerald-600 mt-1 font-medium">
+                                            {formData.areaRai}-{formData.areaNgan}-{parseFloat(formData.areaSqWah).toFixed(1)} ไร่
+                                        </p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <p className="text-2xl font-bold text-gray-800">
+                                            {formData.areaRai}-{formData.areaNgan}-{parseFloat(formData.areaSqWah).toFixed(1)} ไร่
+                                        </p>
+                                        <p className="text-xs text-emerald-600 mt-1 font-medium">
+                                            {parseFloat(formData.areaSqm || 0).toLocaleString()} ตร.ม.
+                                        </p>
+                                    </>
+                                )}
                             </div>
 
                             {/* Input Fields */}
@@ -468,7 +507,7 @@ export default function WorkflowModal({
                                         onChange={e => setFormData({ ...formData, variety: e.target.value })}
                                         className="w-full h-12 bg-gray-50 rounded-xl px-4 text-base border border-gray-200 focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 transition-all outline-none"
                                     >
-                                        <option value="" disabled>เลือกสายพันธุ์</option>
+                                        <option value="" disabled>เลือกพันธุ์ยาง</option>
                                         <option value="RRIM 600">RRIM 600</option>
                                         <option value="PB 235">PB 235</option>
                                         <option value="RRIT 251">RRIT 251</option>
@@ -489,8 +528,8 @@ export default function WorkflowModal({
                     {currentStep === 2 && (
                         <div className="space-y-5 pt-4">
                             <div className="text-center">
-                                <div className="w-16 h-16 bg-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg">
-                                    <Calculator size={32} className="text-white" />
+                                <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+                                    <Calculator size={32} className="text-white animate-bounce" />
                                 </div>
                                 <h2 className="text-xl font-semibold text-gray-800">เลือกวิธีคำนวณ</h2>
                                 <p className="text-sm text-gray-500 mt-1">เลือกวิธีการประเมินคาร์บอน</p>
@@ -620,10 +659,11 @@ export default function WorkflowModal({
                             )}
 
                             {/* Buttons */}
-                            <div className="flex gap-3 pt-2">
+                            <div className="flex gap-2 pt-2">
                                 <button
                                     onClick={() => setCurrentStep(1)}
-                                    className="w-14 h-12 bg-gray-100 active:bg-gray-200 rounded-xl flex items-center justify-center transition-colors"
+                                    className="w-12 h-12 bg-gray-100 active:bg-gray-200 rounded-xl flex items-center justify-center transition-colors"
+                                    title="ย้อนกลับ"
                                 >
                                     <ArrowLeft size={20} className="text-gray-600" />
                                 </button>
@@ -645,56 +685,88 @@ export default function WorkflowModal({
                         </div>
                     )}
 
-                    {/* STEP 3: RESULT */}
+                    {/* STEP 3: RESULT - Minimal Card Style */}
                     {currentStep === 3 && result && (
-                        <div className="space-y-5 pt-4">
-                            <div className="text-center">
-                                <div className="w-20 h-20 bg-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                                    <Leaf size={40} className="text-white" />
+                        <div className="space-y-0 pt-2">
+                            {/* Compact Info Card */}
+                            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-5 relative">
+                                {/* Tooltip Arrow */}
+                                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-6 h-6 bg-white border-b border-r border-gray-100 rotate-45"></div>
+
+                                {/* Header with Icon */}
+                                <div className="flex items-start gap-3 mb-4">
+                                    <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center shrink-0">
+                                        <TreeDeciduous size={24} className="text-white" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="text-lg font-bold text-gray-800 truncate">{formData.farmerName}</h3>
+                                        <p className="text-sm text-gray-500">{formData.variety}</p>
+                                    </div>
+                                </div>
+
+                                {/* Plot Shape Preview */}
+                                {formData.svgPath && (
+                                    <div className="mb-4 flex justify-center">
+                                        <div className="w-full flex items-center justify-center py-2 bg-emerald-50/50 rounded-xl border border-emerald-100">
+                                            <div className="w-32 h-24">
+                                                <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-sm">
+                                                    <polygon
+                                                        points={formData.svgPath}
+                                                        fill="rgba(16,185,129,0.3)"
+                                                        stroke="#10b981"
+                                                        strokeWidth="2"
+                                                    />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Info Grid */}
+                                <div className="space-y-2.5 mb-4">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-gray-500">พื้นที่</span>
+                                        <span className="text-sm font-semibold text-gray-800">
+                                            {formData.areaRai}-{formData.areaNgan}-{parseFloat(formData.areaSqWah).toFixed(1)} ไร่
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-gray-500">ปีที่ปลูก (พ.ศ.)</span>
+                                        <span className="text-sm font-semibold text-gray-800">{formData.plantingYearBE}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-gray-500">อายุยาง</span>
+                                        <span className="text-sm font-semibold text-gray-800">{formData.age} ปี</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-gray-500">วิธีคำนวณ</span>
+                                        <span className="text-xs font-medium text-gray-600">{result.method}</span>
+                                    </div>
+                                </div>
+
+                                {/* Carbon Display - Prominent */}
+                                <div className="flex justify-between items-center py-3 px-4 bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl border border-emerald-200">
+                                    <span className="text-sm font-medium text-gray-700">คาร์บอนดูดซับ</span>
+                                    <span className="text-xl font-bold text-emerald-600">{result.carbon} tCO₂e</span>
+                                </div>
+
+                                {/* Action Button */}
+                                <div className="flex gap-2 mt-4">
+                                    <button
+                                        onClick={() => setCurrentStep(2)}
+                                        className="w-12 h-12 bg-gray-100 active:bg-gray-200 rounded-xl flex items-center justify-center transition-colors"
+                                        title="แก้ไข"
+                                    >
+                                        <Edit3 size={18} className="text-gray-600" />
+                                    </button>
+                                    <button
+                                        onClick={handleSaveToList}
+                                        className="flex-1 h-12 bg-gray-900 hover:bg-gray-800 active:bg-black text-white rounded-xl text-base font-medium transition-all shadow-sm active:scale-[0.98]"
+                                    >
+                                        บันทึกข้อมูล
+                                    </button>
                                 </div>
                             </div>
-
-                            {/* Farmer Name */}
-                            <div className="text-center px-4">
-                                <h3 className="text-2xl font-bold text-gray-800">{formData.farmerName}</h3>
-                                <p className="text-base text-gray-500 mt-1">{formData.variety}</p>
-                            </div>
-
-                            {/* Data - Larger fonts for mobile */}
-                            <div className="space-y-3">
-                                <div className="flex justify-between items-center py-3 border-b border-gray-100">
-                                    <span className="text-base text-gray-600">พื้นที่</span>
-                                    <span className="text-base font-semibold text-gray-800">
-                                        {formData.areaRai}-{formData.areaNgan}-{parseFloat(formData.areaSqWah).toFixed(1)} ไร่
-                                    </span>
-                                </div>
-                                <div className="flex justify-between items-center py-3 border-b border-gray-100">
-                                    <span className="text-base text-gray-600">ปีที่ปลูก</span>
-                                    <span className="text-base font-semibold text-gray-800">พ.ศ. {formData.plantingYearBE}</span>
-                                </div>
-                                <div className="flex justify-between items-center py-3 border-b border-gray-100">
-                                    <span className="text-base text-gray-600">อายุ</span>
-                                    <span className="text-base font-semibold text-gray-800">{formData.age} ปี</span>
-                                </div>
-                                <div className="flex justify-between items-center py-3 border-b border-gray-100">
-                                    <span className="text-base text-gray-600">วิธีคำนวณ</span>
-                                    <span className="text-base font-semibold text-gray-800">{result.method}</span>
-                                </div>
-
-                                {/* Carbon Result - Highlighted */}
-                                <div className="flex justify-between items-center py-4 bg-emerald-50 rounded-xl px-4 mt-4 border-2 border-emerald-200">
-                                    <span className="text-base font-medium text-gray-700">ค่าคาร์บอน</span>
-                                    <span className="text-2xl font-bold text-emerald-600">{result.carbon} tCO₂e</span>
-                                </div>
-                            </div>
-
-                            {/* Action Button */}
-                            <button
-                                onClick={handleSaveToList}
-                                className="w-full h-14 bg-gray-900 active:bg-black text-white rounded-xl text-base font-medium transition-colors shadow-lg active:scale-[0.98]"
-                            >
-                                แก้ไขข้อมูล
-                            </button>
                         </div>
                     )}
 
@@ -702,7 +774,7 @@ export default function WorkflowModal({
                     {currentStep === 4 && (
                         <div className="space-y-5 pt-4">
                             <div className="text-center py-6">
-                                <div className="w-20 h-20 bg-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                                <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg animate-bounce">
                                     <CheckCircle2 size={40} className="text-white" />
                                 </div>
                                 <h3 className="text-2xl font-bold text-gray-800">บันทึกสำเร็จ</h3>
@@ -742,15 +814,17 @@ export default function WorkflowModal({
                             <div className="space-y-3 pt-2">
                                 <button
                                     onClick={handleDigitizeMore}
-                                    className="w-full h-13 border-2 border-emerald-500 text-emerald-600 rounded-xl text-base font-medium active:bg-emerald-50 transition-colors active:scale-[0.98]"
+                                    className="w-full h-12 border-2 border-emerald-500 text-emerald-600 rounded-xl text-base font-medium active:bg-emerald-50 transition-colors active:scale-[0.98] flex items-center justify-center gap-2"
                                 >
-                                    ดิจิไตส์แปลงต่อไป
+                                    <Map size={18} />
+                                    วาดแปลงใหม่
                                 </button>
                                 <button
                                     onClick={handleFinalSave}
                                     disabled={accumulatedPlots.length === 0}
-                                    className="w-full h-13 bg-gray-900 active:bg-black text-white rounded-xl text-base font-medium disabled:bg-gray-200 disabled:text-gray-400 transition-colors shadow-lg active:scale-[0.98]"
+                                    className="w-full h-12 bg-emerald-500 active:bg-emerald-600 text-white rounded-xl text-base font-medium disabled:bg-gray-200 disabled:text-gray-400 transition-colors shadow-lg active:scale-[0.98] flex items-center justify-center gap-2"
                                 >
+                                    <CheckCircle2 size={18} />
                                     บันทึกทั้งหมด
                                 </button>
                             </div>
@@ -758,6 +832,6 @@ export default function WorkflowModal({
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

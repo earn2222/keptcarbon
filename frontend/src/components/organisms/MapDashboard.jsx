@@ -170,18 +170,18 @@ export default function MapDashboard({ plots = [], selectedPlot, onSelectPlot, o
                 </div>
             </div>
 
-            {/* Plot Info Panel */}
+            {/* Plot Info Panel - Enhanced */}
             {selectedPlot && (
                 <div className="absolute top-24 right-4 z-10 w-80 max-w-[calc(100vw-2rem)]">
-                    <div className="bg-white rounded-2xl shadow-2xl p-6 animate-in slide-in-from-right duration-300">
+                    <div className="bg-white rounded-2xl shadow-2xl p-5 animate-in slide-in-from-right duration-300">
                         <div className="flex items-start justify-between mb-4">
                             <div className="flex items-center gap-3">
                                 <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center">
                                     <Leaf size={24} className="text-white" />
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-gray-800">{selectedPlot.farmerName}</h3>
-                                    <p className="text-xs text-gray-500">{selectedPlot.variety}</p>
+                                    <h3 className="text-base font-bold text-gray-800">{selectedPlot.farmerName}</h3>
+                                    <p className="text-xs text-emerald-600 font-medium">พันธุ์: {selectedPlot.variety}</p>
                                 </div>
                             </div>
                             <button
@@ -196,21 +196,25 @@ export default function MapDashboard({ plots = [], selectedPlot, onSelectPlot, o
                             <div className="flex justify-between text-sm py-2 border-b border-gray-100">
                                 <span className="text-gray-500">พื้นที่</span>
                                 <span className="font-semibold text-gray-800">
-                                    {selectedPlot.areaRai}-{selectedPlot.areaNgan}-{selectedPlot.areaSqWah} ไร่
+                                    {selectedPlot.areaRai}-{selectedPlot.areaNgan}-{selectedPlot.areaSqWah?.toFixed(1) || 0} ไร่
                                 </span>
                             </div>
                             <div className="flex justify-between text-sm py-2 border-b border-gray-100">
-                                <span className="text-gray-500">ปีที่ปลูก</span>
-                                <span className="font-semibold text-gray-800">พ.ศ. {selectedPlot.plantingYearBE}</span>
+                                <span className="text-gray-500">ปีที่ปลูก (พ.ศ.)</span>
+                                <span className="font-semibold text-gray-800">{selectedPlot.plantingYearBE}</span>
                             </div>
                             <div className="flex justify-between text-sm py-2 border-b border-gray-100">
-                                <span className="text-gray-500">อายุ</span>
+                                <span className="text-gray-500">อายุยาง</span>
                                 <span className="font-semibold text-gray-800">{selectedPlot.age} ปี</span>
                             </div>
+                            <div className="flex justify-between text-sm py-2 border-b border-gray-100">
+                                <span className="text-gray-500">วิธีคำนวณ</span>
+                                <span className="font-semibold text-gray-800 text-xs">{selectedPlot.method || 'ไม่ระบุ'}</span>
+                            </div>
                             <div className="flex justify-between items-center py-3 px-3 bg-emerald-50 rounded-lg border border-emerald-200 mt-3">
-                                <span className="text-sm font-medium text-gray-700">ค่าคาร์บอนดูด</span>
-                                <span className="text-xl font-bold text-emerald-600">
-                                    {selectedPlot.carbon} <span className="text-sm font-normal">tCO₂e</span>
+                                <span className="text-sm font-medium text-emerald-700">คาร์บอนดูด</span>
+                                <span className="text-lg font-bold text-emerald-600">
+                                    {selectedPlot.carbon} <span className="text-xs font-normal">tCO₂e</span>
                                 </span>
                             </div>
                         </div>
@@ -218,33 +222,39 @@ export default function MapDashboard({ plots = [], selectedPlot, onSelectPlot, o
                 </div>
             )}
 
-            {/* Plot List */}
+            {/* Plot List - Enhanced */}
             {!selectedPlot && plots.length > 0 && (
                 <div className="absolute top-24 right-4 z-10 w-80 max-w-[calc(100vw-2rem)]">
-                    <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg p-4">
-                        <h3 className="text-sm font-bold text-gray-800 mb-3">รายการแปลง</h3>
-                        <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                            {plots.slice(0, 5).map(plot => (
+                    <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-lg p-4">
+                        <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                            <Info size={16} className="text-emerald-500" />
+                            รายการแปลงทั้งหมด
+                        </h3>
+                        <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+                            {plots.map((plot, idx) => (
                                 <button
                                     key={plot.id}
                                     onClick={() => onSelectPlot(plot)}
-                                    className="w-full flex items-center gap-3 p-3 bg-white rounded-xl hover:bg-emerald-50 transition-colors text-left"
+                                    className="w-full flex items-start gap-3 p-3 bg-white rounded-xl hover:bg-emerald-50 hover:shadow-sm transition-all text-left border border-transparent hover:border-emerald-200"
                                 >
-                                    <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg flex items-center justify-center shrink-0">
-                                        <Leaf size={16} className="text-white" />
+                                    <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg flex items-center justify-center shrink-0">
+                                        <span className="text-white text-sm font-bold">{idx + 1}</span>
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-gray-800 truncate">{plot.farmerName}</p>
-                                        <p className="text-xs text-gray-500">{plot.carbon} tCO₂e</p>
+                                        <p className="text-sm font-semibold text-gray-800 truncate">{plot.farmerName}</p>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className="text-xs text-gray-500">{plot.variety || 'ไม่ระบุพันธุ์'}</span>
+                                            <span className="text-xs text-gray-300">•</span>
+                                            <span className="text-xs text-gray-500">{plot.age} ปี</span>
+                                        </div>
+                                        <div className="flex items-center gap-1 mt-1">
+                                            <Leaf size={12} className="text-emerald-500" />
+                                            <span className="text-xs font-semibold text-emerald-600">{plot.carbon} tCO₂e</span>
+                                        </div>
                                     </div>
                                 </button>
                             ))}
                         </div>
-                        {plots.length > 5 && (
-                            <p className="text-xs text-gray-500 text-center mt-3">
-                                และอีก {plots.length - 5} แปลง
-                            </p>
-                        )}
                     </div>
                 </div>
             )}

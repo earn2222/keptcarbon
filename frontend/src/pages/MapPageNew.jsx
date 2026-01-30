@@ -453,6 +453,19 @@ function MapPageNew() {
         };
 
         updateMap();
+
+        // Zoom to the latest plot if added
+        if (accumulatedPlots.length > 0) {
+            const lastPlot = accumulatedPlots[accumulatedPlots.length - 1];
+            if (lastPlot && lastPlot.geometry) {
+                const bbox = turf.bbox(lastPlot.geometry);
+                map.current.fitBounds(bbox, {
+                    padding: 100,
+                    maxZoom: 16,
+                    duration: 2000
+                });
+            }
+        }
     }, [accumulatedPlots, mapLoaded]);
 
     // ==========================================
