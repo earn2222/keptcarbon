@@ -200,6 +200,8 @@ function MapPageNew() {
 
     // Multi-plot State
     const [accumulatedPlots, setAccumulatedPlots] = useState([])
+    const [popupPlotId, setPopupPlotId] = useState(null)
+    const popupRef = useRef(null)
 
     // ... (rest of search logic)
 
@@ -435,8 +437,8 @@ function MapPageNew() {
                     type: 'fill',
                     source: sourceId,
                     paint: {
-                        'fill-color': '#059669',
-                        'fill-opacity': 0.4
+                        'fill-color': '#10b981', // Emerald 500
+                        'fill-opacity': 0.5
                     }
                 });
 
@@ -447,6 +449,38 @@ function MapPageNew() {
                     paint: {
                         'line-color': '#ffffff',
                         'line-width': 2
+                    }
+                });
+
+                // Add a marker layer (circle) to make it easy to find/click
+                map.current.addLayer({
+                    id: 'saved-plots-marker',
+                    type: 'circle',
+                    source: sourceId,
+                    paint: {
+                        'circle-radius': 8,
+                        'circle-color': '#ffffff',
+                        'circle-stroke-color': '#059669', // Emerald 600
+                        'circle-stroke-width': 3
+                    }
+                });
+
+                // Add a text label layer
+                map.current.addLayer({
+                    id: 'saved-plots-label',
+                    type: 'symbol',
+                    source: sourceId,
+                    layout: {
+                        'text-field': ['get', 'farmerName'],
+                        'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+                        'text-offset': [0, 1.5],
+                        'text-anchor': 'top',
+                        'text-size': 12
+                    },
+                    paint: {
+                        'text-color': '#ffffff',
+                        'text-halo-color': '#000000',
+                        'text-halo-width': 2
                     }
                 });
             }
@@ -471,6 +505,9 @@ function MapPageNew() {
     // ==========================================
     // PLOT INTERACTION HANDLERS
     // ==========================================
+    // ==========================================
+    // PLOT INTERACTION HANDLERS
+    // ==========================================
     useEffect(() => {
         if (!map.current || !mapLoaded) return;
 
@@ -478,19 +515,74 @@ function MapPageNew() {
             const feature = e.features[0];
             if (!feature) return;
 
-            // Find the plot data from accumulatedPlots using ID
-            // Note: properties are serialized to strings/numbers, so be careful with types
+            // Prevent map click from closing immediately if we want custom behavior
+            // e.originalEvent.stopPropagation();
+
             const plotId = feature.properties.id;
             const plotData = accumulatedPlots.find(p => String(p.id) === String(plotId));
 
             if (plotData) {
-                console.log("Editing plot:", plotData);
-                setWorkflowModal({
-                    isOpen: true,
-                    mode: 'draw', // Reuse 'draw' mode for form editing
-                    initialData: plotData,
-                    isEditing: true // Enable editing mode (shows 'Next' button)
-                });
+                // Calculate center for popup
+                const center = turf.center(plotData.geometry);
+                const [lng, lat] = center.geometry.coordinates;
+
+                // Close existing popup
+                if (popupRef.current) popupRef.current.remove();
+
+                // Create content
+                const popupContent = document.createElement('div');
+                popupContent.className = 'custom-map-popup';
+                popupContent.innerHTML = `
+                    <div class="p-4 min-w-[220px]">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10a6 6 0 0 0-6-6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2a6 6 0 0 0-6 6Z"/><path d="M8 10a4 4 0 0 1 8 0V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v6Z"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-gray-800 text-base leading-tight">${plotData.farmerName}</h3>
+                                <p class="text-xs text-gray-500">${plotData.areaRai}-${plotData.areaNgan}-${parseInt(plotData.areaSqWah || 0)} ไร่</p>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-emerald-50 rounded-lg p-3 mb-3 border border-emerald-100">
+                            <p class="text-xs text-gray-500 mb-0.5">คาร์บอนเครดิต</p>
+                            <p class="text-xl font-bold text-emerald-600">${plotData.carbon} <span class="text-xs font-normal text-gray-500">tCO₂e</span></p>
+                        </div>
+        
+                        <button id="popup-edit-btn-${plotId}" class="w-full py-2 bg-gray-900 text-white rounded-lg text-sm font-medium shadow-md active:scale-95 transition-transform flex items-center justify-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                            ดูรายละเอียด / แก้ไข
+                        </button>
+                    </div>
+                `;
+
+                // Add click listener to button manually
+                const btn = popupContent.querySelector(`#popup-edit-btn-${plotId}`);
+                if (btn) {
+                    btn.addEventListener('click', () => {
+                        setWorkflowModal({
+                            isOpen: true,
+                            mode: 'draw',
+                            initialData: plotData,
+                            isEditing: true
+                        });
+                        if (popupRef.current) popupRef.current.remove();
+                    });
+                }
+
+                popupRef.current = new maplibregl.Popup({
+                    closeButton: true,
+                    closeOnClick: true,
+                    className: 'mobile-friendly-popup',
+                    maxWidth: '300px',
+                    offset: 15
+                })
+                    .setLngLat([lng, lat])
+                    .setDOMContent(popupContent)
+                    .addTo(map.current);
+
+                // Fly to popup
+                map.current.flyTo({ center: [lng, lat], zoom: 16, duration: 1000 });
             }
         };
 
@@ -503,19 +595,37 @@ function MapPageNew() {
         };
 
         // Attach listeners
-        map.current.on('click', 'saved-plots-fill', handlePlotClick);
-        map.current.on('mouseenter', 'saved-plots-fill', handleMouseEnter);
-        map.current.on('mouseleave', 'saved-plots-fill', handleMouseLeave);
+        const layersToCheck = ['saved-plots-fill', 'saved-plots-marker', 'saved-plots-label'];
+
+        layersToCheck.forEach(layer => {
+            // Check if layer exists before adding listener to avoid errors if map structure changes
+            if (map.current.getLayer(layer)) {
+                map.current.on('click', layer, handlePlotClick);
+                map.current.on('mouseenter', layer, handleMouseEnter);
+                map.current.on('mouseleave', layer, handleMouseLeave);
+            } else {
+                // Try adding anyway, maplibre usually handles this gracefully or we can wrap
+                try {
+                    map.current.on('click', layer, handlePlotClick);
+                    map.current.on('mouseenter', layer, handleMouseEnter);
+                    map.current.on('mouseleave', layer, handleMouseLeave);
+                } catch (e) { }
+            }
+        });
 
         // Cleanup
         return () => {
             if (map.current) {
-                map.current.off('click', 'saved-plots-fill', handlePlotClick);
-                map.current.off('mouseenter', 'saved-plots-fill', handleMouseEnter);
-                map.current.off('mouseleave', 'saved-plots-fill', handleMouseLeave);
+                layersToCheck.forEach(layer => {
+                    try {
+                        map.current.off('click', layer, handlePlotClick);
+                        map.current.off('mouseenter', layer, handleMouseEnter);
+                        map.current.off('mouseleave', layer, handleMouseLeave);
+                    } catch (e) { }
+                });
             }
         };
-    }, [mapLoaded, accumulatedPlots]); // Add accumulatedPlots to dependency to ensure we have access to latest data
+    }, [mapLoaded, accumulatedPlots]);
 
     // ==========================================
     // INTRO ANIMATION - Globe to Thailand

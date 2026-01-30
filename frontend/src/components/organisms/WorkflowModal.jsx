@@ -31,6 +31,7 @@ export default function WorkflowModal({
 
     const [formData, setFormData] = useState({
         farmerName: '',
+        originalShpName: '',
         areaRai: 0,
         areaNgan: 0,
         areaSqWah: 0,
@@ -203,7 +204,8 @@ export default function WorkflowModal({
     const loadPlotForProcessing = (plot) => {
         setFormData(prev => ({
             ...prev,
-            farmerName: plot.farmerName,
+            farmerName: '', // Reset name to allow fresh entry
+            originalShpName: plot.farmerName, // Keep original name reference if needed (optional, or just ignore)
             areaRai: plot.areaRai,
             areaNgan: plot.areaNgan,
             areaSqWah: plot.areaSqWah,
@@ -238,11 +240,16 @@ export default function WorkflowModal({
         if (!formData.farmerName) return alert('กรุณาระบุชื่อเกษตรกร');
         if (!formData.variety) return alert('กรุณาเลือกพันธุ์ยาง');
 
+        if (calcGroup === 1 && (!formData.dbh || !formData.height)) {
+            setLoading(false);
+            return alert('กรุณาระบุขนาดเส้นผ่านศูนย์กลางและความสูงให้ครบถ้วน');
+        }
+
         setLoading(true);
         setTimeout(() => {
             try {
-                const dbh = parseFloat(formData.dbh) || 20;
-                const height = parseFloat(formData.height) || 12;
+                const dbh = parseFloat(formData.dbh) || 0;
+                const height = parseFloat(formData.height) || 0;
                 const areaSqm = parseFloat(formData.areaSqm) || 0;
                 const areaRaiTotal = areaSqm / 1600;
 
@@ -550,6 +557,11 @@ export default function WorkflowModal({
                                         onChange={e => setFormData({ ...formData, farmerName: e.target.value })}
                                         className="w-full h-12 bg-gray-50 rounded-xl px-4 text-base border border-gray-200 focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 transition-all outline-none"
                                     />
+                                    {formData.originalShpName && !formData.farmerName && (
+                                        <p className="text-xs text-gray-400 mt-1 ml-1">
+                                            จากไฟล์: {formData.originalShpName}
+                                        </p>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
@@ -579,7 +591,10 @@ export default function WorkflowModal({
                                     <select
                                         value={formData.variety}
                                         onChange={e => setFormData({ ...formData, variety: e.target.value })}
-                                        className="w-full h-12 bg-gray-50 rounded-xl px-4 text-base border border-gray-200 focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 transition-all outline-none appearance-none"
+                                        className={cn(
+                                            "w-full h-12 bg-gray-50 rounded-xl px-4 text-base border border-gray-200 focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 transition-all outline-none appearance-none",
+                                            formData.variety === '' ? "text-gray-400" : "text-gray-800"
+                                        )}
                                     >
                                         <option value="" disabled>เลือกพันธุ์ยางพารา</option>
                                         <option value="RRIM 600">RRIM 600</option>
@@ -660,7 +675,7 @@ export default function WorkflowModal({
                                             <label className="block text-sm font-medium text-gray-700 mb-2">เส้นผ่านศูนย์กลาง (ซม.)</label>
                                             <input
                                                 type="number"
-                                                placeholder="20"
+                                                placeholder=""
                                                 value={formData.dbh}
                                                 onChange={e => setFormData({ ...formData, dbh: e.target.value })}
                                                 className="w-full h-12 bg-gray-50 rounded-lg px-3 text-base border border-gray-200 focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 transition-all outline-none"
@@ -670,7 +685,7 @@ export default function WorkflowModal({
                                             <label className="block text-sm font-medium text-gray-700 mb-2">ความสูง (ม.)</label>
                                             <input
                                                 type="number"
-                                                placeholder="12"
+                                                placeholder=""
                                                 value={formData.height}
                                                 onChange={e => setFormData({ ...formData, height: e.target.value })}
                                                 className="w-full h-12 bg-gray-50 rounded-lg px-3 text-base border border-gray-200 focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 transition-all outline-none"
