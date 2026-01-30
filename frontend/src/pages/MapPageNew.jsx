@@ -1107,6 +1107,20 @@ function MapPageNew() {
                 onDeletePlot={(id) => {
                     setAccumulatedPlots(prev => prev.filter(p => p.id !== id));
                 }}
+                onZoomToPlot={(geometry) => {
+                    if (map.current && geometry) {
+                        try {
+                            const bbox = turf.bbox(geometry);
+                            map.current.fitBounds(bbox, {
+                                padding: 200, // เพิ่ม padding ให้เห็นรอบๆ
+                                maxZoom: 17,
+                                duration: 2000
+                            });
+                        } catch (e) {
+                            console.error("Zoom Error:", e);
+                        }
+                    }
+                }}
                 onSave={(finalData, shouldClose) => {
                     if (finalData) {
                         setAccumulatedPlots(prev => {
@@ -1120,10 +1134,7 @@ function MapPageNew() {
                         setWorkflowModal({ isOpen: false, mode: null });
                         if (draw.current) draw.current.deleteAll();
 
-                        // Show success message only on final save
-                        setTimeout(() => {
-                            alert("บันทึกข้อมูลแปลงทั้งหมดเรียบร้อยแล้ว");
-                        }, 500);
+                        // ไม่ต้อง alert แล้ว เพราะ user เห็น success modal แล้ว
                     }
                 }}
             />

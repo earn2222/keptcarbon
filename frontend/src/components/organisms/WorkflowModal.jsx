@@ -4,7 +4,7 @@ import shp from 'shpjs';
 import {
     Loader2, Trash2, Edit3, Leaf, Zap,
     Calculator, Upload, X, ChevronRight, ArrowLeft,
-    CheckCircle2, Map, TreeDeciduous, List, Repeat
+    CheckCircle2, Map, TreeDeciduous, List, Repeat, Eye
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 
@@ -21,7 +21,8 @@ export default function WorkflowModal({
     onSave,
     onDeletePlot,
     onUpdatePlot,
-    onStartDrawing
+    onStartDrawing,
+    onZoomToPlot
 }) {
     const [currentStep, setCurrentStep] = useState(1);
     const [calcGroup, setCalcGroup] = useState(1);
@@ -283,6 +284,18 @@ export default function WorkflowModal({
 
         try {
             onAddAnother(plotData);
+
+            // Zoom to plot immediately when saved
+            if (onZoomToPlot && formData.geometry) {
+                onZoomToPlot(formData.geometry);
+            }
+
+            // Zoom to plot immediately when saved
+            if (onZoomToPlot && formData.geometry) {
+                onZoomToPlot(formData.geometry);
+            }
+
+            // Go to Step 4 (Summary List)
             setCurrentStep(4);
         } catch (error) {
             console.error("Save Error:", error);
@@ -770,66 +783,85 @@ export default function WorkflowModal({
                         </div>
                     )}
 
-                    {/* STEP 4: SUCCESS */}
+                    {/* STEP 4: SUCCESS SUMMARY */}
                     {currentStep === 4 && (
-                        <div className="space-y-5 pt-4">
-                            <div className="text-center py-6">
-                                <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg animate-bounce">
+                        <div className="space-y-6 pt-2">
+                            <div className="text-center">
+                                <div className="w-20 h-20 bg-emerald-500 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-emerald-200 animate-bounce">
                                     <CheckCircle2 size={40} className="text-white" />
                                 </div>
                                 <h3 className="text-2xl font-bold text-gray-800">บันทึกสำเร็จ</h3>
-                                <p className="text-base text-gray-600 mt-2">
-                                    บันทึกข้อมูลแล้ว <span className="font-bold text-emerald-600">{accumulatedPlots.length} แปลง</span>
+                                <p className="text-base text-gray-600 mt-1 font-medium">
+                                    มีรายการแปลงทั้งหมด <span className="text-emerald-600 font-bold">{accumulatedPlots.length} รายการ</span>
                                 </p>
                             </div>
 
-                            {accumulatedPlots.length > 0 && (
-                                <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                                    {accumulatedPlots.map((plot, idx) => (
-                                        <div key={plot.id} className="p-4 bg-gray-50 rounded-xl flex items-center gap-3 group hover:bg-gray-100 transition-colors">
-                                            <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center text-white text-base font-bold shrink-0">
-                                                {idx + 1}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-base font-semibold text-gray-800 truncate">{plot.farmerName}</p>
-                                                <p className="text-sm text-gray-500">{plot.carbon} tCO₂e</p>
-                                            </div>
+                            {/* Cards List */}
+                            <div className="space-y-3 max-h-[280px] overflow-y-auto px-1 -mx-1 scrollbar-thin">
+                                {accumulatedPlots.map((plot, idx) => (
+                                    <div key={plot.id} className="p-4 bg-gray-50 rounded-2xl flex items-center gap-4 border border-gray-100 shadow-sm group hover:border-emerald-200 transition-colors">
+                                        <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center text-white text-lg font-bold shrink-0 shadow-md">
+                                            {idx + 1}
+                                        </div>
+                                        <div className="flex-1 min-w-0 text-left">
+                                            <p className="text-lg font-bold text-gray-800 truncate">{plot.farmerName}</p>
+                                            <p className="text-sm font-medium text-gray-500">
+                                                {plot.carbon} tCO₂e • {plot.areaRai}-{plot.areaNgan}-{parseInt(plot.areaSqWah || 0)} ไร่
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-1">
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    if (window.confirm(`ต้องการลบแปลง "${plot.farmerName}" หรือไม่?`)) {
+                                                    // Load data for editing
+                                                    setFormData({ ...plot });
+                                                    setResult({ carbon: plot.carbon, method: plot.method });
+                                                    setCurrentStep(1);
+                                                }}
+                                                className="w-10 h-10 rounded-full bg-white hover:bg-orange-50 border border-transparent hover:border-orange-200 flex items-center justify-center text-gray-400 hover:text-orange-500 transition-all shadow-sm"
+                                                title="แก้ไขข้อมูล"
+                                            >
+                                                <Edit3 size={20} />
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (window.confirm("ยืนยันการลบรายการนี้?")) {
                                                         onDeletePlot(plot.id);
                                                     }
                                                 }}
-                                                className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-sm font-medium opacity-0 group-hover:opacity-100 transition-all flex items-center gap-1.5"
+                                                className="w-10 h-10 rounded-full bg-white hover:bg-red-50 border border-transparent hover:border-red-200 flex items-center justify-center text-gray-400 hover:text-red-500 transition-all shadow-sm"
+                                                title="ลบรายการ"
                                             >
-                                                <Trash2 size={14} />
-                                                ลบ
+                                                <Trash2 size={20} />
                                             </button>
                                         </div>
-                                    ))}
-                                </div>
-                            )}
+                                    </div>
+                                ))}
+                            </div>
 
-                            <div className="space-y-3 pt-2">
+                            {/* Footer Buttons */}
+                            <div className="space-y-3 pt-4">
                                 <button
-                                    onClick={handleDigitizeMore}
-                                    className="w-full h-12 border-2 border-emerald-500 text-emerald-600 rounded-xl text-base font-medium active:bg-emerald-50 transition-colors active:scale-[0.98] flex items-center justify-center gap-2"
+                                    onClick={onStartDrawing ? onStartDrawing : handleDigitizeMore}
+                                    className="w-full h-12 bg-white border-2 border-emerald-500 text-emerald-600 rounded-xl text-base font-bold hover:bg-emerald-50 active:bg-emerald-100 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                                 >
-                                    <Map size={18} />
-                                    วาดแปลงใหม่
+                                    <Map size={20} />
+                                    วาดแปลงเพิ่ม
                                 </button>
                                 <button
-                                    onClick={handleFinalSave}
+                                    onClick={() => onSave(null, true)}
                                     disabled={accumulatedPlots.length === 0}
-                                    className="w-full h-12 bg-emerald-500 active:bg-emerald-600 text-white rounded-xl text-base font-medium disabled:bg-gray-200 disabled:text-gray-400 transition-colors shadow-lg active:scale-[0.98] flex items-center justify-center gap-2"
+                                    className="w-full h-12 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white rounded-xl text-base font-bold disabled:bg-gray-200 disabled:text-gray-400 transition-all shadow-lg active:scale-[0.98] flex items-center justify-center gap-2"
                                 >
-                                    <CheckCircle2 size={18} />
+                                    <CheckCircle2 size={20} />
                                     บันทึกทั้งหมด
                                 </button>
                             </div>
                         </div>
                     )}
+
+
                 </div>
             </div>
         </div >
