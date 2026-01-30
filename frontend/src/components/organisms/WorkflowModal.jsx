@@ -591,14 +591,28 @@ export default function WorkflowModal({
 
                             {/* Only show 'Next' button if in editing mode */}
                             {isEditing ? (
-                                <button
-                                    onClick={() => setCurrentStep(2)}
-                                    disabled={!formData.farmerName || !formData.plantingYearBE || !formData.variety}
-                                    className="w-full h-12 mt-6 bg-emerald-500 active:bg-emerald-600 text-white rounded-xl text-base font-medium disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-all shadow-lg shadow-emerald-200 active:scale-[0.98] flex items-center justify-center gap-2"
-                                >
-                                    ถัดไป
-                                    <ChevronRight size={20} />
-                                </button>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => {
+                                            if (window.confirm("ยืนยันการลบแปลงนี้?")) {
+                                                onDeletePlot(formData.id);
+                                                onClose();
+                                            }
+                                        }}
+                                        className="w-14 h-12 mt-6 bg-red-50 hover:bg-red-100 text-red-500 rounded-xl flex items-center justify-center transition-all border border-red-200"
+                                        title="ลบแปลง"
+                                    >
+                                        <Trash2 size={24} />
+                                    </button>
+                                    <button
+                                        onClick={() => setCurrentStep(2)}
+                                        disabled={!formData.farmerName || !formData.plantingYearBE || !formData.variety}
+                                        className="flex-1 h-12 mt-6 bg-emerald-500 active:bg-emerald-600 text-white rounded-xl text-base font-medium disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-all shadow-lg shadow-emerald-200 active:scale-[0.98] flex items-center justify-center gap-2"
+                                    >
+                                        ถัดไป
+                                        <ChevronRight size={20} />
+                                    </button>
+                                </div>
                             ) : (
                                 formData.farmerName && formData.plantingYearBE && formData.variety && (
                                     <div className="flex items-center justify-center gap-2 text-emerald-600 py-6 animate-pulse">
