@@ -469,6 +469,55 @@ function MapPageNew() {
     }, [accumulatedPlots, mapLoaded]);
 
     // ==========================================
+    // PLOT INTERACTION HANDLERS
+    // ==========================================
+    useEffect(() => {
+        if (!map.current || !mapLoaded) return;
+
+        const handlePlotClick = (e) => {
+            const feature = e.features[0];
+            if (!feature) return;
+
+            // Find the plot data from accumulatedPlots using ID
+            // Note: properties are serialized to strings/numbers, so be careful with types
+            const plotId = feature.properties.id;
+            const plotData = accumulatedPlots.find(p => String(p.id) === String(plotId));
+
+            if (plotData) {
+                console.log("Editing plot:", plotData);
+                setWorkflowModal({
+                    isOpen: true,
+                    mode: 'draw', // Reuse 'draw' mode for form editing
+                    initialData: plotData,
+                    isEditing: true // Enable editing mode (shows 'Next' button)
+                });
+            }
+        };
+
+        const handleMouseEnter = () => {
+            map.current.getCanvas().style.cursor = 'pointer';
+        };
+
+        const handleMouseLeave = () => {
+            map.current.getCanvas().style.cursor = '';
+        };
+
+        // Attach listeners
+        map.current.on('click', 'saved-plots-fill', handlePlotClick);
+        map.current.on('mouseenter', 'saved-plots-fill', handleMouseEnter);
+        map.current.on('mouseleave', 'saved-plots-fill', handleMouseLeave);
+
+        // Cleanup
+        return () => {
+            if (map.current) {
+                map.current.off('click', 'saved-plots-fill', handlePlotClick);
+                map.current.off('mouseenter', 'saved-plots-fill', handleMouseEnter);
+                map.current.off('mouseleave', 'saved-plots-fill', handleMouseLeave);
+            }
+        };
+    }, [mapLoaded, accumulatedPlots]); // Add accumulatedPlots to dependency to ensure we have access to latest data
+
+    // ==========================================
     // INTRO ANIMATION - Globe to Thailand
     // ==========================================
     const startIntroAnimation = useCallback(() => {
@@ -1080,12 +1129,13 @@ function MapPageNew() {
                 </div>
             )}
 
-            {/* Workflow Modal Integration */}
+            {/* WorkflowModal Integration */}
             <WorkflowModal
                 isOpen={workflowModal.isOpen}
                 mode={workflowModal.mode}
                 initialData={workflowModal.initialData}
                 accumulatedPlots={accumulatedPlots}
+                isEditing={workflowModal.isEditing}
                 onClose={() => setWorkflowModal({ isOpen: false, mode: null })}
                 onStartDrawing={() => {
                     setWorkflowModal({ ...workflowModal, isOpen: false });

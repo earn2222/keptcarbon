@@ -22,7 +22,8 @@ export default function WorkflowModal({
     onDeletePlot,
     onUpdatePlot,
     onStartDrawing,
-    onZoomToPlot
+    onZoomToPlot,
+    isEditing = false
 }) {
     const [currentStep, setCurrentStep] = useState(1);
     const [calcGroup, setCalcGroup] = useState(1);
@@ -47,7 +48,8 @@ export default function WorkflowModal({
 
     const [result, setResult] = useState(null);
     const [shpPlots, setShpPlots] = useState([]);
-    const [selectedShpPlotId, setSelectedShpPlotId] = useState(null);
+    const [selectedShpPlotIds, setSelectedShpPlotIds] = useState([]);
+    const [processingQueue, setProcessingQueue] = useState([]);
     const [isUploading, setIsUploading] = useState(false);
     const [shpError, setShpError] = useState(null);
     const [useMetricUnit, setUseMetricUnit] = useState(false); // Toggle for Rai/Sqm
@@ -125,14 +127,14 @@ export default function WorkflowModal({
     }, [calcGroup, satData.ndvi]);
 
     // ==========================================
-    // AUTO-ADVANCE
+    // AUTO-ADVANCE (Only when creating new plot)
     // ==========================================
     useEffect(() => {
-        if (currentStep === 1 && formData.farmerName && formData.plantingYearBE && formData.variety) {
+        if (!isEditing && currentStep === 1 && formData.farmerName && formData.plantingYearBE && formData.variety) {
             const timer = setTimeout(() => setCurrentStep(2), 800);
             return () => clearTimeout(timer);
         }
-    }, [formData.farmerName, formData.plantingYearBE, formData.variety, currentStep]);
+    }, [formData.farmerName, formData.plantingYearBE, formData.variety, currentStep, isEditing]);
 
     // ==========================================
     // HANDLERS
@@ -171,7 +173,7 @@ export default function WorkflowModal({
 
             console.log("Parsed SHP Plots with areas:", plots);
             setShpPlots(plots);
-            setSelectedShpPlotId(null);
+            setSelectedShpPlotIds([]);
         } catch (e) {
             console.error("SHP Parse Error:", e);
             setShpError('ไม่สามารถอ่านไฟล์ SHP ได้ กรุณาใช้ไฟล์ .zip');
@@ -181,27 +183,54 @@ export default function WorkflowModal({
     };
 
     const handleSelectShpPlot = (plotId) => {
-        setSelectedShpPlotId(plotId);
-        const selectedPlot = shpPlots.find(p => p.id === plotId);
-        if (selectedPlot) {
-            console.log("Selected Plot Data with areas:", selectedPlot);
-            setFormData(prev => ({
-                ...prev,
-                farmerName: selectedPlot.farmerName,
-                areaRai: selectedPlot.areaRai,
-                areaNgan: selectedPlot.areaNgan,
-                areaSqWah: selectedPlot.areaSqWah,
-                areaSqm: selectedPlot.areaSqm,
-                geometry: selectedPlot.geometry,
-                svgPath: selectedPlot.svgPath
-            }));
+        setSelectedShpPlotIds(prev => {
+            if (prev.includes(plotId)) {
+                return prev.filter(id => id !== plotId);
+            } else {
+                return [...prev, plotId];
+            }
+        });
+    };
+
+    const handleSelectAllPlots = () => {
+        if (selectedShpPlotIds.length === shpPlots.length) {
+            setSelectedShpPlotIds([]);
+        } else {
+            setSelectedShpPlotIds(shpPlots.map(p => p.id));
         }
     };
 
+    const loadPlotForProcessing = (plot) => {
+        setFormData(prev => ({
+            ...prev,
+            farmerName: plot.farmerName,
+            areaRai: plot.areaRai,
+            areaNgan: plot.areaNgan,
+            areaSqWah: plot.areaSqWah,
+            areaSqm: plot.areaSqm,
+            geometry: plot.geometry,
+            svgPath: plot.svgPath,
+            plantingYearBE: '',
+            age: 0,
+            variety: '',
+            dbh: '',
+            height: '',
+            methodManual: 'eq1',
+            methodSat: 'ndvi',
+        }));
+        setResult(null);
+    };
+
     const handleProceedFromShp = () => {
-        if (!selectedShpPlotId) {
+        if (selectedShpPlotIds.length === 0) {
             return alert('กรุณาเลือกแปลงที่ต้องการคำนวณ');
         }
+        // Prepare queue
+        const selectedPlots = shpPlots.filter(p => selectedShpPlotIds.includes(p.id));
+        const [first, ...rest] = selectedPlots;
+
+        setProcessingQueue(rest);
+        loadPlotForProcessing(first);
         setCurrentStep(1);
     };
 
@@ -290,13 +319,18 @@ export default function WorkflowModal({
                 onZoomToPlot(formData.geometry);
             }
 
-            // Zoom to plot immediately when saved
-            if (onZoomToPlot && formData.geometry) {
-                onZoomToPlot(formData.geometry);
+            // Check Queue
+            if (processingQueue.length > 0) {
+                const [nextPlot, ...remainingQueue] = processingQueue;
+                setProcessingQueue(remainingQueue);
+                loadPlotForProcessing(nextPlot);
+                setCurrentStep(1); // Go back to start for next plot
+                // alert(`บันทึกสำเร็จ! กำลังดำเนินการแปลงต่อไป (${remainingQueue.length + 1} ที่เหลือ)`);
+            } else {
+                // All done
+                setCurrentStep(4);
             }
 
-            // Go to Step 4 (Summary List)
-            setCurrentStep(4);
         } catch (error) {
             console.error("Save Error:", error);
             alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล: " + error.message);
@@ -384,62 +418,74 @@ export default function WorkflowModal({
                                 </div>
                             )}
 
+                            <div className="flex justify-between items-center px-1">
+                                <p className="text-sm font-semibold text-gray-700">พบ {shpPlots.length} แปลง</p>
+                                <button
+                                    onClick={handleSelectAllPlots}
+                                    className="text-sm text-emerald-600 font-medium hover:text-emerald-700 hover:underline"
+                                >
+                                    {selectedShpPlotIds.length === shpPlots.length ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
+                                </button>
+                            </div>
+
                             {shpPlots.length > 0 && (
                                 <div className="space-y-3">
-                                    <p className="text-sm font-semibold text-gray-700 text-center">พบ {shpPlots.length} แปลง</p>
-                                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                                        {shpPlots.map(p => (
-                                            <button
-                                                key={p.id}
-                                                onClick={() => handleSelectShpPlot(p.id)}
-                                                className={cn(
-                                                    "w-full p-4 rounded-xl flex items-center gap-3 transition-all border-2",
-                                                    selectedShpPlotId === p.id
-                                                        ? "bg-emerald-50 border-emerald-400 shadow-sm"
-                                                        : "bg-gray-50 border-transparent active:bg-gray-100"
-                                                )}
-                                            >
-                                                {/* SVG Preview */}
-                                                <div className={cn(
-                                                    "w-14 h-14 rounded-xl flex items-center justify-center shrink-0 p-2",
-                                                    selectedShpPlotId === p.id
-                                                        ? "bg-emerald-500"
-                                                        : "bg-white border-2 border-gray-200"
-                                                )}>
-                                                    {p.svgPath ? (
-                                                        <svg viewBox="0 0 100 100" className="w-full h-full">
-                                                            <polygon
-                                                                points={p.svgPath}
-                                                                fill={selectedShpPlotId === p.id ? "rgba(255,255,255,0.3)" : "rgba(16,185,129,0.3)"}
-                                                                stroke={selectedShpPlotId === p.id ? "#ffffff" : "#10b981"}
-                                                                strokeWidth="2"
-                                                            />
-                                                        </svg>
-                                                    ) : (
-                                                        <Map size={22} className={selectedShpPlotId === p.id ? "text-white" : "text-gray-400"} />
+                                    <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+                                        {shpPlots.map(p => {
+                                            const isSelected = selectedShpPlotIds.includes(p.id);
+                                            return (
+                                                <button
+                                                    key={p.id}
+                                                    onClick={() => handleSelectShpPlot(p.id)}
+                                                    className={cn(
+                                                        "w-full p-4 rounded-xl flex items-center gap-3 transition-all border-2",
+                                                        isSelected
+                                                            ? "bg-emerald-50 border-emerald-400 shadow-sm"
+                                                            : "bg-gray-50 border-transparent active:bg-gray-100"
                                                     )}
-                                                </div>
-                                                <div className="flex-1 text-left min-w-0">
-                                                    <p className="text-base font-semibold text-gray-800 truncate">{p.farmerName}</p>
-                                                    <p className="text-sm text-gray-600 mt-0.5">
-                                                        {p.areaRai}-{p.areaNgan}-{p.areaSqWah} ไร่
-                                                    </p>
-                                                    <p className="text-xs text-gray-500 mt-0.5">
-                                                        {parseFloat(p.areaSqm).toLocaleString()} ตร.ม.
-                                                    </p>
-                                                </div>
-                                                {selectedShpPlotId === p.id && (
-                                                    <CheckCircle2 size={24} className="text-emerald-500 shrink-0" />
-                                                )}
-                                            </button>
-                                        ))}
+                                                >
+                                                    {/* SVG Preview */}
+                                                    <div className={cn(
+                                                        "w-14 h-14 rounded-xl flex items-center justify-center shrink-0 p-2",
+                                                        isSelected
+                                                            ? "bg-emerald-500"
+                                                            : "bg-white border-2 border-gray-200"
+                                                    )}>
+                                                        {p.svgPath ? (
+                                                            <svg viewBox="0 0 100 100" className="w-full h-full">
+                                                                <polygon
+                                                                    points={p.svgPath}
+                                                                    fill={isSelected ? "rgba(255,255,255,0.3)" : "rgba(16,185,129,0.3)"}
+                                                                    stroke={isSelected ? "#ffffff" : "#10b981"}
+                                                                    strokeWidth="2"
+                                                                />
+                                                            </svg>
+                                                        ) : (
+                                                            <Map size={22} className={isSelected ? "text-white" : "text-gray-400"} />
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-1 text-left min-w-0">
+                                                        <p className="text-base font-semibold text-gray-800 truncate">{p.farmerName}</p>
+                                                        <p className="text-sm text-gray-600 mt-0.5">
+                                                            {p.areaRai}-{p.areaNgan}-{p.areaSqWah} ไร่
+                                                        </p>
+                                                        <p className="text-xs text-gray-500 mt-0.5">
+                                                            {parseFloat(p.areaSqm).toLocaleString()} ตร.ม.
+                                                        </p>
+                                                    </div>
+                                                    {isSelected && (
+                                                        <CheckCircle2 size={24} className="text-emerald-500 shrink-0" />
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                     <button
                                         onClick={handleProceedFromShp}
-                                        disabled={!selectedShpPlotId}
+                                        disabled={selectedShpPlotIds.length === 0}
                                         className="w-full h-12 bg-emerald-500 active:bg-emerald-600 text-white rounded-xl text-base font-medium disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors shadow-sm active:scale-[0.98]"
                                     >
-                                        ดำเนินการต่อ
+                                        ดำเนินการต่อ ({selectedShpPlotIds.length})
                                     </button>
                                 </div>
                             )}
@@ -491,7 +537,12 @@ export default function WorkflowModal({
                             {/* Input Fields */}
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">ชื่อเกษตรกร</label>
+                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                        <div className="w-6 h-6 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                                        </div>
+                                        ชื่อเกษตรกร
+                                    </label>
                                     <input
                                         type="text"
                                         placeholder="กรอกชื่อ-นามสกุล"
@@ -501,11 +552,16 @@ export default function WorkflowModal({
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">ปีที่ปลูก (พ.ศ.)</label>
+                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                        <div className="w-6 h-6 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+                                        </div>
+                                        ปีที่ปลูก (พ.ศ.)
+                                    </label>
                                     <select
                                         value={formData.plantingYearBE}
                                         onChange={e => setFormData({ ...formData, plantingYearBE: e.target.value })}
-                                        className="w-full h-12 bg-gray-50 rounded-xl px-4 text-base border border-gray-200 focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 transition-all outline-none"
+                                        className="w-full h-12 bg-gray-50 rounded-xl px-4 text-base border border-gray-200 focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 transition-all outline-none appearance-none"
                                     >
                                         <option value="">เลือกปี</option>
                                         {Array.from({ length: 40 }, (_, i) => new Date().getFullYear() + 543 - i).map(year => (
@@ -514,13 +570,18 @@ export default function WorkflowModal({
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">พันธุ์ยางพารา</label>
+                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                        <div className="w-6 h-6 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.77 10-10 10Z" /><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" /></svg>
+                                        </div>
+                                        พันธุ์ยางพารา
+                                    </label>
                                     <select
                                         value={formData.variety}
                                         onChange={e => setFormData({ ...formData, variety: e.target.value })}
-                                        className="w-full h-12 bg-gray-50 rounded-xl px-4 text-base border border-gray-200 focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 transition-all outline-none"
+                                        className="w-full h-12 bg-gray-50 rounded-xl px-4 text-base border border-gray-200 focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 transition-all outline-none appearance-none"
                                     >
-                                        <option value="" disabled>เลือกพันธุ์ยาง</option>
+                                        <option value="" disabled>เลือกพันธุ์ยางพารา</option>
                                         <option value="RRIM 600">RRIM 600</option>
                                         <option value="PB 235">PB 235</option>
                                         <option value="RRIT 251">RRIT 251</option>
@@ -528,11 +589,22 @@ export default function WorkflowModal({
                                 </div>
                             </div>
 
-                            {formData.farmerName && formData.plantingYearBE && formData.variety && (
-                                <div className="flex items-center justify-center gap-2 text-emerald-600 py-2">
-                                    <Loader2 size={18} className="animate-spin" />
-                                    <p className="text-sm font-medium">กำลังดำเนินการ...</p>
-                                </div>
+                            {/* Only show 'Next' button if in editing mode */}
+                            {isEditing ? (
+                                <button
+                                    onClick={() => setCurrentStep(2)}
+                                    disabled={!formData.farmerName || !formData.plantingYearBE || !formData.variety}
+                                    className="w-full h-12 mt-6 bg-emerald-500 active:bg-emerald-600 text-white rounded-xl text-base font-medium disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-all shadow-lg shadow-emerald-200 active:scale-[0.98] flex items-center justify-center gap-2"
+                                >
+                                    ถัดไป
+                                    <ChevronRight size={20} />
+                                </button>
+                            ) : (
+                                formData.farmerName && formData.plantingYearBE && formData.variety && (
+                                    <div className="flex items-center justify-center gap-2 text-emerald-600 py-6 animate-pulse">
+                                        <p className="text-sm font-medium">กำลังไปขั้นตอนถัดไป...</p>
+                                    </div>
+                                )
                             )}
                         </div>
                     )}
