@@ -68,7 +68,12 @@ export default function WorkflowModal({
                     ...prev,
                     ...initialData,
                     farmerName: initialData.farmerName || '',
+                    originalShpName: initialData.originalShpName || '',
                     plantingYearBE: initialData.plantingYearBE || '',
+                    variety: initialData.variety || '',
+                    age: initialData.age || 0,
+                    dbh: initialData.dbh || '',
+                    height: initialData.height || '',
                     areaRai: initialData.areaRai || 0,
                     areaNgan: initialData.areaNgan || 0,
                     areaSqWah: initialData.areaSqWah || 0,
@@ -573,7 +578,10 @@ export default function WorkflowModal({
                                     <select
                                         value={formData.plantingYearBE}
                                         onChange={e => setFormData({ ...formData, plantingYearBE: e.target.value })}
-                                        className="w-full h-12 bg-gray-50 rounded-xl px-4 text-base border border-gray-200 focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 transition-all outline-none appearance-none"
+                                        className={cn(
+                                            "w-full h-12 bg-gray-50 rounded-xl px-4 text-base border border-gray-200 focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 transition-all outline-none appearance-none",
+                                            formData.plantingYearBE === '' ? "text-gray-400" : "text-gray-600"
+                                        )}
                                     >
                                         <option value="">เลือกปี</option>
                                         {Array.from({ length: 40 }, (_, i) => new Date().getFullYear() + 543 - i).map(year => (
@@ -593,7 +601,7 @@ export default function WorkflowModal({
                                         onChange={e => setFormData({ ...formData, variety: e.target.value })}
                                         className={cn(
                                             "w-full h-12 bg-gray-50 rounded-xl px-4 text-base border border-gray-200 focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 transition-all outline-none appearance-none",
-                                            formData.variety === '' ? "text-gray-400" : "text-gray-800"
+                                            formData.variety === '' ? "text-gray-400" : "text-gray-600"
                                         )}
                                     >
                                         <option value="" disabled>เลือกพันธุ์ยางพารา</option>
