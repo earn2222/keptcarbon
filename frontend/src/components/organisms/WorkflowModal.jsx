@@ -526,7 +526,7 @@ export default function WorkflowModal({
                                                 onClick={handleClearAllShpPlots}
                                                 className="text-[10px] text-rose-500 font-bold uppercase tracking-wider hover:opacity-70 transition-opacity"
                                             >
-                                                ลบรายการที่พบ
+                                                ลบทั้งหมด
                                             </button>
                                         )}
                                     </div>
