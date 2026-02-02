@@ -1,370 +1,517 @@
-import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
+import maplibregl from 'maplibre-gl'
+import 'maplibre-gl/dist/maplibre-gl.css'
+import * as turf from '@turf/turf'
+import { Link, useHistory } from 'react-router-dom'
 import { getPlots } from '../services/api'
 
-// Icons
+// ==========================================
+// ICON COMPONENTS (Consistent with MapPageNew)
+// ==========================================
+const HomeIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+    </svg>
+)
+
+const MapIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z" />
+    </svg>
+)
+
+const DashboardIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+    </svg>
+)
+
+const UserIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+    </svg>
+)
+
+const HistoryIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+    </svg>
+)
+
 const TrendingUpIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
         <polyline points="17 6 23 6 23 12"></polyline>
     </svg>
 )
 
-const TrendingDownIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline>
-        <polyline points="17 18 23 18 23 12"></polyline>
-    </svg>
-)
-
-const MapPinIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-        <circle cx="12" cy="10" r="3"></circle>
-    </svg>
-)
-
-const AreaIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-    </svg>
-)
-
-const LeafIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path>
-        <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path>
-    </svg>
-)
-
-const ArrowRightIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="5" y1="12" x2="19" y2="12"></line>
-        <polyline points="12 5 19 12 12 19"></polyline>
-    </svg>
-)
-
+// ==========================================
+// DASHBOARD COMPONENT
+// ==========================================
 function DashboardPage() {
-    const [recentPlots, setRecentPlots] = useState([]);
-    const [stats, setStats] = useState([
-        {
-            title: 'จำนวนแปลง',
-            value: '0',
-            change: '+0',
-            changeType: 'neutral',
-            icon: '🗺️',
-            iconBg: 'bg-[#16a34a]/10',
-            period: 'ทั้งหมด'
-        },
-        {
-            title: 'พื้นที่รวม',
-            value: '0',
-            unit: 'ไร่',
-            change: '+0',
-            changeType: 'neutral',
-            icon: '📐',
-            iconBg: 'bg-[#059669]/10',
-            period: 'ทั้งหมด'
-        },
-        {
-            title: 'คาร์บอนรวม',
-            value: '0',
-            unit: 'ตัน',
-            change: '-',
-            changeType: 'neutral',
-            icon: '🌱',
-            iconBg: 'bg-green-100',
-            period: 'ประมาณการ'
-        },
-        {
-            title: 'อายุเฉลี่ย',
-            value: '0',
-            unit: 'ปี',
-            change: '-',
-            changeType: 'neutral',
-            icon: '🌳',
-            iconBg: 'bg-amber-100',
-            period: 'ต้นยาง'
-        }
-    ]);
+    const history = useHistory()
+    const mapContainer = useRef(null)
+    const map = useRef(null)
+    const popupRef = useRef(null)
 
+    // State
+    const [mapLoaded, setMapLoaded] = useState(false)
+    const [accumulatedPlots, setAccumulatedPlots] = useState([])
+    const [selectedPlot, setSelectedPlot] = useState(null)
+    const [stats, setStats] = useState({
+        totalPlots: 0,
+        totalArea: 0,
+        totalCarbon: 0
+    })
+
+    // ==========================================
+    // INITIALIZE MAP & FETCH DATA
+    // ==========================================
     useEffect(() => {
-        const loadData = async () => {
+        // Fetch plots from backend
+        const loadPlots = async () => {
             try {
-                const plots = await getPlots();
+                const plots = await getPlots()
+                if (!plots || !Array.isArray(plots)) {
+                    console.warn('Plots data is not an array:', plots);
+                    return;
+                }
 
-                // Debug logs
-                console.log("Plots data received:", plots);
+                // Process for map (need to ensure geometry exists)
+                const processedPlots = plots
+                    .filter(p => p.geometry || (p.lat && p.lng))
+                    .map(p => {
+                        const geometry = p.geometry || {
+                            type: 'Point',
+                            coordinates: [parseFloat(p.lng), parseFloat(p.lat)]
+                        };
+                        return {
+                            ...p,
+                            id: p.id,
+                            farmerName: p.name || p.farmer_name || 'ไม่ระบุชื่อ',
+                            carbon: parseFloat(p.carbon_tons) || 0,
+                            areaRai: parseFloat(p.area_rai) || 0,
+                            geometry: geometry
+                        }
+                    })
 
-                // Process Data for Stats
-                const totalPlots = plots.length;
-                const totalArea = plots.reduce((sum, p) => sum + (parseFloat(p.area_rai) || 0), 0);
-                const avgAge = plots.length > 0 ? (plots.reduce((sum, p) => sum + (parseFloat(p.tree_age) || 0), 0) / plots.length).toFixed(1) : 0;
+                setAccumulatedPlots(processedPlots)
 
-                // Use carbon_tons from backend API with safer parsing
-                const totalCarbon = plots.reduce((sum, p) => {
-                    const carbon = parseFloat(p.carbon_tons);
-                    // console.log(`Plot ${p.id} carbon:`, carbon); 
-                    return sum + (isNaN(carbon) ? 0 : carbon);
-                }, 0);
+                // Calculate stats
+                const totalPlots = plots.length
+                const totalArea = plots.reduce((sum, p) => sum + (parseFloat(p.area_rai) || 0), 0)
+                const totalCarbon = plots.reduce((sum, p) => sum + (parseFloat(p.carbon_tons) || 0), 0)
+                setStats({ totalPlots, totalArea, totalCarbon })
 
-                setStats([
-                    {
-                        title: 'จำนวนแปลง',
-                        value: totalPlots.toString(),
-                        change: `+${totalPlots}`,
-                        changeType: 'positive',
-                        icon: '🗺️',
-                        iconBg: 'bg-[#065f46]/10',
-                        period: 'ทั้งหมด'
-                    },
-                    {
-                        title: 'พื้นที่รวม',
-                        value: totalArea.toFixed(2),
-                        unit: 'ไร่',
-                        change: `+${totalArea.toFixed(2)}`,
-                        changeType: 'positive',
-                        icon: '📐',
-                        iconBg: 'bg-[#059669]/10',
-                        period: 'ทั้งหมด'
-                    },
-                    {
-                        title: 'คาร์บอนรวม',
-                        value: totalCarbon.toFixed(2),
-                        unit: 'ตัน',
-                        change: '-',
-                        changeType: 'neutral',
-                        icon: '🌱',
-                        iconBg: 'bg-green-100',
-                        period: 'ข้อมูลล่าสุด'
-                    },
-                    {
-                        title: 'อายุเฉลี่ย',
-                        value: avgAge.toString(),
-                        unit: 'ปี',
-                        change: '-',
-                        changeType: 'neutral',
-                        icon: '🌳',
-                        iconBg: 'bg-amber-100',
-                        period: 'ต้นยาง'
-                    }
-                ]);
-
-                // Set Recent Plots (Top 5)
-                const mappedPlots = plots.slice(0, 5).map(p => ({
-                    id: p.id,
-                    name: p.name,
-                    area: `${(p.area_rai || 0).toFixed(2)} ไร่`,
-                    age: p.tree_age || 0,
-                    carbon: (p.carbon_tons || 0).toFixed(2),
-                    status: p.status || 'completed'
-                }));
-                setRecentPlots(mappedPlots);
-
-            } catch (error) {
-                console.error("Failed to load dashboard data", error);
+            } catch (err) {
+                console.error('Failed to load plots for dashboard:', err)
             }
+        }
+
+        loadPlots()
+
+        if (map.current) return
+
+        // Create map with Globe projection
+        map.current = new maplibregl.Map({
+            container: mapContainer.current,
+            style: {
+                version: 8,
+                sources: {
+                    'satellite': {
+                        type: 'raster',
+                        tiles: [
+                            'https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+                            'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+                            'https://mt2.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+                            'https://mt3.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'
+                        ],
+                        tileSize: 256,
+                        attribution: '© Google'
+                    }
+                },
+                layers: [
+                    {
+                        id: 'satellite-layer',
+                        type: 'raster',
+                        source: 'satellite',
+                        minzoom: 0,
+                        maxzoom: 22
+                    }
+                ],
+                glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf'
+            },
+            center: [100.5018, 13.7563], // Bangkok
+            zoom: 1.5,
+            pitch: 0,
+            bearing: 0,
+            maxPitch: 85,
+            antialias: true
+        })
+
+        map.current.on('load', () => {
+            try {
+                map.current.setProjection({ type: 'globe' })
+            } catch (e) {
+                console.log('Globe projection not available')
+            }
+
+            if (map.current.setFog) {
+                map.current.setFog({
+                    color: 'rgb(186, 210, 235)',
+                    'high-color': 'rgb(36, 92, 223)',
+                    'horizon-blend': 0.02,
+                    'space-color': 'rgb(11, 11, 25)',
+                    'star-intensity': 0.6
+                })
+            }
+
+            setMapLoaded(true)
+            startIntroAnimation()
+        })
+
+        return () => {
+            if (map.current) {
+                map.current.remove()
+                map.current = null
+            }
+        }
+    }, [])
+
+    // ==========================================
+    // PERSIST SAVED PLOTS ON MAP
+    // ==========================================
+    useEffect(() => {
+        if (!map.current || !mapLoaded || accumulatedPlots.length === 0) return;
+
+        const sourceId = 'dashboard-plots-source';
+        const fillLayerId = 'dashboard-plots-fill';
+        const lineLayerId = 'dashboard-plots-line';
+        const markerLayerId = 'dashboard-plots-marker';
+
+        const geojson = {
+            type: 'FeatureCollection',
+            features: accumulatedPlots
+                .filter(p => p.geometry)
+                .map(p => ({
+                    type: 'Feature',
+                    geometry: p.geometry,
+                    properties: {
+                        id: p.id,
+                        farmerName: p.farmerName,
+                        carbon: p.carbon,
+                        area: p.areaRai
+                    }
+                }))
         };
 
-        loadData();
-    }, []);
+        if (map.current.getSource(sourceId)) {
+            map.current.getSource(sourceId).setData(geojson);
+        } else {
+            map.current.addSource(sourceId, {
+                type: 'geojson',
+                data: geojson
+            });
 
-    const carbonByAge = [
-        { age: '1-5 ปี', carbon: 320, percentage: 12 },
-        { age: '6-10 ปี', carbon: 580, percentage: 22 },
-        { age: '11-15 ปี', carbon: 890, percentage: 34 },
-        { age: '16-20 ปี', carbon: 540, percentage: 21 },
-        { age: '20+ ปี', carbon: 250, percentage: 10 },
-    ]
+            map.current.addLayer({
+                id: fillLayerId,
+                type: 'fill',
+                source: sourceId,
+                paint: {
+                    'fill-color': '#10b981',
+                    'fill-opacity': 0.4
+                }
+            });
+
+            map.current.addLayer({
+                id: lineLayerId,
+                type: 'line',
+                source: sourceId,
+                paint: {
+                    'line-color': '#ffffff',
+                    'line-width': 2
+                }
+            });
+
+            map.current.addLayer({
+                id: markerLayerId,
+                type: 'circle',
+                source: sourceId,
+                paint: {
+                    'circle-radius': 8,
+                    'circle-color': '#ffffff',
+                    'circle-stroke-color': '#059669',
+                    'circle-stroke-width': 3
+                }
+            });
+
+            // Interaction
+            map.current.on('click', fillLayerId, (e) => {
+                const feature = e.features[0];
+                if (!feature) return;
+
+                const center = turf.center(feature.geometry);
+                const [lng, lat] = center.geometry.coordinates;
+
+                if (popupRef.current) popupRef.current.remove();
+
+                const plotData = {
+                    id: feature.properties.id,
+                    farmerName: feature.properties.farmerName,
+                    carbon: feature.properties.carbon,
+                    area: feature.properties.area,
+                    geometry: JSON.parse(JSON.stringify(feature.geometry))
+                };
+
+                setSelectedPlot(plotData);
+                map.current.flyTo({ center: [lng, lat], zoom: 16, duration: 1500 });
+            });
+
+            map.current.on('mouseenter', fillLayerId, () => {
+                map.current.getCanvas().style.cursor = 'pointer';
+            });
+            map.current.on('mouseleave', fillLayerId, () => {
+                map.current.getCanvas().style.cursor = '';
+            });
+        }
+    }, [accumulatedPlots, mapLoaded]);
+
+    // ==========================================
+    // ANIMATIONS
+    // ==========================================
+    const startIntroAnimation = useCallback(() => {
+        if (!map.current) return
+        map.current.flyTo({
+            center: [100.5018, 13.7563],
+            zoom: 6,
+            pitch: 45,
+            bearing: 15,
+            duration: 3500,
+            essential: true,
+            curve: 1.5
+        })
+    }, [])
+
+    const handleNavClick = (route) => {
+        history.push(route)
+    }
 
     return (
-        <div className="space-y-8 pb-10">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {stats.map((stat, index) => (
-                    <div
-                        key={index}
-                        className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300"
-                    >
-                        <div className="flex items-center justify-between mb-6">
-                            <div className={`w-14 h-14 ${stat.iconBg === 'bg-[#065f46]/10' ? 'bg-[#eef2e6] text-[#4c7c44]' : stat.iconBg} rounded-2xl flex items-center justify-center text-3xl shadow-sm border border-white`}>
-                                {stat.icon}
-                            </div>
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{stat.period}</span>
-                        </div>
-                        <div className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">{stat.title}</div>
-                        <div className="flex items-baseline gap-2">
-                            <span className="text-4xl font-bold text-[#2d4a27] tracking-tighter">{stat.value}</span>
-                            {stat.unit && <span className="text-gray-400 font-bold text-xs uppercase tracking-wider">{stat.unit}</span>}
-                        </div>
-                        {stat.changeType !== 'neutral' && (
-                            <div className={`flex items-center gap-1 mt-4 text-[10px] font-black uppercase tracking-wider ${stat.changeType === 'positive' ? 'text-green-600' : 'text-red-500'}`}>
-                                {stat.changeType === 'positive' ? <TrendingUpIcon /> : <TrendingDownIcon />}
-                                <span>เพิ่มขึ้น {stat.change}</span>
-                            </div>
-                        )}
-                    </div>
-                ))}
-            </div>
+        <div className="relative w-full h-screen bg-slate-900 overflow-hidden font-sans">
+            {/* Map Container */}
+            <div ref={mapContainer} className="absolute inset-0 w-full h-full" />
 
-            {/* Main Content Grid */}
-            <div className="grid lg:grid-cols-3 gap-8">
-                {/* Carbon by Age Chart */}
-                <div className="lg:col-span-2 bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-10 gap-4">
-                        <div>
-                            <h2 className="text-xl font-bold text-[#2d4a27] tracking-tight">คาร์บอนตามอายุต้นยาง</h2>
-                            <p className="text-xs font-medium text-gray-400 mt-1 uppercase tracking-widest">การกระจายตัวของคาร์บอน (จำลองข้อมูล)</p>
-                        </div>
-                        <select className="px-5 py-2.5 border border-gray-100 rounded-2xl text-xs font-bold text-gray-600 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#4c7c44]/10 transition-all outline-none">
-                            <option>รายงานปี 2024</option>
-                            <option>รายงานปี 2023</option>
-                        </select>
-                    </div>
-
-                    <div className="space-y-6">
-                        {carbonByAge.map((item, index) => (
-                            <div key={index} className="flex items-center gap-6">
-                                <div className="w-20 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{item.age}</div>
-                                <div className="flex-1 h-3.5 bg-gray-50 rounded-full overflow-hidden border border-gray-100">
-                                    <div
-                                        className="h-full bg-[#4c7c44] rounded-full transition-all duration-1000 ease-out"
-                                        style={{ width: `${item.percentage}%` }}
-                                    ></div>
-                                </div>
-                                <div className="w-24 text-right">
-                                    <span className="font-bold text-[#2d4a27] text-sm tracking-tight">{item.carbon}</span>
-                                    <span className="text-gray-400 text-[10px] ml-1.5 font-bold uppercase tracking-wider">ตัน</span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="mt-10 pt-10 border-t border-gray-50 flex flex-col sm:flex-row justify-between items-center gap-6">
-                        <div className="text-center sm:text-left">
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-[2px]">คาร์บอนรวมสะสม</span>
-                            <div className="text-3xl font-bold text-[#2d4a27] tracking-tighter mt-1">{stats[2].value} <span className="text-lg font-bold text-gray-300 ml-1 tracking-tight">ตัน CO₂</span></div>
-                        </div>
-                        <Link
-                            to="/dashboard/history"
-                            className="flex items-center gap-3 px-6 py-3 bg-[#eef2e6] text-[#4c7c44] rounded-2xl font-bold text-xs hover:bg-[#4c7c44] hover:text-white transition-all group shadow-sm"
-                        >
-                            ดูรายละเอียดทั้งหมด
-                            <div className="transition-transform group-hover:translate-x-1">
-                                <ArrowRightIcon />
-                            </div>
-                        </Link>
-                    </div>
-                </div>
-
-                {/* Map Preview */}
-                <div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm flex flex-col">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-bold text-[#2d4a27] tracking-tight">จัดการพื้นที่</h2>
-                        <Link
-                            to="/map"
-                            className="w-10 h-10 rounded-2xl bg-gray-50 flex items-center justify-center text-[#4c7c44] hover:bg-[#eef2e6] transition-all"
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+            {/* Premium Stats Overlay (Top Center) */}
+            <div className="absolute top-8 left-1/2 -translate-x-1/2 z-30 w-full max-w-[90%] md:max-w-3xl">
+                <div className="bg-white/90 backdrop-blur-2xl px-8 py-5 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-white/40 flex flex-wrap items-center justify-between gap-6 md:gap-12">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-[#eff6ff] flex items-center justify-center text-blue-600 shadow-sm">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                             </svg>
-                        </Link>
-                    </div>
-
-                    <div className="flex-1 min-h-[220px] bg-[#fbfbfb] rounded-3xl relative overflow-hidden mb-6 border border-gray-100 group cursor-pointer" onClick={() => window.location.href = '/map'}>
-                        <div className="absolute inset-0 bg-[url('https://mt1.google.com/vt/lyrs=s&x=203&y=118&z=8')] bg-cover bg-center mix-blend-overlay opacity-20"></div>
-                        <div className="absolute inset-0 bg-gradient-to-br from-white/80 via-transparent to-[#4c7c44]/10"></div>
-                        <div className="absolute top-5 right-5 bg-white shadow-xl px-4 py-2 rounded-2xl text-[10px] font-bold text-[#4c7c44] uppercase tracking-widest border border-gray-50">
-                            {stats[0].value} แปลงสวนยาง
                         </div>
-                        <div className="absolute inset-0 flex items-center justify-center flex-col gap-2 p-10">
-                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-[#4c7c44] shadow-premium mb-2 group-hover:scale-110 transition-transform duration-500">
-                                <MapPinIcon />
+                        <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[2px]">จำนวนแปลง</p>
+                            <div className="flex items-baseline gap-1.5">
+                                <span className="text-3xl font-black text-slate-800 tracking-tighter">{stats.totalPlots}</span>
+                                <span className="text-xs font-bold text-slate-400 uppercase tracking-tighter">แปลง</span>
                             </div>
-                            <span className="text-xs font-bold text-[#2d4a27] tracking-tight text-center">คลิกเพื่อเปิดแผนที่<br />สำรวจข้อมูลเกษตรกร</span>
                         </div>
                     </div>
 
-                    <Link
-                        to="/map"
-                        className="w-full py-4 bg-[#4c7c44] text-white rounded-2xl text-center font-bold text-sm shadow-lg shadow-[#4c7c44]/20 hover:bg-[#3d6336] transition-all active:scale-95"
-                    >
-                        เริ่มคำนวณแปลงยางใหม่
-                    </Link>
-                </div>
-            </div>
+                    <div className="hidden sm:block w-px h-10 bg-slate-200"></div>
 
-            {/* Recent Plots Table */}
-            <div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm overflow-hidden">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
-                    <div>
-                        <h2 className="text-xl font-bold text-[#2d4a27] tracking-tight">แปลงล่าสุด</h2>
-                        <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest leading-relaxed">รายการแปลงยางพาราที่เพิ่มเข้าสู่ระบบล่าสุด</p>
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-[#ecfdf5] flex items-center justify-center text-emerald-600 shadow-sm">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                            </svg>
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[2px]">พื้นที่รวม</p>
+                            <div className="flex items-baseline gap-1.5">
+                                <span className="text-3xl font-black text-slate-800 tracking-tighter">{stats.totalArea.toLocaleString()}</span>
+                                <span className="text-xs font-bold text-slate-400 uppercase tracking-tighter">ไร่</span>
+                            </div>
+                        </div>
                     </div>
-                    <Link to="/dashboard/history" className="text-xs font-bold text-[#4c7c44] hover:underline underline-offset-4 tracking-tight">ดูทั้งหมด →</Link>
-                </div>
 
-                <div className="overflow-x-auto -mx-4 sm:mx-0">
-                    <table className="w-full">
-                        <thead>
-                            <tr className="border-b border-gray-50">
-                                <th className="text-left py-5 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">ข้อมูลชื่อเรียกแปลง</th>
-                                <th className="text-left py-5 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">พื้นที่จริง</th>
-                                <th className="text-left py-5 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap text-center">อายุต้นยาง</th>
-                                <th className="text-left py-5 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">กักเก็บคาร์บอน</th>
-                                <th className="text-left py-5 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap text-right">สถานะระบบ</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                            {recentPlots.length > 0 ? (
-                                recentPlots.map((plot) => (
-                                    <tr key={plot.id} className="group hover:bg-[#fbfbfb] transition-all cursor-pointer">
-                                        <td className="py-5 px-6 whitespace-nowrap">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 bg-[#eef2e6] rounded-2xl flex items-center justify-center text-[#4c7c44] group-hover:scale-110 transition-transform border border-white shadow-sm">
-                                                    <LeafIcon />
-                                                </div>
-                                                <span className="font-bold text-sm text-[#2d4a27] tracking-tight group-hover:text-[#4c7c44] transition-colors">{plot.name}</span>
-                                            </div>
-                                        </td>
-                                        <td className="py-5 px-6 whitespace-nowrap">
-                                            <span className="text-sm font-bold text-gray-600 tracking-tight">{plot.area}</span>
-                                        </td>
-                                        <td className="py-5 px-6 whitespace-nowrap text-center">
-                                            <span className="text-sm font-bold text-gray-600 tracking-tight">{plot.age} ปี</span>
-                                        </td>
-                                        <td className="py-5 px-6 whitespace-nowrap">
-                                            <div className="flex items-baseline gap-1.5 font-bold tracking-tight">
-                                                <span className="text-[#2d4a27] text-base">{plot.carbon}</span>
-                                                <span className="text-xs text-gray-300 uppercase tracking-tighter">ตัน C</span>
-                                            </div>
-                                        </td>
-                                        <td className="py-5 px-6 whitespace-nowrap text-right">
-                                            <span className={`inline-flex items-center px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border ${plot.status === 'completed' || plot.status === 'complete'
-                                                    ? 'bg-[#eef2e6] text-[#4c7c44] border-[#e0e7d5]'
-                                                    : 'bg-amber-50 text-amber-600 border-amber-100'
-                                                }`}>
-                                                {plot.status === 'completed' || plot.status === 'complete' ? 'สมบูรณ์' : 'รอดำเนินการ'}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan="5" className="py-16 text-center">
-                                        <div className="flex flex-col items-center gap-4 opacity-30">
-                                            <div className="w-16 h-16 rounded-full border-2 border-dashed border-gray-400 flex items-center justify-center">
-                                                <MapPinIcon />
-                                            </div>
-                                            <span className="text-xs font-bold uppercase tracking-widest text-gray-500">ยังไม่มีข้อมูลเเปลงยางพาราในระบบ</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+                    <div className="hidden sm:block w-px h-10 bg-slate-200"></div>
+
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                            <TrendingUpIcon />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-bold text-teal-600 uppercase tracking-[2px]">คาร์บอนรวม</p>
+                            <div className="flex items-baseline gap-1.5">
+                                <span className="text-3xl font-black text-slate-800 tracking-tighter">{stats.totalCarbon.toLocaleString()}</span>
+                                <span className="text-xs font-bold text-slate-400 uppercase tracking-tighter">tCO₂e</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            {/* Public Access Badge */}
+            <div className="absolute top-4 left-4 z-40 bg-slate-900/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span className="text-[10px] font-bold text-white uppercase tracking-widest">Public Dashboard View</span>
+            </div>
+
+            {/* ==========================================
+                SIDE DETAIL PANEL
+            ========================================== */}
+            <div className={`fixed top-1/2 -translate-y-1/2 right-6 z-50 w-[340px] transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${selectedPlot ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full pointer-events-none'}`}>
+                <div className="bg-white/90 backdrop-blur-3xl rounded-[2.5rem] shadow-[0_30px_70px_rgba(0,0,0,0.2)] border border-white/50 overflow-hidden relative">
+                    {/* Close Button */}
+                    <button
+                        onClick={() => setSelectedPlot(null)}
+                        className="absolute top-6 right-6 w-10 h-10 rounded-full bg-slate-100/50 hover:bg-slate-200/50 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all active:scale-90"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+
+                    <div className="p-8">
+                        <div className="flex items-center gap-4 mb-8">
+                            <div className="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-50">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 10a6 6 0 0 0-6-6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2a6 6 0 0 0-6 6Z" /><path d="M8 10a4 4 0 0 1 8 0V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v6Z" /></svg>
+                            </div>
+                            <div>
+                                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-[2px] mb-1 block">รายละเอียดแปลงยาง</span>
+                                <h3 className="text-2xl font-black text-slate-800 tracking-tight leading-none">{selectedPlot?.farmerName}</h3>
+                            </div>
+                        </div>
+
+                        <div className="space-y-6">
+                            {/* Area Info */}
+                            <div className="bg-slate-50/50 rounded-2xl p-5 border border-slate-100">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">ขนาดพื้นที่สำรวจ</p>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-3xl font-black text-slate-700">{selectedPlot?.area}</span>
+                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-tighter">ไร่โดยประมาณ</span>
+                                </div>
+                            </div>
+
+                            {/* Carbon Info */}
+                            <div className="bg-emerald-50/50 rounded-2xl p-6 border border-emerald-100/50">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">ปริมาณคาร์บอนสุทธิ</p>
+                                </div>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-5xl font-black text-emerald-600 tracking-tighter">{selectedPlot?.carbon}</span>
+                                    <span className="text-sm font-bold text-emerald-400 uppercase tracking-tighter">tCO₂e / ปี</span>
+                                </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="pt-2 flex flex-col gap-3">
+                                <button
+                                    onClick={() => {
+                                        if (selectedPlot?.geometry && map.current) {
+                                            if (selectedPlot.geometry.type === 'Point') {
+                                                map.current.flyTo({
+                                                    center: selectedPlot.geometry.coordinates,
+                                                    zoom: 17,
+                                                    duration: 1500
+                                                });
+                                            } else {
+                                                const bbox = turf.bbox(selectedPlot.geometry);
+                                                map.current.fitBounds(bbox, { padding: 100, duration: 1500 });
+                                            }
+                                        }
+                                    }}
+                                    className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold text-sm shadow-xl shadow-slate-900/10 hover:bg-slate-800 transition-all active:scale-95 flex items-center justify-center gap-2"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                    ซูมไปที่ตำแหน่งแปลง
+                                </button>
+
+                                <button
+                                    onClick={() => handleNavClick('/map')}
+                                    className="w-full py-4 bg-white text-emerald-600 border border-emerald-100 rounded-2xl font-bold text-sm hover:bg-emerald-50 transition-all active:scale-95"
+                                >
+                                    เพิ่มแปลงใหม่ของฉัน
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Footer Info */}
+                        <div className="mt-8 pt-6 border-t border-slate-50 flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest leading-tight">ข้อมูลผ่านการรับรอง<br />โดยระบบ KEPTCARBON</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* ==========================================
+                FLOATING NAVBAR (Bottom Center)
+            ========================================== */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40">
+                <nav className="flex items-center gap-1.5 bg-white/95 backdrop-blur-3xl rounded-3xl p-2 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] border border-white/50">
+                    {/* Home */}
+                    <button
+                        onClick={() => handleNavClick('/')}
+                        className="flex flex-col items-center justify-center w-16 h-14 rounded-2xl text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all active:scale-90"
+                    >
+                        <HomeIcon />
+                        <span className="text-[10px] mt-1 font-bold uppercase tracking-tighter">หน้าหลัก</span>
+                    </button>
+
+                    {/* Map */}
+                    <button
+                        onClick={() => handleNavClick('/map')}
+                        className="flex flex-col items-center justify-center w-16 h-14 rounded-2xl text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all active:scale-90"
+                    >
+                        <MapIcon />
+                        <span className="text-[10px] mt-1 font-bold uppercase tracking-tighter">แผนที่</span>
+                    </button>
+
+                    {/* Dashboard - Active */}
+                    <button
+                        className="flex flex-col items-center justify-center w-16 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-400 text-white shadow-xl shadow-emerald-500/30 transition-all"
+                    >
+                        <DashboardIcon />
+                        <span className="text-[10px] mt-1 font-bold uppercase tracking-tighter">แดชบอร์ด</span>
+                    </button>
+
+                    {/* Personal */}
+                    <button
+                        onClick={() => handleNavClick('/dashboard?view=personal')}
+                        className="flex flex-col items-center justify-center w-16 h-14 rounded-2xl text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all active:scale-90"
+                    >
+                        <UserIcon />
+                        <span className="text-[10px] mt-1 font-bold uppercase tracking-tighter">ส่วนตัว</span>
+                    </button>
+
+                    {/* History */}
+                    <button
+                        onClick={() => handleNavClick('/dashboard/history')}
+                        className="flex flex-col items-center justify-center w-16 h-14 rounded-2xl text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all active:scale-90"
+                    >
+                        <HistoryIcon />
+                        <span className="text-[10px] mt-1 font-bold uppercase tracking-tighter">ประวัติ</span>
+                    </button>
+                </nav>
+            </div>
+
+            <style>{`
+                .modern-public-popup .maplibregl-popup-content {
+                    padding: 0;
+                    border-radius: 2.5rem;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+                    border: 1px solid rgba(255,255,255,0.4);
+                    background: rgba(255,255,255,0.95);
+                    backdrop-filter: blur(16px);
+                }
+                .maplibregl-ctrl-attrib, .maplibregl-ctrl-logo {
+                    display: none !important;
+                }
+            `}</style>
         </div>
     )
 }

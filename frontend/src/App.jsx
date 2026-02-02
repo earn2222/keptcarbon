@@ -29,16 +29,16 @@ function App() {
             <Route path="/map" component={MapPage} />
 
             {/* Dashboard Routes */}
-            <Route path="/dashboard">
+            <Route exact path="/dashboard" component={DashboardPage} />
+
+            <Route path="/dashboard/history">
                 <DashboardLayout>
-                    <Switch>
-                        <Route exact path="/dashboard" component={DashboardPage} />
-                        {/* Redirect old path to new public path */}
-                        <Redirect from="/dashboard/map" to="/map" />
-                        <Route path="/dashboard/history" component={HistoryPage} />
-                    </Switch>
+                    <HistoryPage />
                 </DashboardLayout>
             </Route>
+
+            {/* Redirect old path to new public path */}
+            <Redirect from="/dashboard/map" to="/map" />
 
             {/* Fallback redirect */}
             <Redirect to="/" />
