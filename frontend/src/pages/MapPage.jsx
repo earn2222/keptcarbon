@@ -191,6 +191,7 @@ function MapPage() {
     const [activeTool, setActiveTool] = useState(null)
     const [savedPlots, setSavedPlots] = useState([])
     const [pendingPlots, setPendingPlots] = useState([])
+    const [previewPlots, setPreviewPlots] = useState([])
     const [coordinates, setCoordinates] = useState({ lat: 13.7563, lng: 100.5018, zoom: 5 })
     const [selectedPlotForPopup, setSelectedPlotForPopup] = useState(null)
     const popupRef = useRef(null)
@@ -421,110 +422,100 @@ function MapPage() {
             if (!e.features.length) return;
             const feature = e.features[0];
             const plotData = JSON.parse(feature.properties.allData);
-
-            // Show popup
             const coordinates = e.lngLat;
-            const description = `
-                <div class="relative w-[280px] bg-white rounded-2xl shadow-xl overflow-hidden font-sans ring-1 ring-black/5">
-                    
-                    <!-- Top Controls -->
-                    <div class="absolute top-3 right-3 flex items-center gap-1 z-10 transition-opacity duration-200">
-                        <button id="edit-plot-btn" class="p-1.5 rounded-full bg-white text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all border border-gray-100 shadow-sm" title="แก้ไขข้อมูล">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                        </button>
-                        <button id="close-popup-btn" class="p-1.5 rounded-full bg-white text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all border border-gray-100 shadow-sm" title="ปิด">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                        </button>
-                    </div>
 
-                    <div class="p-5 pt-6">
-                        <!-- Header -->
-                        <div class="flex items-start gap-3 mb-4 pr-16 pl-1 pt-1">
-                            <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-sm shrink-0">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                            </div>
-                            <div>
-                                <h3 class="font-bold text-gray-800 text-sm leading-tight line-clamp-1">${plotData.farmerName || 'ไม่ระบุชื่อ'}</h3>
-                                <p class="text-xs text-gray-500 mt-1 font-medium bg-gray-50 px-2 py-0.5 rounded-full inline-block border border-gray-100">${plotData.variety || 'ไม่ระบุพันธุ์'}</p>
-                            </div>
-                        </div>
-
-                        <!-- Stats -->
-                        <div class="space-y-3 px-1">
-                            <!-- Area -->
-                            <div class="flex justify-between items-start text-xs border-b border-dashed border-gray-100 pb-2">
-                                <span class="text-gray-400 font-medium mt-0.5">พื้นที่</span>
-                                <div class="text-right">
-                                    <div class="font-bold text-gray-700 text-sm tracking-tight">${plotData.areaRai}-${plotData.areaNgan}-${plotData.areaSqWah} ไร่</div>
-                                    <div class="text-[10px] text-gray-400 mt-0.5 font-medium bg-gray-50 px-1.5 rounded inline-block">
-                                        ${parseFloat(plotData.areaSqm || 0).toLocaleString()} ม²
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Year & Age -->
-                            <div class="flex justify-between items-center text-xs border-b border-dashed border-gray-100 pb-2">
-                                <span class="text-gray-400 font-medium">ปีที่ปลูก (พ.ศ.)</span>
-                                <div class="text-right">
-                                     <span class="font-semibold text-gray-700">${plotData.plantingYearBE || '-'}</span>
-                                     <span class="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded ml-1 font-medium">อายุ ${plotData.age || 0} ปี</span>
-                                </div>
-                            </div>
-
-                             <!-- Method -->
-                            <div class="flex justify-between items-center text-xs pb-2">
-                                <span class="text-gray-400 font-medium">วิธีคำนวณ</span>
-                                <span class="font-medium text-gray-600 bg-gray-50 px-2 py-0.5 rounded-md text-[10px] border border-gray-100">
-                                    ${plotData.method || 'Manual'}
-                                </span>
-                            </div>
-                        </div>
-
-                        <!-- Carbon Card -->
-                        <div class="mt-4 bg-gradient-to-r from-emerald-500 to-green-600 rounded-xl p-3.5 text-white shadow-lg shadow-emerald-200/50 ring-1 ring-white/20">
-                            <div class="flex justify-between items-center mb-1">
-                                <div class="text-[10px] font-medium opacity-90 uppercase tracking-widest">คาร์บอนเครดิต</div>
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-80"><path d="M2 22h20M12 2v20M2 12h20M12 2l10 10-10 10-10-10 10-10z"/></svg>
-                            </div>
-                            <div class="flex items-baseline justify-between">
-                                <div class="flex items-baseline gap-1">
-                                    <span class="text-2xl font-bold tracking-tight">${plotData.carbon || '0.00'}</span>
-                                    <span class="text-[10px] font-medium opacity-80">tCO₂e</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-
+            // Remove existing popup
             if (popupRef.current) popupRef.current.remove();
 
-            popupRef.current = new maplibregl.Popup({
-                closeButton: false,
-                maxWidth: 'none',
-                className: 'minimal-popup'
+            // Create new popup
+            const popup = new maplibregl.Popup({
+                closeButton: true,
+                maxWidth: '320px',
+                anchor: 'bottom',
+                offset: [0, -20],
+                className: 'premium-popup'
             })
                 .setLngLat(coordinates)
-                .setHTML(description)
+                .setHTML(`
+                <div class="overflow-hidden rounded-[32px] bg-white border border-emerald-50">
+                    <!-- Header -->
+                    <div class="bg-emerald-50/50 px-6 py-5 border-b border-emerald-100/50">
+                        <div class="flex items-center gap-2 mb-1.5">
+                            <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                            <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-[0.2em]">ข้อมูลรายแปลง</span>
+                        </div>
+                        <h3 class="text-2xl font-black text-slate-800 tracking-tight">
+                            ${plotData.farmerName}
+                        </h3>
+                    </div>
+
+                    <div class="px-6 py-6 space-y-6">
+                        <!-- Primary Info -->
+                        <div class="flex items-center justify-between gap-4">
+                            <div class="flex-1">
+                                <div class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">ปีที่ปลูก / อายุ</div>
+                                <div class="text-sm font-black text-slate-700">
+                                    ${plotData.plantingYearBE} พ.ศ. <span class="text-emerald-500 mx-1">•</span> ${plotData.age} ปี
+                                </div>
+                            </div>
+                            <div class="flex-1 text-right">
+                                <div class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">พันธุ์ยาง</div>
+                                <div class="text-sm font-black text-slate-700">
+                                    ${plotData.variety || '-'}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Carbon Value Section -->
+                        <div class="py-4 border-y border-emerald-50 text-center">
+                            <div class="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-2">ปริมาณคาร์บอนสุทธิ</div>
+                            <div class="flex items-baseline justify-center gap-2">
+                                <span class="text-5xl font-black text-emerald-600 tracking-tighter">${plotData.carbon}</span>
+                                <span class="text-[12px] font-bold text-emerald-400 uppercase tracking-tight">tCO₂e</span>
+                            </div>
+                            <div class="mt-2 text-[10px] font-bold text-slate-400 px-4 py-1.5 bg-slate-50 rounded-full inline-block">
+                                ${plotData.method || '-'}
+                            </div>
+                        </div>
+
+                        <!-- Minimal Edit Button -->
+                        <button id="open-edit-btn-${plotData.id}" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white text-[12px] font-bold py-4 rounded-2xl transition-all shadow-lg shadow-emerald-200 flex items-center justify-center gap-2 active:scale-[0.98]">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                            แก้ไขข้อมูลแปลง
+                        </button>
+                    </div>
+                </div>
+            `)
                 .addTo(map.current);
 
-            // Add click listener to the buttons inside popup
-            setTimeout(() => {
-                document.getElementById('edit-plot-btn')?.addEventListener('click', () => {
-                    setWorkflowModal({
-                        isOpen: true,
-                        mode: 'draw',
-                        initialData: plotData,
-                        isEditing: true,
-                        plotId: plotData.id
-                    });
-                    if (popupRef.current) popupRef.current.remove();
-                });
+            popupRef.current = popup;
 
-                document.getElementById('close-popup-btn')?.addEventListener('click', () => {
-                    if (popupRef.current) popupRef.current.remove();
+            // Handle button click in popup
+            setTimeout(() => {
+                const btn = document.getElementById(`open-edit-btn-${plotData.id}`);
+                if (btn) {
+                    btn.onclick = (event) => {
+                        event.stopPropagation();
+                        setWorkflowModal({
+                            isOpen: true,
+                            mode: 'draw',
+                            initialData: plotData,
+                            isEditing: true
+                        });
+                        popup.remove();
+                    };
+                }
+            }, 50);
+
+            // Zoom to plot
+            if (feature.geometry) {
+                const bbox = turf.bbox(feature);
+                map.current.fitBounds(bbox, {
+                    padding: { top: 120, bottom: 250, left: 120, right: window.innerWidth > 640 ? 450 : 120 },
+                    maxZoom: 18,
+                    duration: 1000
                 });
-            }, 0);
+            }
         });
 
         // Change cursor on hover
@@ -549,7 +540,7 @@ function MapPage() {
     useEffect(() => {
         if (!map.current || !mapLoaded) return;
 
-        const allPlots = [...savedPlots, ...pendingPlots];
+        const allPlots = [...savedPlots, ...pendingPlots, ...previewPlots];
 
         // Add Source if not exists
         if (!map.current.getSource('saved-plots')) {
@@ -565,6 +556,7 @@ function MapPage() {
                             farmerName: plot.farmerName,
                             carbon: plot.carbon,
                             isPending: plot.isPending || false,
+                            isPreview: plot.isPreview || false,
                             allData: JSON.stringify(plot)
                         }
                     }))
@@ -577,9 +569,19 @@ function MapPage() {
                 source: 'saved-plots',
                 layout: {},
                 paint: {
-                    'fill-color': ['case', ['get', 'isPending'], '#fbbf24', '#10b981'],
+                    'fill-color': [
+                        'case',
+                        ['get', 'isPreview'], '#3b82f6',
+                        ['get', 'isPending'], '#fbbf24',
+                        '#10b981'
+                    ],
                     'fill-opacity': 0.3,
-                    'fill-outline-color': ['case', ['get', 'isPending'], '#d97706', '#059669']
+                    'fill-outline-color': [
+                        'case',
+                        ['get', 'isPreview'], '#2563eb',
+                        ['get', 'isPending'], '#d97706',
+                        '#059669'
+                    ]
                 }
             });
 
@@ -588,7 +590,12 @@ function MapPage() {
                 type: 'line',
                 source: 'saved-plots',
                 paint: {
-                    'line-color': ['case', ['get', 'isPending'], '#d97706', '#059669'],
+                    'line-color': [
+                        'case',
+                        ['get', 'isPreview'], '#2563eb',
+                        ['get', 'isPending'], '#d97706',
+                        '#059669'
+                    ],
                     'line-width': 2
                 }
             });
@@ -604,12 +611,13 @@ function MapPage() {
                         farmerName: plot.farmerName,
                         carbon: plot.carbon,
                         isPending: plot.isPending || false,
+                        isPreview: plot.isPreview || false,
                         allData: JSON.stringify(plot)
                     }
                 }))
             });
         }
-    }, [savedPlots, pendingPlots, mapLoaded]);
+    }, [savedPlots, pendingPlots, previewPlots, mapLoaded]);
 
     const handleSavePlot = (plotData, isFinalSave = false) => {
         if (isFinalSave) {
@@ -694,6 +702,20 @@ function MapPage() {
         alert(`บันทึกเรียบร้อยทั้งหมด ${newlySaved.length} แปลง!`);
     };
 
+    const handleZoomToPlot = (geometry) => {
+        if (!map.current || !geometry) return;
+        try {
+            const feature = geometry.type === 'FeatureCollection' ? geometry : turf.feature(geometry);
+            const bbox = turf.bbox(feature);
+            map.current.fitBounds(bbox, {
+                padding: { top: 120, bottom: 120, left: 120, right: window.innerWidth > 640 ? 450 : 120 },
+                maxZoom: 18,
+                duration: 1000
+            });
+        } catch (err) {
+            console.error('Zoom error:', err);
+        }
+    };
 
     // ==========================================
     // INTRO ANIMATION - Globe to Thailand
@@ -1342,7 +1364,7 @@ function MapPage() {
                                 {pendingPlots.length > 0 && (
                                     <div className="ml-2 pl-3 border-l border-slate-200 flex items-center gap-1.5">
                                         <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                        <span className="text-[10px] font-black text-emerald-600 uppercase">คำนวณแล้ว {pendingPlots.length} แปลง</span>
+                                        <span className="text-[10px] font-black text-emerald-600 tracking-wider">คำนวณแล้ว {pendingPlots.length} แปลง</span>
                                     </div>
                                 )}
                             </div>
@@ -1474,12 +1496,20 @@ function MapPage() {
                 onClose={() => setWorkflowModal({ isOpen: false, mode: null })}
                 onSave={handleSavePlot}
                 onAddAnother={handleAddAnother}
-                onDeletePlot={(id) => setPendingPlots(prev => prev.filter(p => p.id !== id))}
-                onUpdatePlot={(id, data) => setPendingPlots(prev => prev.map(p => p.id === id ? { ...p, ...data } : p))}
+                onDeletePlot={(id) => {
+                    setPendingPlots(prev => prev.filter(p => p.id !== id));
+                    setSavedPlots(prev => prev.filter(p => p.id !== id));
+                }}
+                onUpdatePlot={(id, data) => {
+                    setPendingPlots(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
+                    setSavedPlots(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
+                }}
                 onStartDrawing={() => {
                     setWorkflowModal({ ...workflowModal, isOpen: false });
                     startDigitizing();
                 }}
+                onZoomToPlot={handleZoomToPlot}
+                onPreviewPlots={setPreviewPlots}
             />
 
             <style>{`
@@ -1567,6 +1597,38 @@ function MapPage() {
                 @keyframes bounce-subtle {
                     0%, 100% { transform: translateY(0); }
                     50% { transform: translateY(-5px); }
+                }
+
+                /* PREMIUM POPUP STYLES */
+                .premium-popup .maplibregl-popup-content {
+                    padding: 0;
+                    border-radius: 28px;
+                    background: rgba(255, 255, 255, 0.95);
+                    backdrop-filter: blur(16px);
+                    border: 1px solid rgba(255, 255, 255, 0.4);
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+                    overflow: hidden;
+                }
+                .premium-popup .maplibregl-popup-tip {
+                    border-top-color: rgba(255, 255, 255, 0.95);
+                    backdrop-filter: blur(16px);
+                }
+                .premium-popup .maplibregl-popup-close-button {
+                    right: 12px;
+                    top: 12px;
+                    width: 24px;
+                    height: 24px;
+                    background: #f1f5f9;
+                    border-radius: 12px;
+                    color: #94a3b8;
+                    font-size: 16px;
+                    line-height: 24px;
+                    border: none;
+                    transition: all 0.2s;
+                }
+                .premium-popup .maplibregl-popup-close-button:hover {
+                    background: #e2e8f0;
+                    color: #64748b;
                 }
             `}</style>
         </div >

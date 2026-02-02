@@ -4,7 +4,8 @@ import shp from 'shpjs';
 import {
     Loader2, Trash2, Edit3, Leaf, Zap,
     Calculator, Upload, X, ChevronRight, ArrowLeft,
-    CheckCircle2, Map, TreeDeciduous, List, Repeat, Eye
+    CheckCircle2, Map, TreeDeciduous, List, Repeat, Eye,
+    Search
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 
@@ -23,6 +24,7 @@ export default function WorkflowModal({
     onUpdatePlot,
     onStartDrawing,
     onZoomToPlot,
+    onPreviewPlots,
     isEditing = false
 }) {
     const [currentStep, setCurrentStep] = useState(1);
@@ -54,8 +56,22 @@ export default function WorkflowModal({
     const [isUploading, setIsUploading] = useState(false);
     const [shpError, setShpError] = useState(null);
     const [useMetricUnit, setUseMetricUnit] = useState(false); // Toggle for Rai/Sqm
+    const [searchTerm, setSearchTerm] = useState('');
 
     const containerRef = useRef(null);
+
+    // ==========================================
+    // SYNC PREVIEW PLOTS TO MAP
+    // ==========================================
+    useEffect(() => {
+        if (onPreviewPlots) {
+            if (shpPlots.length > 0 && isOpen) {
+                onPreviewPlots(shpPlots.map(p => ({ ...p, isPreview: true })));
+            } else {
+                onPreviewPlots([]);
+            }
+        }
+    }, [shpPlots, isOpen, onPreviewPlots]);
 
     // ==========================================
     // INITIALIZATION
@@ -178,8 +194,10 @@ export default function WorkflowModal({
             });
 
             console.log("Parsed SHP Plots with areas:", plots);
+            console.log("Parsed SHP Plots with areas:", plots);
             setShpPlots(plots);
             setSelectedShpPlotIds([]);
+            setSearchTerm('');
         } catch (e) {
             console.error("SHP Parse Error:", e);
             setShpError('ไม่สามารถอ่านไฟล์ SHP ได้ กรุณาใช้ไฟล์ .zip');
@@ -190,7 +208,17 @@ export default function WorkflowModal({
 
     const handleSelectShpPlot = (plotId) => {
         setSelectedShpPlotIds(prev => {
-            if (prev.includes(plotId)) {
+            const isSelecting = !prev.includes(plotId);
+
+            // Zoom to plot if selecting
+            if (isSelecting && onZoomToPlot) {
+                const plot = shpPlots.find(p => p.id === plotId);
+                if (plot?.geometry) {
+                    onZoomToPlot(plot.geometry);
+                }
+            }
+
+            if (!isSelecting) {
                 return prev.filter(id => id !== plotId);
             } else {
                 return [...prev, plotId];
@@ -199,10 +227,42 @@ export default function WorkflowModal({
     };
 
     const handleSelectAllPlots = () => {
-        if (selectedShpPlotIds.length === shpPlots.length) {
+        const filteredPlots = shpPlots.filter(p =>
+            p.farmerName.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
+        const areAllSelected = selectedShpPlotIds.length === filteredPlots.length && filteredPlots.every(p => selectedShpPlotIds.includes(p.id));
+
+        if (areAllSelected) {
             setSelectedShpPlotIds([]);
         } else {
-            setSelectedShpPlotIds(shpPlots.map(p => p.id));
+            setSelectedShpPlotIds(filteredPlots.map(p => p.id));
+
+            // Zoom to show all selected plots together
+            if (onZoomToPlot && filteredPlots.length > 0) {
+                try {
+                    const collection = turf.featureCollection(filteredPlots.map(p => turf.feature(p.geometry)));
+                    onZoomToPlot(collection);
+                } catch (e) {
+                    console.error("Zoom all error:", e);
+                }
+            }
+        }
+    };
+
+    const handleDeleteShpPlot = (e, plotId) => {
+        e.stopPropagation();
+        if (window.confirm('ยืนยันการลบแปลงนี้?')) {
+            setShpPlots(prev => prev.filter(p => p.id !== plotId));
+            setSelectedShpPlotIds(prev => prev.filter(id => id !== plotId));
+        }
+    };
+
+    const handleClearAllShpPlots = () => {
+        if (window.confirm('ยืนยันการลบแปลงที่พบทั้งหมด?')) {
+            setShpPlots([]);
+            setSelectedShpPlotIds([]);
+            setSearchTerm('');
         }
     };
 
@@ -226,6 +286,11 @@ export default function WorkflowModal({
             methodSat: 'ndvi',
         }));
         setResult(null);
+
+        // Zoom to this specific plot when loading for processing
+        if (onZoomToPlot && plot.geometry) {
+            onZoomToPlot(plot.geometry);
+        }
     };
 
     const handleProceedFromShp = () => {
@@ -271,19 +336,19 @@ export default function WorkflowModal({
                 if (calcGroup === 1) {
                     if (formData.methodManual === 'eq1') {
                         carbonPerTree = 0.118 * Math.pow(dbh, 2.53);
-                        resultMethod = 'ภาคสนาม (สมการที่ 1)';
+                        resultMethod = 'สมการที่ 1 (0.118 × DBH^2.53)';
                     } else {
                         carbonPerTree = 0.062 * Math.pow(dbh, 2.23);
-                        resultMethod = 'ภาคสนาม (สมการที่ 2)';
+                        resultMethod = 'สมการที่ 2 (0.062 × DBH^2.23)';
                     }
                 } else {
                     const { ndvi, tcari } = satData;
                     if (formData.methodSat === 'ndvi') {
                         carbonPerTree = 34.2 * ndvi + 5.8;
-                        resultMethod = 'ดาวเทียม (NDVI)';
+                        resultMethod = 'ดาวเทียม (34.2 × NDVI + 5.8)';
                     } else {
                         carbonPerTree = 13.57 * tcari + 7.45;
-                        resultMethod = 'ดาวเทียม (TCARI)';
+                        resultMethod = 'ดาวเทียม (13.57 × TCARI + 7.45)';
                     }
                 }
 
@@ -378,36 +443,40 @@ export default function WorkflowModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center sm:items-start sm:justify-end pointer-events-none p-4 sm:p-8">
             {/* Backdrop */}
-            <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
+            <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] pointer-events-auto" onClick={onClose} />
 
-            {/* Modal */}
-            <div className="relative w-full sm:max-w-md bg-white sm:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh] sm:max-h-[90vh] animate-in slide-in-from-bottom sm:fade-in sm:zoom-in-95 duration-300">
+            {/* Modal / Side Panel */}
+            <div className={cn(
+                "relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] pointer-events-auto transition-all duration-500",
+                "sm:w-[380px] sm:max-h-[calc(100vh-64px)] sm:rounded-[32px] border border-white/20",
+                isOpen ? "translate-y-0 opacity-100 scale-100" : "translate-y-10 opacity-0 scale-95"
+            )}>
 
                 {/* Close Button */}
                 <button
                     onClick={onClose}
-                    className="absolute top-4 right-4 z-50 w-9 h-9 rounded-full bg-white shadow-lg hover:shadow-xl flex items-center justify-center text-gray-400 hover:text-gray-700 transition-all active:scale-95"
+                    className="absolute top-5 right-5 z-50 w-8 h-8 rounded-full bg-gray-50 text-gray-400 hover:text-gray-600 hover:bg-gray-100 flex items-center justify-center transition-all active:scale-95"
                 >
-                    <X size={20} />
+                    <X size={18} />
                 </button>
 
                 {/* Content */}
-                <div ref={containerRef} className="flex-1 overflow-y-auto p-6 pb-8 space-y-6">
+                <div ref={containerRef} className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin">
 
                     {/* STEP 0: SHP IMPORT */}
                     {currentStep === 0 && (
-                        <div className="space-y-5 pt-4">
-                            <div className="text-center">
-                                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg">
-                                    <Upload size={32} className="text-white" />
+                        <div className="space-y-4 pt-2">
+                            <div className="text-center pb-2">
+                                <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-sm border border-emerald-100/50">
+                                    <Upload size={24} />
                                 </div>
-                                <h2 className="text-xl font-semibold text-gray-800">นำเข้าไฟล์ Shapefile</h2>
-                                <p className="text-sm text-gray-500 mt-1">เลือกไฟล์ .zip ที่มีข้อมูลแปลง</p>
+                                <h2 className="text-lg font-semibold text-slate-800 tracking-tight">นำเข้า Shapefile</h2>
+                                <p className="text-[11px] text-slate-400 font-medium uppercase tracking-widest mt-0.5 whitespace-nowrap">เลือกไฟล์ .zip เพื่อเริ่มต้น</p>
                             </div>
 
-                            <div className="relative p-12 border-2 border-dashed border-gray-200 rounded-2xl text-center hover:border-emerald-400 hover:bg-emerald-50/30 transition-all cursor-pointer group">
+                            <div className="relative p-8 border-2 border-dashed border-gray-100 rounded-2xl text-center hover:border-emerald-300 hover:bg-emerald-50/30 transition-all cursor-pointer group">
                                 <input
                                     type="file"
                                     accept=".zip"
@@ -415,87 +484,110 @@ export default function WorkflowModal({
                                     className="absolute inset-0 opacity-0 cursor-pointer"
                                 />
                                 {isUploading ? (
-                                    <Loader2 className="w-12 h-12 mx-auto mb-3 text-emerald-500 animate-spin" />
+                                    <Loader2 className="w-8 h-8 mx-auto mb-2 text-emerald-500 animate-spin" />
                                 ) : (
-                                    <Upload className="w-12 h-12 mx-auto mb-3 text-gray-300 group-hover:text-emerald-500 transition-colors" />
+                                    <Upload className="w-8 h-8 mx-auto mb-2 text-gray-300 group-hover:text-emerald-500 transition-colors" />
                                 )}
-                                <p className="text-sm font-medium text-gray-700">
-                                    {isUploading ? 'กำลังประมวลผล...' : 'คลิกเพื่ออัพโหลดไฟล์'}
+                                <p className="text-xs font-medium text-slate-400">
+                                    {isUploading ? 'กำลังอ่านข้อมูล...' : 'คลิกเพื่ออัพโหลดไฟล์ .zip'}
                                 </p>
                             </div>
 
                             {shpError && (
-                                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
+                                <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-xs text-red-600">
                                     {shpError}
                                 </div>
                             )}
 
-                            <div className="flex justify-between items-center px-1">
-                                <p className="text-sm font-semibold text-gray-700">พบ {shpPlots.length} แปลง</p>
-                                <button
-                                    onClick={handleSelectAllPlots}
-                                    className="text-sm text-emerald-600 font-medium hover:text-emerald-700 hover:underline"
-                                >
-                                    {selectedShpPlotIds.length === shpPlots.length ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
-                                </button>
+                            {/* Search and Filter */}
+                            <div className="space-y-3">
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                                    <input
+                                        type="text"
+                                        placeholder="ค้นหาชื่อแปลง..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full h-10 bg-gray-50 border border-gray-100 rounded-xl pl-9 pr-4 text-sm focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-500/10 transition-all outline-none"
+                                    />
+                                </div>
+
+                                <div className="flex justify-between items-center px-1">
+                                    <span className="text-[10px] font-bold text-slate-400 tracking-wider">พบ {shpPlots.filter(p => p.farmerName.toLowerCase().includes(searchTerm.toLowerCase())).length} แปลง</span>
+                                    <div className="flex gap-4">
+                                        <button
+                                            onClick={handleSelectAllPlots}
+                                            className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider hover:opacity-70 transition-opacity"
+                                        >
+                                            {selectedShpPlotIds.length > 0 && selectedShpPlotIds.length === shpPlots.filter(p => p.farmerName.toLowerCase().includes(searchTerm.toLowerCase())).length ? 'ยกเลิก' : 'เลือกทั้งหมด'}
+                                        </button>
+                                        {shpPlots.length > 0 && (
+                                            <button
+                                                onClick={handleClearAllShpPlots}
+                                                className="text-[10px] text-rose-500 font-bold uppercase tracking-wider hover:opacity-70 transition-opacity"
+                                            >
+                                                ลบรายการที่พบ
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
 
                             {shpPlots.length > 0 && (
-                                <div className="space-y-3">
-                                    <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
-                                        {shpPlots.map(p => {
-                                            const isSelected = selectedShpPlotIds.includes(p.id);
-                                            return (
-                                                <button
-                                                    key={p.id}
-                                                    onClick={() => handleSelectShpPlot(p.id)}
-                                                    className={cn(
-                                                        "w-full p-4 rounded-xl flex items-center gap-3 transition-all border-2",
-                                                        isSelected
-                                                            ? "bg-emerald-50 border-emerald-400 shadow-sm"
-                                                            : "bg-gray-50 border-transparent active:bg-gray-100"
-                                                    )}
-                                                >
-                                                    {/* SVG Preview */}
-                                                    <div className={cn(
-                                                        "w-14 h-14 rounded-xl flex items-center justify-center shrink-0 p-2",
-                                                        isSelected
-                                                            ? "bg-emerald-500"
-                                                            : "bg-white border-2 border-gray-200"
-                                                    )}>
-                                                        {p.svgPath ? (
-                                                            <svg viewBox="0 0 100 100" className="w-full h-full">
-                                                                <polygon
-                                                                    points={p.svgPath}
-                                                                    fill={isSelected ? "rgba(255,255,255,0.3)" : "rgba(16,185,129,0.3)"}
-                                                                    stroke={isSelected ? "#ffffff" : "#10b981"}
-                                                                    strokeWidth="2"
-                                                                />
-                                                            </svg>
-                                                        ) : (
-                                                            <Map size={22} className={isSelected ? "text-white" : "text-gray-400"} />
+                                <div className="space-y-2">
+                                    <div className="space-y-2 max-h-[35vh] overflow-y-auto pr-1 scrollbar-thin">
+                                        {shpPlots
+                                            .filter(p => p.farmerName.toLowerCase().includes(searchTerm.toLowerCase()))
+                                            .map(p => {
+                                                const isSelected = selectedShpPlotIds.includes(p.id);
+                                                return (
+                                                    <div
+                                                        key={p.id}
+                                                        onClick={() => handleSelectShpPlot(p.id)}
+                                                        className={cn(
+                                                            "w-full p-3 rounded-2xl flex items-center gap-3 transition-all border cursor-pointer active:scale-[0.98]",
+                                                            isSelected ? "bg-emerald-50 border-emerald-200" : "bg-white border-gray-100 hover:border-gray-200"
                                                         )}
+                                                    >
+                                                        <div className={cn(
+                                                            "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+                                                            isSelected ? "bg-emerald-500 text-white" : "bg-gray-50 text-emerald-500"
+                                                        )}>
+                                                            {p.svgPath ? (
+                                                                <svg viewBox="0 0 100 100" className="w-6 h-6">
+                                                                    <polygon
+                                                                        points={p.svgPath}
+                                                                        fill="currentColor"
+                                                                        fillOpacity={isSelected ? 0.3 : 0.1}
+                                                                        stroke="currentColor"
+                                                                        strokeWidth="4"
+                                                                    />
+                                                                </svg>
+                                                            ) : <Map size={20} />}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm font-semibold text-slate-700 truncate">{p.farmerName}</p>
+                                                            <p className="text-[10px] text-slate-400 font-medium tracking-tight">
+                                                                {p.areaRai}-{p.areaNgan}-{p.areaSqWah} ไร่ • {parseFloat(p.areaSqm).toLocaleString()} ตร.ม.
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            {isSelected && <CheckCircle2 size={18} className="text-emerald-500" />}
+                                                            <button
+                                                                onClick={(e) => handleDeleteShpPlot(e, p.id)}
+                                                                className="w-8 h-8 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500 flex items-center justify-center transition-colors"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex-1 text-left min-w-0">
-                                                        <p className="text-base font-semibold text-gray-800 truncate">{p.farmerName}</p>
-                                                        <p className="text-sm text-gray-600 mt-0.5">
-                                                            {p.areaRai}-{p.areaNgan}-{p.areaSqWah} ไร่
-                                                        </p>
-                                                        <p className="text-xs text-gray-500 mt-0.5">
-                                                            {parseFloat(p.areaSqm).toLocaleString()} ตร.ม.
-                                                        </p>
-                                                    </div>
-                                                    {isSelected && (
-                                                        <CheckCircle2 size={24} className="text-emerald-500 shrink-0" />
-                                                    )}
-                                                </button>
-                                            );
-                                        })}
+                                                );
+                                            })}
                                     </div>
                                     <button
                                         onClick={handleProceedFromShp}
                                         disabled={selectedShpPlotIds.length === 0}
-                                        className="w-full h-12 bg-emerald-500 active:bg-emerald-600 text-white rounded-xl text-base font-medium disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors shadow-sm active:scale-[0.98]"
+                                        className="w-full h-11 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl text-sm font-bold disabled:bg-gray-100 disabled:text-gray-400 transition-all shadow-lg shadow-emerald-200/50"
                                     >
                                         ดำเนินการต่อ ({selectedShpPlotIds.length})
                                     </button>
@@ -511,8 +603,8 @@ export default function WorkflowModal({
                                 <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg animate-pulse">
                                     <TreeDeciduous size={32} className="text-white" />
                                 </div>
-                                <h2 className="text-xl font-semibold text-gray-800">ข้อมูลแปลงยางพารา</h2>
-                                <p className="text-sm text-gray-500 mt-1">กรอกข้อมูลเกษตรกรและแปลงปลูก</p>
+                                <h2 className="text-xl font-semibold text-slate-800 tracking-tight">ข้อมูลแปลงยางพารา</h2>
+                                <p className="text-xs font-medium text-slate-400 mt-1">กรอกข้อมูลเกษตรกรและรายละเอียดแปลง</p>
                             </div>
 
                             {/* Area Display with Toggle */}
@@ -524,22 +616,22 @@ export default function WorkflowModal({
                                 >
                                     <Repeat size={16} className="text-emerald-600" />
                                 </button>
-                                <p className="text-xs text-emerald-700 font-medium mb-1">พื้นที่แปลง</p>
+                                <p className="text-[10px] text-emerald-600/70 font-bold uppercase tracking-widest mb-1.5">พื้นที่แปลงปลูก</p>
                                 {useMetricUnit ? (
                                     <>
-                                        <p className="text-2xl font-bold text-gray-800">
-                                            {parseFloat(formData.areaSqm || 0).toLocaleString()} ตร.ม.
+                                        <p className="text-2xl font-semibold text-slate-800 tracking-tight">
+                                            {parseFloat(formData.areaSqm || 0).toLocaleString()} <span className="text-xs opacity-50 font-medium">ตร.ม.</span>
                                         </p>
-                                        <p className="text-xs text-emerald-600 mt-1 font-medium">
+                                        <p className="text-[11px] text-emerald-600 mt-1 font-bold">
                                             {formData.areaRai}-{formData.areaNgan}-{parseFloat(formData.areaSqWah).toFixed(1)} ไร่
                                         </p>
                                     </>
                                 ) : (
                                     <>
-                                        <p className="text-2xl font-bold text-gray-800">
-                                            {formData.areaRai}-{formData.areaNgan}-{parseFloat(formData.areaSqWah).toFixed(1)} ไร่
+                                        <p className="text-2xl font-semibold text-slate-800 tracking-tight">
+                                            {formData.areaRai}-{formData.areaNgan}-{parseFloat(formData.areaSqWah).toFixed(1)} <span className="text-xs opacity-50 font-medium">ไร่</span>
                                         </p>
-                                        <p className="text-xs text-emerald-600 mt-1 font-medium">
+                                        <p className="text-[11px] text-emerald-600 mt-1 font-bold uppercase tracking-tight">
                                             {parseFloat(formData.areaSqm || 0).toLocaleString()} ตร.ม.
                                         </p>
                                     </>
@@ -549,10 +641,7 @@ export default function WorkflowModal({
                             {/* Input Fields */}
                             <div className="space-y-4">
                                 <div>
-                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                        <div className="w-6 h-6 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-                                        </div>
+                                    <label className="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">
                                         ชื่อเกษตรกร
                                     </label>
                                     <input
@@ -614,7 +703,7 @@ export default function WorkflowModal({
 
                             {/* Only show 'Next' button if in editing mode */}
                             {isEditing ? (
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 pt-2">
                                     <button
                                         onClick={() => {
                                             if (window.confirm("ยืนยันการลบแปลงนี้?")) {
@@ -622,24 +711,23 @@ export default function WorkflowModal({
                                                 onClose();
                                             }
                                         }}
-                                        className="w-14 h-12 mt-6 bg-red-50 hover:bg-red-100 text-red-500 rounded-xl flex items-center justify-center transition-all border border-red-200"
+                                        className="w-12 h-11 bg-red-50 hover:bg-red-100 text-red-500 rounded-xl flex items-center justify-center transition-all border border-red-100"
                                         title="ลบแปลง"
                                     >
-                                        <Trash2 size={24} />
+                                        <Trash2 size={20} />
                                     </button>
                                     <button
                                         onClick={() => setCurrentStep(2)}
                                         disabled={!formData.farmerName || !formData.plantingYearBE || !formData.variety}
-                                        className="flex-1 h-12 mt-6 bg-emerald-500 active:bg-emerald-600 text-white rounded-xl text-base font-medium disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-all shadow-lg shadow-emerald-200 active:scale-[0.98] flex items-center justify-center gap-2"
+                                        className="flex-1 h-11 bg-emerald-500 active:bg-emerald-600 text-white rounded-xl text-sm font-bold disabled:bg-gray-100 disabled:text-gray-400 transition-all shadow-lg shadow-emerald-200/50"
                                     >
                                         ถัดไป
-                                        <ChevronRight size={20} />
                                     </button>
                                 </div>
                             ) : (
                                 formData.farmerName && formData.plantingYearBE && formData.variety && (
-                                    <div className="flex items-center justify-center gap-2 text-emerald-600 py-6 animate-pulse">
-                                        <p className="text-sm font-medium">กำลังไปขั้นตอนถัดไป...</p>
+                                    <div className="flex items-center justify-center gap-2 text-emerald-500 py-3 animate-pulse">
+                                        <p className="text-xs font-bold">กำลังไปขั้นตอนถัดไป...</p>
                                     </div>
                                 )
                             )}
@@ -658,16 +746,16 @@ export default function WorkflowModal({
                             </div>
 
                             {/* Method Toggle */}
-                            <div className="flex p-1.5 bg-gray-100 rounded-xl">
+                            <div className="flex p-1 bg-gray-50 rounded-xl border border-gray-100">
                                 {['ภาคสนาม', 'ดาวเทียม'].map((t, i) => (
                                     <button
                                         key={i}
                                         onClick={() => setCalcGroup(i + 1)}
                                         className={cn(
-                                            "flex-1 py-3 text-base font-medium rounded-lg transition-all",
+                                            "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
                                             calcGroup === i + 1
-                                                ? "bg-white text-emerald-600 shadow-sm"
-                                                : "text-gray-500"
+                                                ? "bg-white text-emerald-600 shadow-sm border border-gray-100"
+                                                : "text-gray-400"
                                         )}
                                     >
                                         {t}
@@ -680,39 +768,39 @@ export default function WorkflowModal({
                                 <div className="space-y-4">
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">เส้นผ่านศูนย์กลาง (ซม.)</label>
+                                            <label className="block text-[11px] font-bold text-gray-500 mb-1.5 ml-1">DBH (ซม.)</label>
                                             <input
                                                 type="number"
-                                                placeholder=""
+                                                placeholder="0.00"
                                                 value={formData.dbh}
                                                 onChange={e => setFormData({ ...formData, dbh: e.target.value })}
-                                                className="w-full h-12 bg-gray-50 rounded-lg px-3 text-base border border-gray-200 focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 transition-all outline-none"
+                                                className="w-full h-10 bg-gray-50 rounded-xl px-4 text-sm border border-gray-100 focus:border-emerald-400 focus:bg-white transition-all outline-none"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">ความสูง (ม.)</label>
+                                            <label className="block text-[11px] font-bold text-gray-500 mb-1.5 ml-1">ความสูง (ม.)</label>
                                             <input
                                                 type="number"
-                                                placeholder=""
+                                                placeholder="0.00"
                                                 value={formData.height}
                                                 onChange={e => setFormData({ ...formData, height: e.target.value })}
-                                                className="w-full h-12 bg-gray-50 rounded-lg px-3 text-base border border-gray-200 focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 transition-all outline-none"
+                                                className="w-full h-10 bg-gray-50 rounded-xl px-4 text-sm border border-gray-100 focus:border-emerald-400 focus:bg-white transition-all outline-none"
                                             />
                                         </div>
                                     </div>
 
-                                    <div className="space-y-2">
+                                    <div className="space-y-1.5">
                                         {[
-                                            { id: 'eq1', name: 'สมการที่ 1', formula: '0.118 × DBH²·⁵³' },
-                                            { id: 'eq2', name: 'สมการที่ 2', formula: '0.062 × DBH²·²³' }
+                                            { id: 'eq1', name: 'สมการที่ 1', formula: 'AGB = 0.118 × DBH^2.53' },
+                                            { id: 'eq2', name: 'สมการที่ 2', formula: 'AGB = 0.062 × DBH^2.23' }
                                         ].map((eq) => (
                                             <label
                                                 key={eq.id}
                                                 className={cn(
-                                                    "flex items-center gap-3 p-4 rounded-xl cursor-pointer transition-all border-2",
+                                                    "flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all border",
                                                     formData.methodManual === eq.id
-                                                        ? "bg-emerald-50 border-emerald-400"
-                                                        : "bg-gray-50 border-transparent active:bg-gray-100"
+                                                        ? "bg-emerald-50 border-emerald-300"
+                                                        : "bg-white border-gray-100 hover:border-gray-200"
                                                 )}
                                             >
                                                 <input
@@ -720,11 +808,11 @@ export default function WorkflowModal({
                                                     name="manualEq"
                                                     checked={formData.methodManual === eq.id}
                                                     onChange={() => setFormData({ ...formData, methodManual: eq.id })}
-                                                    className="w-5 h-5 accent-emerald-500"
+                                                    className="w-4 h-4 accent-emerald-500"
                                                 />
                                                 <div className="flex-1">
-                                                    <p className="text-base font-semibold text-gray-800">{eq.name}</p>
-                                                    <p className="text-sm text-gray-500 mt-0.5">{eq.formula}</p>
+                                                    <p className="text-xs font-bold text-gray-800">{eq.name}</p>
+                                                    <p className="text-[10px] text-gray-400 font-medium">{eq.formula}</p>
                                                 </div>
                                             </label>
                                         ))}
@@ -751,8 +839,8 @@ export default function WorkflowModal({
 
                                     <div className="space-y-2">
                                         {[
-                                            { id: 'ndvi', name: 'ดัชนี NDVI', formula: '34.2 × NDVI + 5.8' },
-                                            { id: 'tcari', name: 'ดัชนี TCARI', formula: '13.57 × TCARI + 7.45' }
+                                            { id: 'ndvi', name: 'ดัชนี NDVI', formula: 'AGB = 34.2 × NDVI + 5.8' },
+                                            { id: 'tcari', name: 'ดัชนี TCARI', formula: 'AGB = 13.57 × TCARI + 7.45' }
                                         ].map((method) => (
                                             <label
                                                 key={method.id}
@@ -784,20 +872,20 @@ export default function WorkflowModal({
                             <div className="flex gap-2 pt-2">
                                 <button
                                     onClick={() => setCurrentStep(1)}
-                                    className="w-12 h-12 bg-gray-100 active:bg-gray-200 rounded-xl flex items-center justify-center transition-colors"
+                                    className="w-11 h-11 bg-gray-50 hover:bg-gray-100 rounded-xl flex items-center justify-center transition-colors border border-gray-100"
                                     title="ย้อนกลับ"
                                 >
-                                    <ArrowLeft size={20} className="text-gray-600" />
+                                    <ArrowLeft size={18} className="text-gray-400" />
                                 </button>
                                 <button
                                     onClick={calculateCarbon}
                                     disabled={loading}
-                                    className="flex-1 h-12 bg-emerald-500 active:bg-emerald-600 text-white rounded-xl text-base font-medium disabled:bg-gray-200 disabled:text-gray-400 transition-colors shadow-sm active:scale-[0.98]"
+                                    className="flex-1 h-11 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-bold disabled:bg-gray-100 disabled:text-gray-400 transition-all shadow-lg shadow-emerald-200/50"
                                 >
                                     {loading ? (
                                         <span className="flex items-center justify-center gap-2">
-                                            <Loader2 size={18} className="animate-spin" />
-                                            คำนวณ...
+                                            <Loader2 size={16} className="animate-spin" />
+                                            กำลังคำนวณ...
                                         </span>
                                     ) : (
                                         'คำนวณคาร์บอน'
@@ -896,25 +984,26 @@ export default function WorkflowModal({
                     {currentStep === 4 && (
                         <div className="space-y-6 pt-2">
                             <div className="text-center">
-                                <div className="w-20 h-20 bg-emerald-500 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-emerald-200 animate-bounce">
-                                    <CheckCircle2 size={40} className="text-white" />
+                                <div className="w-16 h-16 bg-emerald-500 text-white rounded-[24px] flex items-center justify-center mx-auto mb-4 shadow-xl shadow-emerald-200 relative">
+                                    <CheckCircle2 size={32} />
+                                    <div className="absolute inset-0 bg-emerald-400 rounded-[24px] animate-ping opacity-20" />
                                 </div>
-                                <h3 className="text-2xl font-bold text-gray-800">บันทึกสำเร็จ</h3>
-                                <p className="text-base text-gray-600 mt-1 font-medium">
-                                    มีรายการแปลงทั้งหมด <span className="text-emerald-600 font-bold">{accumulatedPlots.length} รายการ</span>
+                                <h3 className="text-xl font-bold text-gray-800">บันทึกสำเร็จ</h3>
+                                <p className="text-xs text-gray-400 font-bold tracking-widest mt-1">
+                                    รวมทั้งหมด <span className="text-emerald-500">{accumulatedPlots.length} แปลง</span> แล้ว
                                 </p>
                             </div>
 
                             {/* Cards List */}
-                            <div className="space-y-3 max-h-[280px] overflow-y-auto px-1 -mx-1 scrollbar-thin">
+                            <div className="space-y-2 max-h-[35vh] overflow-y-auto pr-1 scrollbar-thin">
                                 {accumulatedPlots.map((plot, idx) => (
-                                    <div key={plot.id} className="p-4 bg-gray-50 rounded-2xl flex items-center gap-4 border border-gray-100 shadow-sm group hover:border-emerald-200 transition-colors">
-                                        <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center text-white text-lg font-bold shrink-0 shadow-md">
+                                    <div key={plot.id} className="p-3 bg-white rounded-2xl flex items-center gap-3 border border-gray-100 hover:border-emerald-200 transition-all group">
+                                        <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center font-black text-xs shrink-0">
                                             {idx + 1}
                                         </div>
-                                        <div className="flex-1 min-w-0 text-left">
-                                            <p className="text-lg font-bold text-gray-800 truncate">{plot.farmerName}</p>
-                                            <p className="text-sm font-medium text-gray-500">
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-bold text-gray-800 truncate">{plot.farmerName}</p>
+                                            <p className="text-[10px] text-gray-400 font-bold tracking-tight">
                                                 {plot.carbon} tCO₂e • {plot.areaRai}-{plot.areaNgan}-{parseInt(plot.areaSqWah || 0)} ไร่
                                             </p>
                                         </div>
@@ -922,15 +1011,13 @@ export default function WorkflowModal({
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    // Load data for editing
                                                     setFormData({ ...plot });
                                                     setResult({ carbon: plot.carbon, method: plot.method });
                                                     setCurrentStep(1);
                                                 }}
-                                                className="w-10 h-10 rounded-full bg-white hover:bg-orange-50 border border-transparent hover:border-orange-200 flex items-center justify-center text-gray-400 hover:text-orange-500 transition-all shadow-sm"
-                                                title="แก้ไขข้อมูล"
+                                                className="w-8 h-8 rounded-lg hover:bg-emerald-50 text-gray-300 hover:text-emerald-500 flex items-center justify-center transition-colors"
                                             >
-                                                <Edit3 size={20} />
+                                                <Edit3 size={16} />
                                             </button>
                                             <button
                                                 onClick={(e) => {
@@ -939,10 +1026,9 @@ export default function WorkflowModal({
                                                         onDeletePlot(plot.id);
                                                     }
                                                 }}
-                                                className="w-10 h-10 rounded-full bg-white hover:bg-red-50 border border-transparent hover:border-red-200 flex items-center justify-center text-gray-400 hover:text-red-500 transition-all shadow-sm"
-                                                title="ลบรายการ"
+                                                className="w-8 h-8 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500 flex items-center justify-center transition-colors"
                                             >
-                                                <Trash2 size={20} />
+                                                <Trash2 size={16} />
                                             </button>
                                         </div>
                                     </div>
@@ -950,21 +1036,21 @@ export default function WorkflowModal({
                             </div>
 
                             {/* Footer Buttons */}
-                            <div className="space-y-3 pt-4">
+                            <div className="space-y-2 pt-2">
                                 <button
                                     onClick={onStartDrawing ? onStartDrawing : handleDigitizeMore}
-                                    className="w-full h-12 bg-white border-2 border-emerald-500 text-emerald-600 rounded-xl text-base font-bold hover:bg-emerald-50 active:bg-emerald-100 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                                    className="w-full h-11 bg-white border border-emerald-500 text-emerald-600 rounded-2xl text-xs font-bold hover:bg-emerald-50 transition-all flex items-center justify-center gap-2"
                                 >
-                                    <Map size={20} />
-                                    วาดแปลงเพิ่ม
+                                    <Map size={16} />
+                                    เพิ่มแปลงถัดไป
                                 </button>
                                 <button
                                     onClick={() => onSave(null, true)}
                                     disabled={accumulatedPlots.length === 0}
-                                    className="w-full h-12 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white rounded-xl text-base font-bold disabled:bg-gray-200 disabled:text-gray-400 transition-all shadow-lg active:scale-[0.98] flex items-center justify-center gap-2"
+                                    className="w-full h-11 bg-gray-900 hover:bg-black text-white rounded-2xl text-xs font-bold disabled:bg-gray-100 disabled:text-gray-400 transition-all shadow-lg flex items-center justify-center gap-2 tracking-widest"
                                 >
-                                    <CheckCircle2 size={20} />
-                                    บันทึกทั้งหมด
+                                    <CheckCircle2 size={16} />
+                                    บันทึกข้อมูลทั้งหมด
                                 </button>
                             </div>
                         </div>
