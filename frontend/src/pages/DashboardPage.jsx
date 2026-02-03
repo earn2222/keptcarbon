@@ -459,13 +459,7 @@ function DashboardPage() {
                     <LayersIcon />
                 </button>
 
-                {/* LOCATION BUTTON */}
-                <button
-                    onClick={locateUser}
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg transition-all active:scale-95 ${activePanel === 'location' ? 'bg-emerald-500 text-white' : 'bg-white/95 backdrop-blur-xl text-slate-600 hover:text-emerald-500'}`}
-                >
-                    <LocationIcon />
-                </button>
+
             </div>
 
             {/* ==========================================
