@@ -428,9 +428,10 @@ function MapPage() {
             if (popupRef.current) popupRef.current.remove();
 
             // Create new popup - Compact Minimal Design
+            // Create new popup - Compact Minimal Design
             const popup = new maplibregl.Popup({
                 closeButton: false,
-                maxWidth: '260px',
+                maxWidth: '300px', // Increased width
                 anchor: 'bottom',
                 offset: [0, -10],
                 className: 'minimal-popup'
@@ -438,30 +439,27 @@ function MapPage() {
                 .setLngLat(coordinates)
                 .setHTML(`
                 <div class="m-card">
-                    <!-- Header - White with green accent -->
+                    <!-- Header -->
                     <div class="m-header">
                         <div class="m-badge">
                             <span class="m-dot"></span>
                             ข้อมูลรายแปลง
                         </div>
                         <button id="open-edit-btn-${plotData.id}" class="m-edit-btn" title="แก้ไขข้อมูล">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
                         </button>
                     </div>
                     
                     <!-- Name -->
                     <h2 class="m-name">${plotData.farmerName}</h2>
                     
-                    <!-- Divider -->
-                    <div class="m-divider"></div>
-                    
                     <!-- Info Row -->
                     <div class="m-info">
                         <div class="m-col">
                             <span class="m-label">ปีที่ปลูก / อายุ</span>
-                            <span class="m-val">${plotData.plantingYearBE || '-'} พ.ศ. · ${plotData.age || '-'} ปี</span>
+                            <span class="m-val">พ.ศ. ${plotData.plantingYearBE || '-'} (${plotData.age || '-'} ปี)</span>
                         </div>
-                        <div class="m-col m-right">
+                        <div class="m-col m-right" style="padding-left: 12px;">
                             <span class="m-label">พันธุ์ยาง</span>
                             <span class="m-val">${plotData.variety || 'RRIM 600'}</span>
                         </div>
@@ -1592,178 +1590,192 @@ function MapPage() {
                 }
 
                 /* ==========================================
-                   FRESH POPUP - Soft Green/White Theme
+                   MINIMAL POPUP - Rounded & Soft
                    ========================================== */
                 .minimal-popup .maplibregl-popup-content {
                     padding: 0;
-                    border-radius: 16px;
-                    background: #ffffff;
-                    border: none;
-                    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
-                    overflow: hidden;
+                    border-radius: 24px;
+                    background: transparent;
+                    box-shadow: none;
                 }
                 .minimal-popup .maplibregl-popup-tip {
                     border-top-color: #ffffff;
                 }
 
-                /* Card */
+                /* Card Container */
                 .m-card {
-                    font-family: 'Prompt', 'Inter', 'Anuphan', -apple-system, sans-serif;
+                    font-family: 'Prompt', 'Inter', system-ui, sans-serif;
                     background: #ffffff;
-                    border-radius: 16px;
+                    border-radius: 24px;
                     overflow: hidden;
+                    box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.12), 0 12px 16px -8px rgba(0, 0, 0, 0.04);
+                    border: 1px solid rgba(0,0,0,0.02);
                 }
 
-                /* Header - Soft Green Background */
+                /* Header */
                 .m-header {
                     display: flex;
                     align-items: center;
                     justify-content: space-between;
-                    padding: 12px 14px;
-                    background: #dcfce7;
+                    padding: 16px 20px 4px 20px;
+                    background: #ffffff;
                 }
+                
+                /* Status Badge */
                 .m-badge {
-                    display: flex;
+                    display: inline-flex;
                     align-items: center;
                     gap: 6px;
-                    font-size: 11px;
-                    font-weight: 500;
-                    color: #16a34a;
+                    font-size: 10px;
+                    font-weight: 700;
+                    color: #059669; /* Emerald 600 */
+                    background: #ecfdf5; /* Emerald 50 */
+                    padding: 4px 10px;
+                    border-radius: 99px;
+                    letter-spacing: 0.3px;
                 }
                 .m-dot {
-                    width: 7px;
-                    height: 7px;
-                    background: #22c55e;
+                    width: 6px;
+                    height: 6px;
+                    background: #10b981; /* Emerald 500 */
                     border-radius: 50%;
+                    box-shadow: 0 0 0 2px #ecfdf5;
                 }
 
-                /* Edit Button - Green accent */
+                /* Edit Button */
                 .m-edit-btn {
                     width: 32px;
                     height: 32px;
-                    background: #ffffff;
+                    background: #f8fafc;
                     border: none;
-                    border-radius: 8px;
+                    border-radius: 50%;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    color: #22c55e;
+                    color: #94a3b8;
                     cursor: pointer;
-                    transition: all 0.2s;
-                    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
                 }
                 .m-edit-btn:hover {
-                    background: #f0fdf4;
-                    transform: scale(1.05);
-                }
-                .m-edit-btn:active {
-                    transform: scale(0.95);
+                    background: #ecfdf5;
+                    color: #059669;
+                    transform: rotate(15deg);
                 }
 
-                /* Body */
-                .m-body-section {
-                    padding: 14px;
-                }
-
-                /* Name */
+                /* Body Content */
                 .m-name {
                     font-size: 18px;
-                    font-weight: 600;
-                    color: #1f2937;
-                    margin: 14px 14px 0 14px;
+                    font-weight: 700;
+                    color: #1e293b; /* Slate 800 */
+                    margin: 8px 20px 16px 20px;
                     line-height: 1.3;
+                    letter-spacing: -0.3px;
                 }
 
-                /* Divider */
-                .m-divider {
-                    height: 1px;
-                    background: #e5e7eb;
-                    margin: 10px 14px;
-                }
-
-                /* Info Row */
+                /* Info Grid */
                 .m-info {
                     display: flex;
                     justify-content: space-between;
-                    padding: 0 14px;
-                    margin-bottom: 12px;
+                    padding: 0 20px;
+                    margin-bottom: 20px;
+                    position: relative;
                 }
+                /* Vertical divider line */
+                .m-info::after {
+                    content: '';
+                    position: absolute;
+                    left: 50%;
+                    top: 50%;
+                    transform: translate(-50%, -50%);
+                    width: 1px;
+                    height: 70%;
+                    background: #f1f5f9;
+                }
+                
                 .m-col {
                     display: flex;
                     flex-direction: column;
-                    gap: 2px;
+                    gap: 4px;
                 }
                 .m-right {
                     text-align: right;
                 }
                 .m-label {
-                    font-size: 10px;
-                    font-weight: 500;
-                    color: #22c55e;
+                    font-size: 9px;
+                    font-weight: 600;
+                    color: #94a3b8; /* Slate 400 */
                     text-transform: uppercase;
-                    letter-spacing: 0.02em;
+                    letter-spacing: 0.8px;
                 }
                 .m-val {
-                    font-size: 13px;
-                    font-weight: 500;
-                    color: #374151;
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: #334155; /* Slate 700 */
+                    font-variant-numeric: tabular-nums;
                 }
 
-                /* Carbon - Light Green Box */
+                /* Carbon Card (Inner) */
                 .m-carbon {
+                    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+                    margin: 0 8px 8px 8px;
+                    padding: 16px;
+                    border-radius: 20px;
                     text-align: center;
-                    background: #f0fdf4;
-                    padding: 14px;
-                    margin: 0 14px 14px 14px;
-                    border-radius: 12px;
-                    border: 1px solid #bbf7d0;
+                    border: 1px solid #ffffff;
+                    box-shadow: inset 0 2px 4px rgba(255,255,255,0.8);
                 }
                 .m-carbon-label {
-                    font-size: 11px;
-                    font-weight: 500;
+                    font-size: 10px;
+                    font-weight: 600;
                     color: #16a34a;
                     display: block;
                     margin-bottom: 6px;
+                    letter-spacing: 0.5px;
+                    opacity: 0.9;
                 }
                 .m-carbon-row {
                     display: flex;
                     align-items: baseline;
                     justify-content: center;
-                    gap: 4px;
+                    gap: 3px;
                     margin-bottom: 8px;
                 }
                 .m-carbon-num {
-                    font-size: 30px;
-                    font-weight: 600;
-                    color: #16a34a;
+                    font-size: 32px;
+                    font-weight: 800;
+                    color: #15803d; /* Emerald 700 */
                     line-height: 1;
+                    letter-spacing: -1px;
+                    font-feature-settings: "tnum";
+                    
+                    /* Text Gradient */
+                    background: linear-gradient(135deg, #15803d 0%, #16a34a 100%);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
                 }
                 .m-carbon-unit {
-                    font-size: 13px;
-                    font-weight: 500;
-                    color: #22c55e;
-                }
-                .m-carbon-unit sub {
-                    font-size: 9px;
+                    font-size: 12px;
+                    font-weight: 700;
+                    color: #16a34a; /* Emerald 600 */
                 }
                 .m-method {
                     display: inline-block;
-                    background: #ffffff;
+                    font-size: 9px;
+                    font-weight: 500;
                     color: #16a34a;
-                    font-size: 10px;
-                    font-weight: 400;
-                    padding: 5px 12px;
-                    border-radius: 20px;
-                    border: 1px solid #bbf7d0;
+                    background: rgba(255, 255, 255, 0.6);
+                    padding: 4px 10px;
+                    border-radius: 12px;
+                    backdrop-filter: blur(4px);
                 }
 
                 /* Animation */
-                @keyframes m-fade-in {
-                    from { opacity: 0; transform: translateY(4px); }
-                    to { opacity: 1; transform: translateY(0); }
+                @keyframes m-pop-in {
+                    0% { opacity: 0; transform: translateY(12px) scale(0.9); }
+                    100% { opacity: 1; transform: translateY(0) scale(1); }
                 }
                 .m-card {
-                    animation: m-fade-in 0.2s ease-out;
+                    animation: m-pop-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
                 }
             `}</style>
         </div >
