@@ -44,96 +44,18 @@ const LeafIcon = ({ className = "w-6 h-6" }) => (
     </svg>
 )
 
-// ==========================================
-// MINI LINE CHART COMPONENT
-// ==========================================
-const MiniLineChart = ({ data, color, height = 40, width = 120 }) => {
-    if (!data || data.length === 0) return null
+const MapPinIcon = ({ className = "w-5 h-5" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+    </svg>
+)
 
-    const max = Math.max(...data)
-    const min = Math.min(...data)
-    const range = max - min || 1
-
-    const points = data.map((val, i) => {
-        const x = (i / (data.length - 1)) * width
-        const y = height - ((val - min) / range) * height
-        return `${x},${y}`
-    }).join(' ')
-
-    return (
-        <svg width={width} height={height} className="overflow-visible">
-            <polyline
-                fill="none"
-                stroke={color}
-                strokeWidth="2"
-                points={points}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-            <area
-                x={0}
-                y={0}
-                width={width}
-                height={height}
-                fill={`url(#gradient-${color})`}
-            />
-        </svg>
-    )
-}
-
-// ==========================================
-// CIRCULAR PROGRESS CHART COMPONENT
-// ==========================================
-const CircularProgress = ({ percentage, size = 140, strokeWidth = 12, color = "#10b981", label, value, unit }) => {
-    const [animatedPercentage, setAnimatedPercentage] = useState(0)
-
-    useEffect(() => {
-        const timeout = setTimeout(() => {
-            setAnimatedPercentage(percentage)
-        }, 100)
-        return () => clearTimeout(timeout)
-    }, [percentage])
-
-    const radius = (size - strokeWidth) / 2
-    const circumference = radius * 2 * Math.PI
-    const offset = circumference - (animatedPercentage / 100) * circumference
-
-    return (
-        <div className="relative inline-flex items-center justify-center">
-            <svg width={size} height={size} className="transform -rotate-90">
-                {/* Background circle */}
-                <circle
-                    cx={size / 2}
-                    cy={size / 2}
-                    r={radius}
-                    stroke="rgba(16, 185, 129, 0.15)"
-                    strokeWidth={strokeWidth}
-                    fill="none"
-                />
-                {/* Progress circle with glow */}
-                <circle
-                    cx={size / 2}
-                    cy={size / 2}
-                    r={radius}
-                    stroke={color}
-                    strokeWidth={strokeWidth}
-                    fill="none"
-                    strokeDasharray={circumference}
-                    strokeDashoffset={offset}
-                    strokeLinecap="round"
-                    style={{
-                        transition: 'stroke-dashoffset 1.5s ease-in-out',
-                        filter: `drop-shadow(0 0 6px ${color})`,
-                    }}
-                />
-            </svg>
-            <div className="absolute flex flex-col items-center justify-center text-center">
-                <span className="text-3xl font-black text-slate-800">{value}</span>
-                {unit && <span className="text-xs font-bold text-emerald-600 mt-1 uppercase tracking-wider">{unit}</span>}
-            </div>
-        </div>
-    )
-}
+const SparklesIcon = ({ className = "w-5 h-5" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
+    </svg>
+)
 
 // ==========================================
 // MAIN DASHBOARD COMPONENT
@@ -145,24 +67,19 @@ function DashboardPage() {
 
     const [mapLoaded, setMapLoaded] = useState(false)
     const [accumulatedPlots, setAccumulatedPlots] = useState([])
+    const [selectedPlotId, setSelectedPlotId] = useState(null)
+    const [showPlotListModal, setShowPlotListModal] = useState(false)
     const [stats, setStats] = useState({
         totalPlots: 0,
         totalArea: 0,
         totalCarbon: 0
     })
 
-    // Mock trend data
-    const generateTrendData = (base, count) => {
-        return Array.from({ length: count }, (_, i) => base + Math.sin(i) * (base * 0.2) + (i * base * 0.05))
-    }
-
-    const carbonTrendData = generateTrendData(stats.totalCarbon / 12 || 100, 12)
-    const areaTrendData = generateTrendData(stats.totalArea / 12 || 50, 12)
-    const plotsTrendData = generateTrendData(stats.totalPlots / 12 || 10, 12)
-
     // Function to zoom to a specific plot
     const zoomToPlot = (plot) => {
         if (!map.current || !plot.geometry) return;
+
+        setSelectedPlotId(plot.id);
 
         try {
             let coordinates;
@@ -206,7 +123,6 @@ function DashboardPage() {
                 console.log("Fetched plots:", plots)
 
                 if (plots && Array.isArray(plots)) {
-                    // Process plots to ensure geometry is valid
                     const processed = plots.map(p => {
                         let geometry = p.geometry;
                         if (typeof geometry === 'string') {
@@ -215,7 +131,6 @@ function DashboardPage() {
                             }
                         }
 
-                        // Fallback for missing geometry if lat/lng exists
                         if (!geometry && (p.lng || p.lat)) {
                             geometry = {
                                 type: 'Point',
@@ -236,7 +151,6 @@ function DashboardPage() {
                     const validPlots = processed.filter(p => p.geometry);
                     setAccumulatedPlots(validPlots)
 
-                    // Calculate totals
                     const totalPlots = plots.length
                     const totalArea = plots.reduce((sum, p) => sum + (parseFloat(p.area_rai) || 0), 0)
                     const totalCarbon = plots.reduce((sum, p) => sum + (parseFloat(p.carbon_tons) || 0), 0)
@@ -254,7 +168,7 @@ function DashboardPage() {
 
         loadPlots()
 
-        if (map.current) return // initialize map only once
+        if (map.current) return
 
         map.current = new maplibregl.Map({
             container: mapContainer.current,
@@ -319,7 +233,7 @@ function DashboardPage() {
                 .map(p => ({
                     type: 'Feature',
                     geometry: p.geometry,
-                    properties: { id: p.id, carbon: p.carbon, area: p.areaRai }
+                    properties: { id: p.id, carbon: p.carbon, area: p.areaRai, selected: p.id === selectedPlotId }
                 }))
         };
 
@@ -328,42 +242,39 @@ function DashboardPage() {
         } else {
             map.current.addSource(sourceId, { type: 'geojson', data: geojson });
 
-            // 1. Glow effect (underneath)
             map.current.addLayer({
                 id: glowId,
                 type: 'line',
                 source: sourceId,
                 paint: {
-                    'line-color': '#10b981', // Emerald 500
-                    'line-width': 10,
+                    'line-color': ['case', ['get', 'selected'], '#fbbf24', '#10b981'],
+                    'line-width': ['case', ['get', 'selected'], 12, 10],
                     'line-blur': 8,
-                    'line-opacity': 0.5
+                    'line-opacity': ['case', ['get', 'selected'], 0.8, 0.5]
                 }
             });
 
-            // 2. Fill
             map.current.addLayer({
                 id: fillId,
                 type: 'fill',
                 source: sourceId,
                 paint: {
-                    'fill-color': '#10b981',
-                    'fill-opacity': 0.4
+                    'fill-color': ['case', ['get', 'selected'], '#fbbf24', '#10b981'],
+                    'fill-opacity': ['case', ['get', 'selected'], 0.5, 0.3]
                 }
             });
 
-            // 3. Stroke
             map.current.addLayer({
                 id: lineId,
                 type: 'line',
                 source: sourceId,
                 paint: {
-                    'line-color': '#10b981',
-                    'line-width': 2
+                    'line-color': ['case', ['get', 'selected'], '#f59e0b', '#10b981'],
+                    'line-width': ['case', ['get', 'selected'], 3, 2]
                 }
             });
         }
-    }, [accumulatedPlots, mapLoaded]);
+    }, [accumulatedPlots, mapLoaded, selectedPlotId]);
 
     const navItems = [
         { id: 'home', label: 'หน้าหลัก', icon: HomeIcon, path: '/' },
@@ -373,237 +284,261 @@ function DashboardPage() {
         { id: 'history', label: 'ประวัติ', icon: HistoryIcon, path: '/dashboard/history' },
     ]
 
-    // Sort plots by date descending
     const recentPlots = [...accumulatedPlots]
         .sort((a, b) => new Date(b.date) - new Date(a.date))
-        .slice(0, 3)
+        .slice(0, 10)
 
     return (
-        <div className="relative w-full h-screen overflow-hidden bg-slate-900">
-            {/* FULLSCREEN MAP - Fully visible */}
-            <div ref={mapContainer} className="absolute inset-0 w-full h-full" />
+        <div className="relative w-full h-screen overflow-hidden bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-900">
+            {/*  ANIMATED GRADIENT OVERLAY */}
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-emerald-500/5 animate-pulse" />
 
-            {/* TOP HEADER BAR - Minimal White */}
-            <div className="absolute top-0 left-0 right-0 z-40 px-4 pt-4 lg:px-8 lg:pt-6">
-                <div className="flex items-center justify-between">
-                    {/* Logo & Title */}
-                    <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                            <LeafIcon className="w-7 h-7 text-white" />
-                        </div>
-                        <div className="hidden sm:block">
-                            <h1 className="text-xl font-black text-slate-800 drop-shadow-md bg-white/50 px-2 rounded-lg backdrop-blur-sm">แดชบอร์ด</h1>
-                            <p className="text-xs text-emerald-400 font-semibold drop-shadow-sm bg-black/40 px-2 py-0.5 rounded backdrop-blur-sm inline-block mt-0.5">ผลกระทบต่อชุมชน</p>
+            {/* FULLSCREEN MAP */}
+            <div ref={mapContainer} className="absolute inset-0 w-full h-full opacity-90" />
+
+            {/* TOP GLASSMORPHIC BAR */}
+            <div className="absolute top-0 left-0 right-0 z-30 h-32 bg-gradient-to-b from-black/40 via-black/20 to-transparent backdrop-blur-md" />
+
+            {/* PREMIUM STATS CARDS - Asymmetric Layout */}
+            <div className="absolute top-6 left-6 right-6 z-40 max-w-7xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* CARBON CARD - PRIMARY */}
+                    <div className="md:col-span-2 group relative">
+                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-3xl blur-xl opacity-30 group-hover:opacity-50 transition-opacity duration-500 animate-pulse" />
+                        <div className="relative bg-white/10 backdrop-blur-2xl rounded-3xl p-6 border border-white/20 shadow-2xl hover:shadow-emerald-500/20 transition-all duration-500 hover:-translate-y-1">
+                            <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/50 rotate-3 group-hover:rotate-6 transition-transform duration-500">
+                                            <LeafIcon className="w-7 h-7 text-white" />
+                                        </div>
+                                        <div>
+                                            <p className="text-emerald-300 text-xs font-semibold uppercase tracking-wider">Total Carbon Offset</p>
+                                            <p className="text-white/60 text-[10px] mt-0.5">ปริมาณคาร์บอนทั้งหมด</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-baseline gap-2">
+                                        <h2 className="text-5xl font-black text-white">
+                                            {stats.totalCarbon.toLocaleString('th-TH', { maximumFractionDigits: 0 })}
+                                        </h2>
+                                        <span className="text-emerald-300 text-lg font-bold">ตัน CO₂</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <div className="h-1 flex-1 bg-white/10 rounded-full overflow-hidden">
+                                            <div className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full w-3/4 animate-pulse" />
+                                        </div>
+                                        <span className="text-emerald-400 text-xs font-bold">+25%</span>
+                                    </div>
+                                </div>
+                                <div className="ml-4">
+                                    <SparklesIcon className="w-8 h-8 text-emerald-400 animate-pulse" />
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Desktop Navigation Pills */}
-                    <nav className="hidden lg:flex items-center gap-2 bg-white/90 backdrop-blur-xl rounded-full p-2 border border-emerald-100 shadow-lg shadow-emerald-500/10">
+                    {/* AREA & PARTICIPANTS - STACKED */}
+                    <div className="space-y-4">
+                        {/* AREA CARD */}
+                        <div className="group relative">
+                            <div className="absolute inset-0 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl blur-lg opacity-20 group-hover:opacity-40 transition-opacity duration-500" />
+                            <div className="relative bg-white/10 backdrop-blur-2xl rounded-2xl p-4 border border-white/20 shadow-xl hover:shadow-green-500/20 transition-all duration-500 hover:-translate-y-1">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-green-300 text-[10px] font-semibold uppercase tracking-wider">Total Area</p>
+                                        <h3 className="text-3xl font-black text-white mt-1">
+                                            {stats.totalArea.toLocaleString('th-TH', { maximumFractionDigits: 0 })}
+                                        </h3>
+                                        <p className="text-green-300 text-xs font-bold mt-0.5">ไร่</p>
+                                    </div>
+                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-lg shadow-green-500/40">
+                                        <MapPinIcon className="w-6 h-6 text-white" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* PARTICIPANTS CARD */}
+                        <div className="group relative">
+                            <div className="absolute inset-0 bg-gradient-to-br from-teal-400 to-teal-600 rounded-2xl blur-lg opacity-20 group-hover:opacity-40 transition-opacity duration-500" />
+                            <div className="relative bg-white/10 backdrop-blur-2xl rounded-2xl p-4 border border-white/20 shadow-xl hover:shadow-teal-500/20 transition-all duration-500 hover:-translate-y-1">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-teal-300 text-[10px] font-semibold uppercase tracking-wider">Participants</p>
+                                        <h3 className="text-3xl font-black text-white mt-1">
+                                            {stats.totalPlots.toLocaleString('th-TH')}
+                                        </h3>
+                                        <p className="text-teal-300 text-xs font-bold mt-0.5">ราย</p>
+                                    </div>
+                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center shadow-lg shadow-teal-500/40">
+                                        <UserIcon className="w-6 h-6 text-white" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* FLOATING PLOT LIST BUTTON */}
+            <button
+                onClick={() => setShowPlotListModal(!showPlotListModal)}
+                className="absolute top-6 right-6 z-50 group"
+            >
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-300 animate-pulse" />
+                <div className="relative w-16 h-16 bg-white/10 backdrop-blur-2xl rounded-full border border-white/20 shadow-2xl flex items-center justify-center hover:scale-110 transition-all duration-300">
+                    <MapPinIcon className="w-7 h-7 text-emerald-300 group-hover:text-emerald-200" />
+                    {recentPlots.length > 0 && (
+                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center text-[11px] text-white font-black shadow-lg shadow-emerald-500/50 border-2 border-white/20">
+                            {recentPlots.length}
+                        </div>
+                    )}
+                </div>
+            </button>
+
+            {/* PLOT LIST MODAL */}
+            {showPlotListModal && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center p-4">
+                    <div
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        onClick={() => setShowPlotListModal(false)}
+                    />
+
+                    <div className="relative max-w-3xl w-full max-h-[85vh]">
+                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-green-500/20 rounded-3xl blur-2xl" />
+                        <div className="relative bg-white/10 backdrop-blur-3xl rounded-3xl border border-white/20 shadow-2xl overflow-hidden">
+                            {/* Header */}
+                            <div className="relative bg-gradient-to-r from-emerald-600 to-green-600 px-8 py-6">
+                                <div className="absolute inset-0 bg-white/10" />
+                                <div className="relative flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-xl flex items-center justify-center">
+                                            <MapPinIcon className="w-6 h-6 text-white" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-2xl font-black text-white">รายการแปลงทั้งหมด</h3>
+                                            <p className="text-emerald-100 text-sm mt-1">คลิกเพื่อดูรายละเอียดและซูมแผนที่</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowPlotListModal(false)}
+                                        className="w-11 h-11 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-xl flex items-center justify-center transition-all duration-300 hover:scale-110 border border-white/20"
+                                    >
+                                        <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* List */}
+                            <div className="overflow-y-auto max-h-[calc(85vh-140px)] p-6">
+                                {recentPlots.length === 0 ? (
+                                    <p className="text-center text-white/60 py-16 text-lg">ยังไม่มีข้อมูลแปลง</p>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {recentPlots.map((plot, idx) => (
+                                            <div
+                                                key={plot.id}
+                                                onClick={() => {
+                                                    zoomToPlot(plot)
+                                                    setShowPlotListModal(false)
+                                                }}
+                                                className="group relative cursor-pointer"
+                                            >
+                                                <div className={`absolute inset-0 ${selectedPlotId === plot.id
+                                                        ? 'bg-gradient-to-br from-amber-400 to-amber-600'
+                                                        : 'bg-gradient-to-br from-emerald-400 to-green-600'
+                                                    } rounded-2xl blur-lg opacity-20 group-hover:opacity-40 transition-opacity duration-300`} />
+                                                <div className={`relative bg-white/10 backdrop-blur-2xl rounded-2xl p-5 border transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl ${selectedPlotId === plot.id
+                                                        ? 'border-amber-400/50 shadow-amber-500/20'
+                                                        : 'border-white/20 hover:border-emerald-400/50'
+                                                    }`}>
+                                                    <div className="flex items-start gap-4">
+                                                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-lg ${selectedPlotId === plot.id
+                                                                ? 'bg-gradient-to-br from-amber-400 to-amber-600 shadow-amber-500/40'
+                                                                : 'bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/40'
+                                                            }`}>
+                                                            #{idx + 1}
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <p className="text-white font-black text-lg">แปลง #{plot.id.toString().padStart(4, '0')}</p>
+                                                            <p className={`text-sm font-semibold mt-1 ${selectedPlotId === plot.id ? 'text-amber-300' : 'text-emerald-300'
+                                                                }`}>
+                                                                {new Date(plot.date).toLocaleDateString('th-TH', {
+                                                                    day: 'numeric',
+                                                                    month: 'long',
+                                                                    year: 'numeric'
+                                                                })}
+                                                            </p>
+                                                            <div className="flex items-center gap-4 mt-3">
+                                                                <div className="flex items-center gap-2">
+                                                                    <MapPinIcon className="w-4 h-4 text-green-400" />
+                                                                    <span className="text-white text-sm font-bold">{plot.areaRai.toFixed(1)} ไร่</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <LeafIcon className="w-4 h-4 text-emerald-400" />
+                                                                    <span className="text-white text-sm font-bold">{plot.carbon.toFixed(0)} ตัน</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* BOTTOM NAVIGATION */}
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50">
+                <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/30 via-green-500/30 to-emerald-500/30 rounded-full blur-xl animate-pulse" />
+                    <nav className="relative flex items-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-3xl rounded-full border border-white/20 shadow-2xl">
                         {navItems.map(item => (
                             <button
                                 key={item.id}
                                 onClick={() => history.push(item.path)}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 ${item.active
-                                    ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md shadow-emerald-500/30'
-                                    : 'text-slate-600 hover:text-emerald-600 hover:bg-emerald-50'
-                                    }`}
+                                className="group relative transition-all"
+                                title={item.label}
                             >
-                                <item.icon className="w-5 h-5" />
-                                <span className="text-sm font-bold">{item.label}</span>
+                                {item.active ? (
+                                    <div className="relative">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full blur-lg animate-pulse" />
+                                        <div className="relative w-14 h-14 bg-gradient-to-br from-emerald-500 to-green-600 rounded-full flex items-center justify-center text-white shadow-xl shadow-emerald-500/50 border-2 border-white/20">
+                                            <item.icon className="w-7 h-7" />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="w-11 h-11 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all duration-300 hover:scale-110">
+                                        <item.icon className="w-6 h-6" />
+                                    </div>
+                                )}
+                                <span className="absolute -bottom-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-white font-semibold bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full whitespace-nowrap shadow-lg border border-white/10">
+                                    {item.label}
+                                </span>
                             </button>
                         ))}
                     </nav>
                 </div>
             </div>
 
-            {/* MAIN STATS SECTION - TOP */}
-            <div className="absolute top-20 lg:top-24 left-0 right-0 z-30 px-4 lg:px-8">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-7xl mx-auto">
-                    {/* CARBON CARD */}
-                    <div className="group relative bg-white/90 backdrop-blur-xl rounded-3xl p-6 border border-emerald-100 shadow-xl shadow-emerald-500/5 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-500 hover:scale-[1.02] overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-                        <div className="relative z-10">
-                            <div className="text-sm text-emerald-700 font-bold mb-4 uppercase tracking-wider">คาร์บอนที่กักเก็บได้ทั้งหมด</div>
-
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <div className="text-5xl font-black text-slate-800 mb-2">
-                                        {stats.totalCarbon.toLocaleString('th-TH', { maximumFractionDigits: 0 })}
-                                    </div>
-                                    <div className="text-emerald-600 font-bold text-lg">ตัน</div>
-
-                                    {/* Mini trend chart */}
-                                    <div className="mt-4">
-                                        <MiniLineChart data={carbonTrendData} color="#10b981" />
-                                    </div>
-                                </div>
-
-                                <div className="hidden md:block">
-                                    <CircularProgress
-                                        percentage={Math.min((stats.totalCarbon / 500000) * 100, 100)}
-                                        size={120}
-                                        strokeWidth={10}
-                                        color="#10b981"
-                                        value={`${Math.min((stats.totalCarbon / 500000) * 100, 100).toFixed(0)}%`}
-                                        unit="เป้าหมาย"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-bl-full blur-2xl" />
-                    </div>
-
-                    {/* AREA CARD */}
-                    <div className="group relative bg-white/90 backdrop-blur-xl rounded-3xl p-6 border border-emerald-100 shadow-xl shadow-emerald-500/5 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-500 hover:scale-[1.02] overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-                        <div className="relative z-10">
-                            <div className="text-sm text-emerald-700 font-bold mb-4 uppercase tracking-wider">พื้นที่ที่ได้รับการคุ้มครองทั้งหมด</div>
-
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <div className="text-5xl font-black text-slate-800 mb-2">
-                                        {stats.totalArea.toLocaleString('th-TH', { maximumFractionDigits: 0 })}
-                                    </div>
-                                    <div className="text-emerald-600 font-bold text-lg">ไร่</div>
-
-                                    <div className="mt-4">
-                                        <MiniLineChart data={areaTrendData} color="#34d399" />
-                                    </div>
-                                </div>
-
-                                <div className="hidden md:block">
-                                    <CircularProgress
-                                        percentage={Math.min((stats.totalArea / 15000) * 100, 100)}
-                                        size={120}
-                                        strokeWidth={10}
-                                        color="#34d399"
-                                        value={`${Math.min((stats.totalArea / 15000) * 100, 100).toFixed(0)}%`}
-                                        unit="เป้าหมาย"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-400/5 rounded-bl-full blur-2xl" />
-                    </div>
-
-                    {/* PARTICIPANTS CARD */}
-                    <div className="group relative bg-white/90 backdrop-blur-xl rounded-3xl p-6 border border-emerald-100 shadow-xl shadow-emerald-500/5 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-500 hover:scale-[1.02] overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-                        <div className="relative z-10">
-                            <div className="text-sm text-emerald-700 font-bold mb-4 uppercase tracking-wider">ผู้เข้าร่วมโครงการทั้งหมด</div>
-
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <div className="text-5xl font-black text-slate-800 mb-2">
-                                        {stats.totalPlots.toLocaleString('th-TH')}
-                                    </div>
-                                    <div className="text-emerald-600 font-bold text-lg">ราย</div>
-
-                                    <div className="mt-4">
-                                        <MiniLineChart data={plotsTrendData} color="#6ee7b7" />
-                                    </div>
-                                </div>
-
-                                <div className="hidden md:block">
-                                    <CircularProgress
-                                        percentage={Math.min((stats.totalPlots / 10000) * 100, 100)}
-                                        size={120}
-                                        strokeWidth={10}
-                                        color="#6ee7b7"
-                                        value={`${Math.min((stats.totalPlots / 10000) * 100, 100).toFixed(0)}%`}
-                                        unit="เป้าหมาย"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-300/5 rounded-bl-full blur-2xl" />
-                    </div>
-                </div>
-            </div>
-
-            {/* RECENT REGISTRATIONS - BOTTOM RIGHT (DESKTOP) */}
-            <div className="hidden md:block absolute bottom-20 lg:bottom-6 right-4 lg:right-8 z-30 w-96">
-                <div className="bg-white/90 backdrop-blur-xl rounded-3xl border border-emerald-100 shadow-xl shadow-emerald-500/5 overflow-hidden">
-                    {/* Header */}
-                    <div className="bg-gradient-to-r from-emerald-50 to-white px-6 py-4 border-b border-emerald-100">
-                        <h3 className="text-lg font-black text-slate-800 uppercase tracking-wide">การลงทะเบียนล่าสุด</h3>
-                        <p className="text-xs text-emerald-600 mt-1 font-semibold">แปลงที่เข้าร่วมล่าสุด</p>
-                    </div>
-
-                    {/* List */}
-                    <div className="p-4">
-                        {recentPlots.length === 0 ? (
-                            <p className="text-center text-slate-400 py-8">ยังไม่มีข้อมูล</p>
-                        ) : (
-                            <div className="space-y-3">
-                                {recentPlots.map((plot, idx) => (
-                                    <div
-                                        key={plot.id}
-                                        onClick={() => zoomToPlot(plot)}
-                                        className="group relative bg-gradient-to-r from-emerald-50 to-white p-4 rounded-2xl hover:from-emerald-100 hover:to-emerald-50 transition-all duration-300 border border-emerald-100 hover:border-emerald-200 hover:shadow-md cursor-pointer"
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center text-white font-black text-sm shadow-md shadow-emerald-500/30">
-                                                    #{idx + 1}
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-black text-slate-800">แปลง #{plot.id.toString().padStart(4, '0')}</p>
-                                                    <p className="text-xs text-emerald-600 font-semibold">
-                                                        {new Date(plot.date).toLocaleDateString('th-TH', {
-                                                            day: 'numeric',
-                                                            month: 'long',
-                                                            year: 'numeric'
-                                                        })}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-xl font-black text-emerald-600">{plot.areaRai.toFixed(1)}</p>
-                                                <p className="text-xs text-slate-500 font-bold">ไร่</p>
-                                            </div>
-                                        </div>
-
-                                        {/* Hover glow effect */}
-                                        <div className="absolute inset-0 bg-emerald-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* BOTTOM NAVIGATION (MOBILE) */}
-            <nav className="lg:hidden absolute bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-t border-emerald-100 shadow-xl">
-                <div className="flex items-center justify-around px-2 py-3">
-                    {navItems.map(item => (
-                        <button
-                            key={item.id}
-                            onClick={() => history.push(item.path)}
-                            className={`flex flex-col items-center gap-1 px-3 py-2 rounded-2xl transition-all duration-300 ${item.active
-                                    ? 'text-emerald-600'
-                                    : 'text-slate-400 hover:text-emerald-600'
-                                }`}
-                        >
-                            <item.icon className="w-6 h-6" />
-                            <span className="text-xs font-bold">{item.label}</span>
-                        </button>
-                    ))}
-                </div>
-            </nav>
-
-            {/* Hide MapLibre attribution */}
             <style>{`
                 .maplibregl-ctrl-attrib,
                 .maplibregl-ctrl-logo {
                     display: none !important;
+                }
+                @keyframes pulse {
+                    0%, 100% {
+                        opacity: 0.5;
+                    }
+                    50% {
+                        opacity: 0.8;
+                    }
                 }
             `}</style>
         </div>
