@@ -30,12 +30,7 @@ function App() {
 
             {/* Dashboard Routes */}
             <Route exact path="/dashboard" component={DashboardPage} />
-
-            <Route path="/dashboard/history">
-                <DashboardLayout>
-                    <HistoryPage />
-                </DashboardLayout>
-            </Route>
+            <Route path="/dashboard/history" component={HistoryPage} />
 
             {/* Redirect old path to new public path */}
             <Redirect from="/dashboard/map" to="/map" />
