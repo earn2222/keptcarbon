@@ -115,10 +115,14 @@ const CloseIcon = () => (
     </svg>
 )
 
-const SettingsIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+const TargetIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
         <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v2" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 20v2" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M22 12h-2" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 12H2" />
     </svg>
 )
 
@@ -1078,11 +1082,13 @@ function MapPage() {
                     <LayersIcon />
                 </button>
 
-                {/* Settings */}
+                {/* My Location Button */}
                 <button
+                    onClick={locateUser}
                     className="w-11 h-11 rounded-xl bg-white/90 backdrop-blur-xl flex items-center justify-center text-slate-600 hover:text-emerald-500 shadow-lg transition-all duration-200 active:scale-95"
+                    title="ตำแหน่งของฉัน"
                 >
-                    <SettingsIcon />
+                    <TargetIcon />
                 </button>
             </div>
 
@@ -1184,14 +1190,6 @@ function MapPage() {
                 MY LOCATION BUTTON (Bottom Left)
             ========================================== */}
             <div className="absolute bottom-28 left-4 z-30 flex flex-col gap-2">
-                <button
-                    onClick={locateUser}
-                    className="w-12 h-12 rounded-2xl bg-white/95 backdrop-blur-xl flex items-center justify-center text-emerald-500 hover:text-emerald-600 hover:bg-white shadow-xl transition-all active:scale-95 border border-white/20"
-                    title="ตำแหน่งของฉัน"
-                >
-                    <LocationIcon />
-                </button>
-
                 {pendingPlots.length > 0 && !digitizeMode && (
                     <button
                         onClick={finalizeAllPending}
@@ -1277,52 +1275,61 @@ function MapPage() {
 
 
             {/* ==========================================
-                FLOATING NAVBAR (Bottom Center)
+                CRYSTAL NAVBAR (Bottom) - MAP ACTIVE
             ========================================== */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40">
-                <nav className="flex items-center gap-1 bg-white/95 backdrop-blur-xl rounded-2xl p-1.5 shadow-2xl border border-white/20">
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50">
+                <nav className="flex items-center gap-4 px-6 py-3 bg-black/20 backdrop-blur-2xl rounded-full border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] hover:bg-black/30 transition-all duration-300">
+
                     {/* Home */}
                     <button
                         onClick={() => handleNavClick('/')}
-                        className="flex flex-col items-center justify-center w-14 h-12 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all active:scale-95"
+                        className="group relative flex flex-col items-center justify-center w-10 h-10 transition-all"
                     >
-                        <HomeIcon />
-                        <span className="text-[10px] mt-0.5 font-medium">หน้าหลัก</span>
+                        <div className="text-white/70 group-hover:text-white group-hover:scale-110 transition-all duration-300">
+                            <HomeIcon />
+                        </div>
+                        <span className="absolute -bottom-8 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-white font-medium bg-black/50 px-2 py-0.5 rounded-md backdrop-blur-md">หน้าหลัก</span>
                     </button>
 
-                    {/* Map - Active */}
-                    <button
-                        className="flex flex-col items-center justify-center w-14 h-12 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-500 text-white shadow-lg shadow-emerald-500/30 transition-all"
-                    >
-                        <MapIcon />
-                        <span className="text-[10px] mt-0.5 font-semibold">แผนที่</span>
-                    </button>
+                    {/* Map (Active) */}
+                    <div className="relative flex flex-col items-center justify-center w-12 h-12">
+                        <div className="absolute inset-0 bg-blue-500/80 blur-xl rounded-full opacity-40 animate-pulse" />
+                        <div className="relative w-12 h-12 bg-gradient-to-tr from-blue-600 to-blue-400 rounded-full flex items-center justify-center text-white shadow-lg border border-white/20 transform scale-110">
+                            <MapIcon />
+                        </div>
+                    </div>
 
-                    {/* Dashboard Overview */}
+                    {/* Dashboard */}
                     <button
                         onClick={() => handleNavClick('/dashboard')}
-                        className="flex flex-col items-center justify-center w-14 h-12 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all active:scale-95"
+                        className="group relative flex flex-col items-center justify-center w-10 h-10 transition-all"
                     >
-                        <DashboardIcon />
-                        <span className="text-[10px] mt-0.5 font-medium">แดชบอร์ด</span>
+                        <div className="text-white/70 group-hover:text-white group-hover:scale-110 transition-all duration-300">
+                            <DashboardIcon />
+                        </div>
+                        <span className="absolute -bottom-8 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-white font-medium bg-black/50 px-2 py-0.5 rounded-md backdrop-blur-md">แดชบอร์ด</span>
                     </button>
 
-                    {/* Personal Dashboard */}
+                    {/* Personal */}
                     <button
                         onClick={() => handleNavClick('/dashboard?view=personal')}
-                        className="flex flex-col items-center justify-center w-14 h-12 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all active:scale-95"
+                        className="group relative flex flex-col items-center justify-center w-10 h-10 transition-all"
                     >
-                        <UserIcon />
-                        <span className="text-[10px] mt-0.5 font-medium">ส่วนตัว</span>
+                        <div className="text-white/70 group-hover:text-white group-hover:scale-110 transition-all duration-300">
+                            <UserIcon />
+                        </div>
+                        <span className="absolute -bottom-8 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-white font-medium bg-black/50 px-2 py-0.5 rounded-md backdrop-blur-md">ส่วนตัว</span>
                     </button>
 
                     {/* History */}
                     <button
                         onClick={() => handleNavClick('/dashboard/history')}
-                        className="flex flex-col items-center justify-center w-14 h-12 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all active:scale-95"
+                        className="group relative flex flex-col items-center justify-center w-10 h-10 transition-all"
                     >
-                        <HistoryIcon />
-                        <span className="text-[10px] mt-0.5 font-medium">ประวัติ</span>
+                        <div className="text-white/70 group-hover:text-white group-hover:scale-110 transition-all duration-300">
+                            <HistoryIcon />
+                        </div>
+                        <span className="absolute -bottom-8 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-white font-medium bg-black/50 px-2 py-0.5 rounded-md backdrop-blur-md">ประวัติ</span>
                     </button>
                 </nav>
             </div>
@@ -1361,101 +1368,7 @@ function MapPage() {
                         </div>
                     </div>
 
-                    {/* 2. DRAWING TOOLBAR - Ultra Minimalist Pill */}
-                    <div className="fixed left-6 top-1/2 -translate-y-1/2 z-[110] animate-slide-right">
-                        <div className="bg-white/80 backdrop-blur-md rounded-full shadow-xl border border-white/40 p-1.5 flex flex-col gap-1.5">
-                            {/* Draw Polygon Tool */}
-                            <button
-                                onClick={() => switchTool('draw')}
-                                className={`w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300 group relative
-                                    ${activeTool === 'draw'
-                                        ? 'bg-emerald-500 text-white shadow-md'
-                                        : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
-                                    }`}
-                            >
-                                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 2L2 9l4 12h12l4-12L12 2z" />
-                                    <circle cx="12" cy="2" r="1.2" fill="currentColor" opacity={activeTool === 'draw' ? 1 : 0.5} />
-                                    <circle cx="2" cy="9" r="1.2" fill="currentColor" opacity={activeTool === 'draw' ? 1 : 0.5} />
-                                    <circle cx="6" cy="21" r="1.2" fill="currentColor" opacity={activeTool === 'draw' ? 1 : 0.5} />
-                                    <circle cx="18" cy="21" r="1.2" fill="currentColor" opacity={activeTool === 'draw' ? 1 : 0.5} />
-                                    <circle cx="22" cy="9" r="1.2" fill="currentColor" opacity={activeTool === 'draw' ? 1 : 0.5} />
-                                </svg>
-                                {activeTool === 'draw' && <span className="absolute -right-1 top-1/2 -translate-y-1/2 w-1 h-3 bg-emerald-500 rounded-full" />}
 
-                                {/* TOOLTIP */}
-                                <div className="absolute left-full ml-3 px-2 py-1.5 bg-slate-900/90 backdrop-blur-sm text-white text-[10px] font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap shadow-xl translate-x-1 group-hover:translate-x-0">
-                                    วาดแปลงใหม่
-                                    <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-y-4 border-y-transparent border-r-4 border-r-slate-900/90" />
-                                </div>
-                            </button>
-
-                            {/* Edit Vertices Tool */}
-                            <button
-                                onClick={() => switchTool('edit')}
-                                className={`w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300 group relative
-                                    ${activeTool === 'edit'
-                                        ? 'bg-blue-500 text-white shadow-md'
-                                        : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
-                                    }`}
-                            >
-                                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                    <rect x="5" y="5" width="4" height="4" rx="0.5" />
-                                    <rect x="15" y="5" width="4" height="4" rx="0.5" />
-                                    <rect x="5" y="15" width="4" height="4" rx="0.5" />
-                                    <rect x="15" y="15" width="4" height="4" rx="0.5" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6M7 9v6M17 9v6M9 17h6" strokeDasharray="1 2" strokeOpacity={0.5} />
-                                </svg>
-                                {activeTool === 'edit' && <span className="absolute -right-1 top-1/2 -translate-y-1/2 w-1 h-3 bg-blue-500 rounded-full" />}
-
-                                {/* TOOLTIP */}
-                                <div className="absolute left-full ml-3 px-2 py-1.5 bg-slate-900/90 backdrop-blur-sm text-white text-[10px] font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap shadow-xl translate-x-1 group-hover:translate-x-0">
-                                    แก้ไขจุดมุม
-                                    <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-y-4 border-y-transparent border-r-4 border-r-slate-900/90" />
-                                </div>
-                            </button>
-
-                            {/* Select / Move Tool */}
-                            <button
-                                onClick={() => switchTool('select')}
-                                className={`w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300 group relative
-                                    ${activeTool === 'select'
-                                        ? 'bg-orange-500 text-white shadow-md'
-                                        : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
-                                    }`}
-                            >
-                                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 13l6 6" strokeOpacity={0.6} />
-                                </svg>
-                                {activeTool === 'select' && <span className="absolute -right-1 top-1/2 -translate-y-1/2 w-1 h-3 bg-orange-500 rounded-full" />}
-
-                                {/* TOOLTIP */}
-                                <div className="absolute left-full ml-3 px-2 py-1.5 bg-slate-900/90 backdrop-blur-sm text-white text-[10px] font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap shadow-xl translate-x-1 group-hover:translate-x-0">
-                                    เลือก / ย้ายแปลง
-                                    <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-y-4 border-y-transparent border-r-4 border-r-slate-900/90" />
-                                </div>
-                            </button>
-
-                            <div className="mx-2 h-px bg-slate-200/50 my-0.5"></div>
-
-                            {/* Delete Tool */}
-                            <button
-                                onClick={handleDeletePlot}
-                                className="w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300 text-slate-400 hover:bg-red-50 hover:text-red-500 group relative"
-                            >
-                                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-
-                                {/* TOOLTIP */}
-                                <div className="absolute left-full ml-3 px-2 py-1.5 bg-red-600/90 backdrop-blur-sm text-white text-[10px] font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap shadow-xl translate-x-1 group-hover:translate-x-0">
-                                    ลบแปลงที่เลือก
-                                    <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-y-4 border-y-transparent border-r-4 border-r-red-600/90" />
-                                </div>
-                            </button>
-                        </div>
-                    </div>
 
                     {/* 3. ACTION BUTTONS - Simplified for Mobile */}
                     <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[110] flex gap-2 animate-slide-up">
