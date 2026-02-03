@@ -1031,40 +1031,73 @@ function MapPage() {
             <div ref={mapContainer} className="absolute inset-0 w-full h-full" />
 
             {/* ==========================================
-                COORDINATES DISPLAY (Top Left)
+                CRYSTAL COORDINATES (Top Left)
             ========================================== */}
-            <div className="absolute top-4 left-4 z-30">
-                <div className="bg-white/90 backdrop-blur-xl rounded-2xl px-4 py-2.5 shadow-lg border border-white/20">
-                    <div className="flex items-center gap-4 text-xs">
-                        <div className="flex items-center gap-1.5">
-                            <span className="text-slate-400 font-medium">LAT</span>
-                            <span className="text-slate-700 font-semibold tabular-nums">{coordinates.lat}</span>
+            <div className="absolute top-6 left-6 z-30">
+                <div className="bg-black/20 backdrop-blur-xl rounded-2xl px-5 py-3 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all duration-300 hover:bg-black/30 hover:border-white/20 group">
+                    <div className="flex items-center gap-8">
+                        {/* Latitude */}
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20 group-hover:scale-110 transition-all duration-300">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M12 2v20M2 12h20" />
+                                    <circle cx="12" cy="12" r="10" opacity="0.3" />
+                                </svg>
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-[9px] text-white/30 font-black uppercase tracking-[0.2em] leading-none mb-1">LAT</span>
+                                <span className="text-[13px] text-white/90 font-mono tracking-tight tabular-nums leading-none">{coordinates.lat}</span>
+                            </div>
                         </div>
-                        <div className="w-px h-4 bg-slate-200"></div>
-                        <div className="flex items-center gap-1.5">
-                            <span className="text-slate-400 font-medium">LNG</span>
-                            <span className="text-slate-700 font-semibold tabular-nums">{coordinates.lng}</span>
+
+                        {/* Divider */}
+                        <div className="w-px h-6 bg-white/10" />
+
+                        {/* Longitude */}
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/20 group-hover:scale-110 transition-all duration-300">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <path d="M12 2v20" opacity="0.3" />
+                                </svg>
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-[9px] text-white/30 font-black uppercase tracking-[0.2em] leading-none mb-1">LNG</span>
+                                <span className="text-[13px] text-white/90 font-mono tracking-tight tabular-nums leading-none">{coordinates.lng}</span>
+                            </div>
                         </div>
-                        <div className="w-px h-4 bg-slate-200"></div>
-                        <div className="flex items-center gap-1.5">
-                            <span className="text-slate-400 font-medium">ZOOM</span>
-                            <span className="text-emerald-600 font-semibold tabular-nums">{coordinates.zoom}</span>
+
+                        {/* Divider */}
+                        <div className="w-px h-6 bg-white/10" />
+
+                        {/* Zoom */}
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400 border border-amber-500/20 group-hover:scale-110 transition-all duration-300">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="11" cy="11" r="8" />
+                                    <path d="m21 21-4.3-4.3" />
+                                </svg>
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-[9px] text-white/30 font-black uppercase tracking-[0.2em] leading-none mb-1">ZOOM</span>
+                                <span className="text-[13px] text-emerald-400 font-mono font-black tracking-tight tabular-nums leading-none">{coordinates.zoom}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* ==========================================
-                TOP RIGHT CONTROLS
+                CRYSTAL TOP RIGHT CONTROLS
             ========================================== */}
-            <div className="absolute top-4 right-4 z-30 flex flex-col gap-2">
+            <div className="absolute top-6 right-6 z-30 flex flex-col gap-3">
                 {/* Search Button */}
                 <button
                     onClick={() => setShowSearchPanel(!showSearchPanel)}
-                    className={`w-11 h-11 rounded-xl flex items-center justify-center shadow-lg transition-all duration-200 active:scale-95
+                    className={`w-12 h-12 rounded-2xl flex items-center justify-center backdrop-blur-xl border transition-all duration-300 active:scale-90 shadow-[0_8px_32px_rgba(0,0,0,0.3)]
                         ${showSearchPanel
-                            ? 'bg-emerald-500 text-white'
-                            : 'bg-white/90 backdrop-blur-xl text-slate-600 hover:text-emerald-500'
+                            ? 'bg-emerald-500/80 text-white border-emerald-400/50 shadow-emerald-500/20'
+                            : 'bg-black/20 text-white/70 border-white/10 hover:bg-black/40 hover:text-white hover:border-white/20'
                         }`}
                 >
                     <SearchIcon />
@@ -1073,10 +1106,10 @@ function MapPage() {
                 {/* Layers Button */}
                 <button
                     onClick={() => setShowLayerPanel(!showLayerPanel)}
-                    className={`w-11 h-11 rounded-xl flex items-center justify-center shadow-lg transition-all duration-200 active:scale-95
+                    className={`w-12 h-12 rounded-2xl flex items-center justify-center backdrop-blur-xl border transition-all duration-300 active:scale-90 shadow-[0_8px_32px_rgba(0,0,0,0.3)]
                         ${showLayerPanel
-                            ? 'bg-emerald-500 text-white'
-                            : 'bg-white/90 backdrop-blur-xl text-slate-600 hover:text-emerald-500'
+                            ? 'bg-emerald-500/80 text-white border-emerald-400/50 shadow-emerald-500/20'
+                            : 'bg-black/20 text-white/70 border-white/10 hover:bg-black/40 hover:text-white hover:border-white/20'
                         }`}
                 >
                     <LayersIcon />
@@ -1085,7 +1118,7 @@ function MapPage() {
                 {/* My Location Button */}
                 <button
                     onClick={locateUser}
-                    className="w-11 h-11 rounded-xl bg-white/90 backdrop-blur-xl flex items-center justify-center text-slate-600 hover:text-emerald-500 shadow-lg transition-all duration-200 active:scale-95"
+                    className="w-12 h-12 rounded-2xl bg-black/20 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/70 hover:text-emerald-400 hover:bg-black/40 hover:border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)] transition-all duration-300 active:scale-90"
                     title="ตำแหน่งของฉัน"
                 >
                     <TargetIcon />
@@ -1131,56 +1164,59 @@ function MapPage() {
                         </div>
                     </div>
                 </div>
-            )}
+            )
+            }
 
             {/* ==========================================
                 LAYER PANEL
             ========================================== */}
-            {showLayerPanel && (
-                <div className="absolute top-36 right-4 z-40 w-56 animate-slideInRight">
-                    <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
-                        <div className="p-3 border-b border-slate-100">
-                            <h3 className="text-sm font-semibold text-slate-700">เลือกแผนที่</h3>
-                        </div>
-                        <div className="p-2">
-                            {Object.entries(mapStyles).map(([key, style]) => (
-                                <button
-                                    key={key}
-                                    onClick={() => changeMapStyle(key)}
-                                    className={`w-full text-left px-3 py-2.5 rounded-xl text-sm transition-all flex items-center gap-2
+            {
+                showLayerPanel && (
+                    <div className="absolute top-36 right-4 z-40 w-56 animate-slideInRight">
+                        <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
+                            <div className="p-3 border-b border-slate-100">
+                                <h3 className="text-sm font-semibold text-slate-700">เลือกแผนที่</h3>
+                            </div>
+                            <div className="p-2">
+                                {Object.entries(mapStyles).map(([key, style]) => (
+                                    <button
+                                        key={key}
+                                        onClick={() => changeMapStyle(key)}
+                                        className={`w-full text-left px-3 py-2.5 rounded-xl text-sm transition-all flex items-center gap-2
                                         ${currentStyle === key
-                                            ? 'bg-emerald-500 text-white'
-                                            : 'text-slate-600 hover:bg-slate-100'
-                                        }`}
-                                >
-                                    <div className={`w-2 h-2 rounded-full ${currentStyle === key ? 'bg-white' : 'bg-slate-300'}`}></div>
-                                    {style.name}
-                                </button>
-                            ))}
+                                                ? 'bg-emerald-500 text-white'
+                                                : 'text-slate-600 hover:bg-slate-100'
+                                            }`}
+                                    >
+                                        <div className={`w-2 h-2 rounded-full ${currentStyle === key ? 'bg-white' : 'bg-slate-300'}`}></div>
+                                        {style.name}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* ==========================================
-                ZOOM CONTROLS (Right Side)
+                CRYSTAL ZOOM CONTROLS
             ========================================== */}
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-1">
+            <div className="absolute right-6 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-2">
                 <button
                     onClick={zoomIn}
-                    className="w-10 h-10 rounded-xl bg-white/90 backdrop-blur-xl flex items-center justify-center text-slate-600 hover:text-emerald-500 shadow-lg transition-all active:scale-95"
+                    className="w-12 h-12 rounded-2xl bg-black/20 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-black/40 hover:border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)] transition-all duration-300 active:scale-90"
                 >
                     <ZoomInIcon />
                 </button>
                 <button
                     onClick={zoomOut}
-                    className="w-10 h-10 rounded-xl bg-white/90 backdrop-blur-xl flex items-center justify-center text-slate-600 hover:text-emerald-500 shadow-lg transition-all active:scale-95"
+                    className="w-12 h-12 rounded-2xl bg-black/20 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-black/40 hover:border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)] transition-all duration-300 active:scale-90"
                 >
                     <ZoomOutIcon />
                 </button>
                 <button
                     onClick={resetNorth}
-                    className="w-10 h-10 rounded-xl bg-white/90 backdrop-blur-xl flex items-center justify-center text-slate-600 hover:text-emerald-500 shadow-lg transition-all active:scale-95"
+                    className="w-12 h-12 rounded-2xl bg-black/20 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-black/40 hover:border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)] transition-all duration-300 active:scale-90"
                 >
                     <CompassIcon />
                 </button>
@@ -1204,9 +1240,9 @@ function MapPage() {
             </div>
 
             {/* ==========================================
-                PREMIUM FAB MENU (Bottom Right)
+                CRYSTAL FAB MENU (Bottom Right)
             ========================================== */}
-            <div className="absolute bottom-28 right-6 z-50 flex flex-col items-end gap-4">
+            <div className="absolute bottom-28 right-6 z-50 flex flex-col items-end gap-5">
                 {/* Action Items */}
                 <div className={`flex flex-col gap-4 mb-2 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${showFABMenu ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-20 scale-50 pointer-events-none'}`}>
 
@@ -1216,14 +1252,14 @@ function MapPage() {
                             setShowFABMenu(false);
                             startDigitizing();
                         }}
-                        className="group flex items-center justify-end gap-3"
+                        className="group flex items-center justify-end gap-4"
                     >
-                        <div className="bg-white/10 backdrop-blur-md border border-white/10 px-4 py-2 rounded-2xl shadow-xl transform transition-all duration-300 group-hover:-translate-x-1">
-                            <span className="text-white/90 text-[13px] font-medium tracking-wide whitespace-nowrap">วาดเองดิจิไตส์ยางพารา</span>
+                        <div className="bg-black/30 backdrop-blur-xl border border-white/10 px-5 py-2.5 rounded-2xl shadow-2xl transform transition-all duration-300 group-hover:-translate-x-2">
+                            <span className="text-white/90 text-xs font-bold tracking-widest uppercase">วาดเองดิจิไตส์ยางพารา</span>
                         </div>
                         <div className="relative">
-                            <div className="w-12 h-12 rounded-2xl bg-white text-emerald-600 flex items-center justify-center shadow-lg transition-all duration-300 group-hover:scale-110 active:scale-95">
-                                <PencilIcon size={20} />
+                            <div className="w-14 h-14 rounded-2xl bg-white text-emerald-600 flex items-center justify-center shadow-2xl transition-all duration-300 group-hover:scale-110 active:scale-90 group-hover:rotate-12">
+                                <PencilIcon size={24} />
                             </div>
                         </div>
                     </button>
@@ -1234,14 +1270,14 @@ function MapPage() {
                             setShowFABMenu(false);
                             setWorkflowModal({ isOpen: true, mode: 'import' });
                         }}
-                        className="group flex items-center justify-end gap-3"
+                        className="group flex items-center justify-end gap-4"
                     >
-                        <div className="bg-white/10 backdrop-blur-md border border-white/10 px-4 py-2 rounded-2xl shadow-xl transform transition-all duration-300 group-hover:-translate-x-1">
-                            <span className="text-white/90 text-[13px] font-medium tracking-wide whitespace-nowrap">นำเข้าเเปลง SHP</span>
+                        <div className="bg-black/30 backdrop-blur-xl border border-white/10 px-5 py-2.5 rounded-2xl shadow-2xl transform transition-all duration-300 group-hover:-translate-x-2">
+                            <span className="text-white/90 text-xs font-bold tracking-widest uppercase">นำเข้าเเปลง SHP</span>
                         </div>
                         <div className="relative">
-                            <div className="w-12 h-12 rounded-2xl bg-white text-emerald-600 flex items-center justify-center shadow-lg transition-all duration-300 group-hover:scale-110 active:scale-95">
-                                <UploadIcon size={20} />
+                            <div className="w-14 h-14 rounded-2xl bg-white text-blue-600 flex items-center justify-center shadow-2xl transition-all duration-300 group-hover:scale-110 active:scale-90 group-hover:-rotate-12">
+                                <UploadIcon size={24} />
                             </div>
                         </div>
                     </button>
@@ -1249,24 +1285,20 @@ function MapPage() {
 
                 {/* Main Toggle Button */}
                 <div className="relative">
-                    {/* Ring Pulse Effect */}
+                    {/* Crystal Pulse Effect */}
                     {!showFABMenu && (
-                        <div className="absolute inset-0 bg-emerald-500 rounded-full animate-ping opacity-20"></div>
+                        <div className="absolute inset-0 bg-emerald-500/30 rounded-full animate-ping blur-xl"></div>
                     )}
 
                     <button
                         onClick={() => setShowFABMenu(!showFABMenu)}
-                        className={`relative w-16 h-16 rounded-[2rem] flex items-center justify-center shadow-[0_20px_50px_rgba(0,0,0,0.3)] border-2 border-white/50 transition-all duration-500 ease-out active:scale-90
+                        className={`relative w-20 h-20 rounded-[2.5rem] flex items-center justify-center shadow-[0_20px_60px_rgba(0,0,0,0.5)] border border-white/30 transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-90
                             ${showFABMenu
-                                ? 'bg-slate-900 text-white rotate-180 rounded-full'
-                                : 'bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-400 text-white rotate-0'}
+                                ? 'bg-slate-900/90 text-white rotate-[225deg] rounded-full'
+                                : 'bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-500 text-white rotate-0'}
                         `}
                     >
-                        {showFABMenu ? (
-                            <CloseIcon className="w-6 h-6" />
-                        ) : (
-                            <PlusIcon className="w-8 h-8" />
-                        )}
+                        <PlusIcon className="w-10 h-10" />
                     </button>
                 </div>
             </div>
@@ -1343,51 +1375,52 @@ function MapPage() {
 
 
             {/* DIGITIZING HUD & TOOLBAR */}
-            {digitizeMode && (
-                <>
-                    {/* 1. TOP INSTRUCTION GUIDE - Multi-mode */}
-                    <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[110] animate-slide-down">
-                        <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-full border border-slate-200/50 shadow-lg flex items-center gap-2.5">
-                            <div className="w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0">
-                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                </svg>
-                            </div>
-                            <div className="text-slate-700 flex items-center gap-2">
-                                <div className="flex flex-col">
-                                    <span className="text-xs font-bold leading-none tracking-tight">โหมดวาดแปลง</span>
-                                    <span className="text-[9px] text-slate-400 mt-0.5">คลิกบนแผนที่เพื่อวาดรูปทรง</span>
+            {
+                digitizeMode && (
+                    <>
+                        {/* 1. TOP INSTRUCTION GUIDE - Multi-mode */}
+                        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[110] animate-slide-down">
+                            <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-full border border-slate-200/50 shadow-lg flex items-center gap-2.5">
+                                <div className="w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0">
+                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
                                 </div>
-                                {pendingPlots.length > 0 && (
-                                    <div className="ml-2 pl-3 border-l border-slate-200 flex items-center gap-1.5">
-                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                        <span className="text-[10px] font-black text-emerald-600 tracking-wider">คำนวณแล้ว {pendingPlots.length} แปลง</span>
+                                <div className="text-slate-700 flex items-center gap-2">
+                                    <div className="flex flex-col">
+                                        <span className="text-xs font-bold leading-none tracking-tight">โหมดวาดแปลง</span>
+                                        <span className="text-[9px] text-slate-400 mt-0.5">คลิกบนแผนที่เพื่อวาดรูปทรง</span>
                                     </div>
-                                )}
+                                    {pendingPlots.length > 0 && (
+                                        <div className="ml-2 pl-3 border-l border-slate-200 flex items-center gap-1.5">
+                                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                            <span className="text-[10px] font-black text-emerald-600 tracking-wider">คำนวณแล้ว {pendingPlots.length} แปลง</span>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    </div>
 
 
 
-                    {/* 3. ACTION BUTTONS - Simplified for Mobile */}
-                    <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[110] flex gap-2 animate-slide-up">
-                        <button
-                            onClick={cancelDigitizing}
-                            className="bg-white/90 backdrop-blur-md px-6 py-2.5 rounded-full text-slate-500 font-bold text-[11px] shadow-lg border border-white/60 hover:bg-white active:scale-95 transition-all uppercase tracking-wider"
-                        >
-                            ยกเลิก
-                        </button>
+                        {/* 3. ACTION BUTTONS - Simplified for Mobile */}
+                        <div className="fixed bottom-32 left-1/2 -translate-x-1/2 z-[110] flex gap-2 animate-slide-up">
+                            <button
+                                onClick={cancelDigitizing}
+                                className="bg-white/90 backdrop-blur-md px-6 py-2.5 rounded-full text-slate-500 font-bold text-[11px] shadow-lg border border-white/60 hover:bg-white active:scale-95 transition-all uppercase tracking-wider"
+                            >
+                                ยกเลิก
+                            </button>
 
-                        <button
-                            onClick={finishDigitizing}
-                            className="bg-emerald-600 px-8 py-2.5 rounded-full text-white font-black text-[11px] shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 active:scale-95 transition-all flex items-center gap-2 uppercase tracking-wider"
-                        >
-                            <span>วาดเสร็จแล้ว</span>
-                        </button>
-                    </div>
-                </>
-            )
+                            <button
+                                onClick={finishDigitizing}
+                                className="bg-emerald-600 px-8 py-2.5 rounded-full text-white font-black text-[11px] shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 active:scale-95 transition-all flex items-center gap-2 uppercase tracking-wider"
+                            >
+                                <span>วาดเสร็จแล้ว</span>
+                            </button>
+                        </div>
+                    </>
+                )
             }
 
             {/* Workflow Modal Integration */}
@@ -1422,31 +1455,13 @@ function MapPage() {
                     height: 24px;
                 }
                 
-                /* FORCE SHOW DRAW CONTROLS */
-                .mapboxgl-ctrl-top-right .mapboxgl-ctrl-group,
-                .maplibregl-ctrl-top-right .maplibregl-ctrl-group {
-                    display: flex !important;
-                    flex-direction: column !important;
-                    margin-top: 70px !important;
-                    background: white !important;
-                    opacity: 1 !important;
-                    visibility: visible !important;
-                    z-index: 99 !important;
-                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
-                    border-radius: 12px !important;
-                }
-
-                .mapboxgl-ctrl-group button,
-                .maplibregl-ctrl-group button {
-                    width: 40px !important;
-                    height: 40px !important;
-                    background-color: white !important;
-                    border-bottom: 1px solid #eee !important;
-                }
-
-                .mapboxgl-ctrl-group button:last-child,
-                .maplibregl-ctrl-group button:last-child {
-                    border-bottom: none !important;
+                /* Hide default map controls as we use custom Crystal UI */
+                .maplibregl-ctrl-top-right, .maplibregl-ctrl-bottom-right, 
+                .maplibregl-ctrl-top-left, .maplibregl-ctrl-bottom-left,
+                .mapboxgl-ctrl-top-right, .mapboxgl-ctrl-bottom-right,
+                .mapboxgl-ctrl-top-left, .mapboxgl-ctrl-bottom-left,
+                .maplibregl-ctrl-group, .mapboxgl-ctrl-group {
+                    display: none !important;
                 }
 
                 .user-marker-pulse {
