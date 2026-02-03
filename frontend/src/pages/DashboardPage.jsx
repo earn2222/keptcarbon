@@ -44,6 +44,12 @@ const LeafIcon = ({ className = "w-6 h-6" }) => (
     </svg>
 )
 
+const MenuIcon = ({ className = "w-6 h-6" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+    </svg>
+)
+
 const MapPinIcon = ({ className = "w-5 h-5" }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
@@ -69,6 +75,7 @@ function DashboardPage() {
     const [accumulatedPlots, setAccumulatedPlots] = useState([])
     const [selectedPlotId, setSelectedPlotId] = useState(null)
     const [showPlotListModal, setShowPlotListModal] = useState(false)
+    const [searchQuery, setSearchQuery] = useState('')
     const [stats, setStats] = useState({
         totalPlots: 0,
         totalArea: 0,
@@ -288,90 +295,83 @@ function DashboardPage() {
         .sort((a, b) => new Date(b.date) - new Date(a.date))
         .slice(0, 10)
 
+    // Filter plots based on search query
+    const filteredPlots = recentPlots.filter(plot => {
+        const searchLower = searchQuery.toLowerCase()
+        const plotIdStr = plot.id.toString().padStart(4, '0')
+        const dateStr = new Date(plot.date).toLocaleDateString('th-TH', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        })
+        return plotIdStr.includes(searchLower) || dateStr.includes(searchQuery)
+    })
+
     return (
         <div className="relative w-full h-screen overflow-hidden bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-900">
-            {/*  ANIMATED GRADIENT OVERLAY */}
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-emerald-500/5 animate-pulse" />
-
             {/* FULLSCREEN MAP */}
-            <div ref={mapContainer} className="absolute inset-0 w-full h-full opacity-90" />
+            <div ref={mapContainer} className="absolute inset-0 w-full h-full" />
 
-            {/* TOP GLASSMORPHIC BAR */}
-            <div className="absolute top-0 left-0 right-0 z-30 h-32 bg-gradient-to-b from-black/40 via-black/20 to-transparent backdrop-blur-md" />
-
-            {/* PREMIUM STATS CARDS - Asymmetric Layout */}
-            <div className="absolute top-6 left-6 right-6 z-40 max-w-7xl mx-auto">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* CARBON CARD - PRIMARY */}
-                    <div className="md:col-span-2 group relative">
-                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-3xl blur-xl opacity-30 group-hover:opacity-50 transition-opacity duration-500 animate-pulse" />
-                        <div className="relative bg-white/10 backdrop-blur-2xl rounded-3xl p-6 border border-white/20 shadow-2xl hover:shadow-emerald-500/20 transition-all duration-500 hover:-translate-y-1">
-                            <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/50 rotate-3 group-hover:rotate-6 transition-transform duration-500">
-                                            <LeafIcon className="w-7 h-7 text-white" />
-                                        </div>
-                                        <div>
-                                            <p className="text-emerald-300 text-xs font-semibold uppercase tracking-wider">Total Carbon Offset</p>
-                                            <p className="text-white/60 text-[10px] mt-0.5">ปริมาณคาร์บอนทั้งหมด</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-baseline gap-2">
-                                        <h2 className="text-5xl font-black text-white">
+            {/* การ์ดสถิติแบบมินิมอล - ขนาดกลาง */}
+            <div className="absolute top-5 left-5 right-5 z-40 max-w-4xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {/* การ์ดคาร์บอน */}
+                    <div className="group relative">
+                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl blur-lg opacity-20 group-hover:opacity-40 transition-opacity duration-500 animate-pulse" />
+                        <div className="relative bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/20 shadow-lg hover:shadow-emerald-500/10 transition-all duration-500 hover:-translate-y-0.5">
+                            <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-md shadow-emerald-500/30">
+                                    <LeafIcon className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                    <p className="text-emerald-300 text-[10px] font-semibold uppercase tracking-wider leading-none">ปริมาณคาร์บอน</p>
+                                    <div className="flex items-baseline gap-1.5 mt-0.5">
+                                        <h2 className="text-2xl font-black text-white leading-none">
                                             {stats.totalCarbon.toLocaleString('th-TH', { maximumFractionDigits: 0 })}
                                         </h2>
-                                        <span className="text-emerald-300 text-lg font-bold">ตัน CO₂</span>
+                                        <span className="text-emerald-300 text-[10px] font-bold">ตัน CO₂</span>
                                     </div>
-                                    <div className="flex items-center gap-2 mt-2">
-                                        <div className="h-1 flex-1 bg-white/10 rounded-full overflow-hidden">
-                                            <div className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full w-3/4 animate-pulse" />
-                                        </div>
-                                        <span className="text-emerald-400 text-xs font-bold">+25%</span>
-                                    </div>
-                                </div>
-                                <div className="ml-4">
-                                    <SparklesIcon className="w-8 h-8 text-emerald-400 animate-pulse" />
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* AREA & PARTICIPANTS - STACKED */}
-                    <div className="space-y-4">
-                        {/* AREA CARD */}
-                        <div className="group relative">
-                            <div className="absolute inset-0 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl blur-lg opacity-20 group-hover:opacity-40 transition-opacity duration-500" />
-                            <div className="relative bg-white/10 backdrop-blur-2xl rounded-2xl p-4 border border-white/20 shadow-xl hover:shadow-green-500/20 transition-all duration-500 hover:-translate-y-1">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-green-300 text-[10px] font-semibold uppercase tracking-wider">Total Area</p>
-                                        <h3 className="text-3xl font-black text-white mt-1">
+                    {/* การ์ดพื้นที่ */}
+                    <div className="group relative">
+                        <div className="absolute inset-0 bg-gradient-to-br from-green-400 to-green-600 rounded-xl blur-lg opacity-20 group-hover:opacity-40 transition-opacity duration-500" />
+                        <div className="relative bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/20 shadow-lg hover:shadow-green-500/10 transition-all duration-500 hover:-translate-y-0.5">
+                            <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-md shadow-green-500/30">
+                                    <MapPinIcon className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                    <p className="text-green-300 text-[10px] font-semibold uppercase tracking-wider leading-none">พื้นที่ทั้งหมด</p>
+                                    <div className="flex items-baseline gap-1.5 mt-0.5">
+                                        <h2 className="text-2xl font-black text-white leading-none">
                                             {stats.totalArea.toLocaleString('th-TH', { maximumFractionDigits: 0 })}
-                                        </h3>
-                                        <p className="text-green-300 text-xs font-bold mt-0.5">ไร่</p>
-                                    </div>
-                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-lg shadow-green-500/40">
-                                        <MapPinIcon className="w-6 h-6 text-white" />
+                                        </h2>
+                                        <span className="text-green-300 text-[10px] font-bold">ไร่</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        {/* PARTICIPANTS CARD */}
-                        <div className="group relative">
-                            <div className="absolute inset-0 bg-gradient-to-br from-teal-400 to-teal-600 rounded-2xl blur-lg opacity-20 group-hover:opacity-40 transition-opacity duration-500" />
-                            <div className="relative bg-white/10 backdrop-blur-2xl rounded-2xl p-4 border border-white/20 shadow-xl hover:shadow-teal-500/20 transition-all duration-500 hover:-translate-y-1">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-teal-300 text-[10px] font-semibold uppercase tracking-wider">Participants</p>
-                                        <h3 className="text-3xl font-black text-white mt-1">
+                    {/* การ์ดผู้เข้าร่วม */}
+                    <div className="group relative">
+                        <div className="absolute inset-0 bg-gradient-to-br from-teal-400 to-teal-600 rounded-xl blur-lg opacity-20 group-hover:opacity-40 transition-opacity duration-500" />
+                        <div className="relative bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/20 shadow-lg hover:shadow-teal-500/10 transition-all duration-500 hover:-translate-y-0.5">
+                            <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center shadow-md shadow-teal-500/30">
+                                    <UserIcon className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                    <p className="text-teal-300 text-[10px] font-semibold uppercase tracking-wider leading-none">ผู้เข้าร่วม</p>
+                                    <div className="flex items-baseline gap-1.5 mt-0.5">
+                                        <h2 className="text-2xl font-black text-white leading-none">
                                             {stats.totalPlots.toLocaleString('th-TH')}
-                                        </h3>
-                                        <p className="text-teal-300 text-xs font-bold mt-0.5">ราย</p>
-                                    </div>
-                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center shadow-lg shadow-teal-500/40">
-                                        <UserIcon className="w-6 h-6 text-white" />
+                                        </h2>
+                                        <span className="text-teal-300 text-[10px] font-bold">ราย</span>
                                     </div>
                                 </div>
                             </div>
@@ -387,7 +387,7 @@ function DashboardPage() {
             >
                 <div className="absolute inset-0 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-300 animate-pulse" />
                 <div className="relative w-16 h-16 bg-white/10 backdrop-blur-2xl rounded-full border border-white/20 shadow-2xl flex items-center justify-center hover:scale-110 transition-all duration-300">
-                    <MapPinIcon className="w-7 h-7 text-emerald-300 group-hover:text-emerald-200" />
+                    <MenuIcon className="w-7 h-7 text-emerald-300 group-hover:text-emerald-200" />
                     {recentPlots.length > 0 && (
                         <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center text-[11px] text-white font-black shadow-lg shadow-emerald-500/50 border-2 border-white/20">
                             {recentPlots.length}
@@ -413,7 +413,7 @@ function DashboardPage() {
                                 <div className="relative flex items-center justify-between">
                                     <div className="flex items-center gap-4">
                                         <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-xl flex items-center justify-center">
-                                            <MapPinIcon className="w-6 h-6 text-white" />
+                                            <MenuIcon className="w-6 h-6 text-white" />
                                         </div>
                                         <div>
                                             <h3 className="text-2xl font-black text-white">รายการแปลงทั้งหมด</h3>
@@ -431,13 +431,51 @@ function DashboardPage() {
                                 </div>
                             </div>
 
+                            {/* Search Box */}
+                            <div className="px-6 pt-4 pb-2">
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        placeholder="ค้นหาแปลง... (เช่น #0001)"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl px-4 py-3 pl-12 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all duration-300"
+                                    />
+                                    <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                    {searchQuery && (
+                                        <button
+                                            onClick={() => setSearchQuery('')}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all duration-300"
+                                        >
+                                            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
                             {/* List */}
-                            <div className="overflow-y-auto max-h-[calc(85vh-140px)] p-6">
-                                {recentPlots.length === 0 ? (
-                                    <p className="text-center text-white/60 py-16 text-lg">ยังไม่มีข้อมูลแปลง</p>
+                            <div className="overflow-y-auto max-h-[calc(85vh-220px)] p-6">
+                                {filteredPlots.length === 0 ? (
+                                    <div className="text-center text-white/60 py-16">
+                                        {searchQuery ? (
+                                            <>
+                                                <svg className="w-16 h-16 mx-auto mb-4 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                                </svg>
+                                                <p className="text-lg">ไม่พบแปลงที่ค้นหา</p>
+                                                <p className="text-sm mt-2">ลองค้นหาด้วยคำอื่น</p>
+                                            </>
+                                        ) : (
+                                            <p className="text-lg">ยังไม่มีข้อมูลแปลง</p>
+                                        )}
+                                    </div>
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {recentPlots.map((plot, idx) => (
+                                        {filteredPlots.map((plot, idx) => (
                                             <div
                                                 key={plot.id}
                                                 onClick={() => {
@@ -447,17 +485,17 @@ function DashboardPage() {
                                                 className="group relative cursor-pointer"
                                             >
                                                 <div className={`absolute inset-0 ${selectedPlotId === plot.id
-                                                        ? 'bg-gradient-to-br from-amber-400 to-amber-600'
-                                                        : 'bg-gradient-to-br from-emerald-400 to-green-600'
+                                                    ? 'bg-gradient-to-br from-amber-400 to-amber-600'
+                                                    : 'bg-gradient-to-br from-emerald-400 to-green-600'
                                                     } rounded-2xl blur-lg opacity-20 group-hover:opacity-40 transition-opacity duration-300`} />
                                                 <div className={`relative bg-white/10 backdrop-blur-2xl rounded-2xl p-5 border transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl ${selectedPlotId === plot.id
-                                                        ? 'border-amber-400/50 shadow-amber-500/20'
-                                                        : 'border-white/20 hover:border-emerald-400/50'
+                                                    ? 'border-amber-400/50 shadow-amber-500/20'
+                                                    : 'border-white/20 hover:border-emerald-400/50'
                                                     }`}>
                                                     <div className="flex items-start gap-4">
                                                         <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-lg ${selectedPlotId === plot.id
-                                                                ? 'bg-gradient-to-br from-amber-400 to-amber-600 shadow-amber-500/40'
-                                                                : 'bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/40'
+                                                            ? 'bg-gradient-to-br from-amber-400 to-amber-600 shadow-amber-500/40'
+                                                            : 'bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/40'
                                                             }`}>
                                                             #{idx + 1}
                                                         </div>
