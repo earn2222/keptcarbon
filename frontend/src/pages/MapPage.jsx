@@ -427,62 +427,54 @@ function MapPage() {
             // Remove existing popup
             if (popupRef.current) popupRef.current.remove();
 
-            // Create new popup
+            // Create new popup - Compact Minimal Design
             const popup = new maplibregl.Popup({
-                closeButton: true,
-                maxWidth: '320px',
+                closeButton: false,
+                maxWidth: '260px',
                 anchor: 'bottom',
-                offset: [0, -20],
-                className: 'premium-popup'
+                offset: [0, -10],
+                className: 'minimal-popup'
             })
                 .setLngLat(coordinates)
                 .setHTML(`
-                <div class="overflow-hidden rounded-[32px] bg-white border border-emerald-50">
-                    <!-- Header -->
-                    <div class="bg-emerald-50/50 px-6 py-5 border-b border-emerald-100/50">
-                        <div class="flex items-center gap-2 mb-1.5">
-                            <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                            <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-[0.2em]">ข้อมูลรายแปลง</span>
+                <div class="m-card">
+                    <!-- Header - White with green accent -->
+                    <div class="m-header">
+                        <div class="m-badge">
+                            <span class="m-dot"></span>
+                            ข้อมูลรายแปลง
                         </div>
-                        <h3 class="text-2xl font-black text-slate-800 tracking-tight">
-                            ${plotData.farmerName}
-                        </h3>
-                    </div>
-
-                    <div class="px-6 py-6 space-y-6">
-                        <!-- Primary Info -->
-                        <div class="flex items-center justify-between gap-4">
-                            <div class="flex-1">
-                                <div class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">ปีที่ปลูก / อายุ</div>
-                                <div class="text-sm font-black text-slate-700">
-                                    ${plotData.plantingYearBE} พ.ศ. <span class="text-emerald-500 mx-1">•</span> ${plotData.age} ปี
-                                </div>
-                            </div>
-                            <div class="flex-1 text-right">
-                                <div class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">พันธุ์ยาง</div>
-                                <div class="text-sm font-black text-slate-700">
-                                    ${plotData.variety || '-'}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Carbon Value Section -->
-                        <div class="py-4 border-y border-emerald-50 text-center">
-                            <div class="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-2">ปริมาณคาร์บอนสุทธิ</div>
-                            <div class="flex items-baseline justify-center gap-2">
-                                <span class="text-5xl font-black text-emerald-600 tracking-tighter">${plotData.carbon}</span>
-                                <span class="text-[12px] font-bold text-emerald-400 uppercase tracking-tight">tCO₂e</span>
-                            </div>
-                            <div class="mt-2 text-[10px] font-bold text-slate-400 px-4 py-1.5 bg-slate-50 rounded-full inline-block">
-                                ${plotData.method || '-'}
-                            </div>
-                        </div>
-
-                        <!-- Minimal Edit Button -->
-                        <button id="open-edit-btn-${plotData.id}" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white text-[12px] font-bold py-4 rounded-2xl transition-all shadow-lg shadow-emerald-200 flex items-center justify-center gap-2 active:scale-[0.98]">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                            แก้ไขข้อมูลแปลง
+                        <button id="open-edit-btn-${plotData.id}" class="m-edit-btn" title="แก้ไขข้อมูล">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
                         </button>
+                    </div>
+                    
+                    <!-- Name -->
+                    <h2 class="m-name">${plotData.farmerName}</h2>
+                    
+                    <!-- Divider -->
+                    <div class="m-divider"></div>
+                    
+                    <!-- Info Row -->
+                    <div class="m-info">
+                        <div class="m-col">
+                            <span class="m-label">ปีที่ปลูก / อายุ</span>
+                            <span class="m-val">${plotData.plantingYearBE || '-'} พ.ศ. · ${plotData.age || '-'} ปี</span>
+                        </div>
+                        <div class="m-col m-right">
+                            <span class="m-label">พันธุ์ยาง</span>
+                            <span class="m-val">${plotData.variety || 'RRIM 600'}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Carbon -->
+                    <div class="m-carbon">
+                        <span class="m-carbon-label">ปริมาณคาร์บอนสุทธิ</span>
+                        <div class="m-carbon-row">
+                            <span class="m-carbon-num">${plotData.carbon || '0.00'}</span>
+                            <span class="m-carbon-unit">TCO<sub>2</sub>E</span>
+                        </div>
+                        <span class="m-method">${plotData.method || 'สมการที่ 1 (0.118 × DBH^2.53)'}</span>
                     </div>
                 </div>
             `)
@@ -1599,36 +1591,177 @@ function MapPage() {
                     50% { transform: translateY(-5px); }
                 }
 
-                /* PREMIUM POPUP STYLES */
-                .premium-popup .maplibregl-popup-content {
+                /* ==========================================
+                   FRESH POPUP - Soft Green/White Theme
+                   ========================================== */
+                .minimal-popup .maplibregl-popup-content {
                     padding: 0;
-                    border-radius: 28px;
-                    background: rgba(255, 255, 255, 0.95);
-                    backdrop-filter: blur(16px);
-                    border: 1px solid rgba(255, 255, 255, 0.4);
-                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+                    border-radius: 16px;
+                    background: #ffffff;
+                    border: none;
+                    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
                     overflow: hidden;
                 }
-                .premium-popup .maplibregl-popup-tip {
-                    border-top-color: rgba(255, 255, 255, 0.95);
-                    backdrop-filter: blur(16px);
+                .minimal-popup .maplibregl-popup-tip {
+                    border-top-color: #ffffff;
                 }
-                .premium-popup .maplibregl-popup-close-button {
-                    right: 12px;
-                    top: 12px;
-                    width: 24px;
-                    height: 24px;
-                    background: #f1f5f9;
-                    border-radius: 12px;
-                    color: #94a3b8;
-                    font-size: 16px;
-                    line-height: 24px;
+
+                /* Card */
+                .m-card {
+                    font-family: 'Prompt', 'Inter', 'Anuphan', -apple-system, sans-serif;
+                    background: #ffffff;
+                }
+
+                /* Header - Soft Green Background */
+                .m-header {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    padding: 12px 14px;
+                    background: #dcfce7;
+                }
+                .m-badge {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    font-size: 11px;
+                    font-weight: 500;
+                    color: #16a34a;
+                }
+                .m-dot {
+                    width: 7px;
+                    height: 7px;
+                    background: #22c55e;
+                    border-radius: 50%;
+                }
+
+                /* Edit Button - Green accent */
+                .m-edit-btn {
+                    width: 32px;
+                    height: 32px;
+                    background: #ffffff;
                     border: none;
+                    border-radius: 8px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: #22c55e;
+                    cursor: pointer;
                     transition: all 0.2s;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
                 }
-                .premium-popup .maplibregl-popup-close-button:hover {
-                    background: #e2e8f0;
-                    color: #64748b;
+                .m-edit-btn:hover {
+                    background: #f0fdf4;
+                    transform: scale(1.05);
+                }
+                .m-edit-btn:active {
+                    transform: scale(0.95);
+                }
+
+                /* Body */
+                .m-body-section {
+                    padding: 14px;
+                }
+
+                /* Name */
+                .m-name {
+                    font-size: 18px;
+                    font-weight: 600;
+                    color: #1f2937;
+                    margin: 14px 14px 0 14px;
+                    line-height: 1.3;
+                }
+
+                /* Divider */
+                .m-divider {
+                    height: 1px;
+                    background: #e5e7eb;
+                    margin: 10px 14px;
+                }
+
+                /* Info Row */
+                .m-info {
+                    display: flex;
+                    justify-content: space-between;
+                    padding: 0 14px;
+                    margin-bottom: 12px;
+                }
+                .m-col {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 2px;
+                }
+                .m-right {
+                    text-align: right;
+                }
+                .m-label {
+                    font-size: 10px;
+                    font-weight: 500;
+                    color: #22c55e;
+                    text-transform: uppercase;
+                    letter-spacing: 0.02em;
+                }
+                .m-val {
+                    font-size: 13px;
+                    font-weight: 500;
+                    color: #374151;
+                }
+
+                /* Carbon - Light Green Box */
+                .m-carbon {
+                    text-align: center;
+                    background: #f0fdf4;
+                    padding: 14px;
+                    margin: 0 14px 14px 14px;
+                    border-radius: 12px;
+                    border: 1px solid #bbf7d0;
+                }
+                .m-carbon-label {
+                    font-size: 11px;
+                    font-weight: 500;
+                    color: #16a34a;
+                    display: block;
+                    margin-bottom: 6px;
+                }
+                .m-carbon-row {
+                    display: flex;
+                    align-items: baseline;
+                    justify-content: center;
+                    gap: 4px;
+                    margin-bottom: 8px;
+                }
+                .m-carbon-num {
+                    font-size: 30px;
+                    font-weight: 600;
+                    color: #16a34a;
+                    line-height: 1;
+                }
+                .m-carbon-unit {
+                    font-size: 13px;
+                    font-weight: 500;
+                    color: #22c55e;
+                }
+                .m-carbon-unit sub {
+                    font-size: 9px;
+                }
+                .m-method {
+                    display: inline-block;
+                    background: #ffffff;
+                    color: #16a34a;
+                    font-size: 10px;
+                    font-weight: 400;
+                    padding: 5px 12px;
+                    border-radius: 20px;
+                    border: 1px solid #bbf7d0;
+                }
+
+                /* Animation */
+                @keyframes m-fade-in {
+                    from { opacity: 0; transform: translateY(4px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                .m-card {
+                    animation: m-fade-in 0.2s ease-out;
                 }
             `}</style>
         </div >
