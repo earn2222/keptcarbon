@@ -6,6 +6,7 @@ import * as turf from '@turf/turf'
 import MapboxDraw from '@mapbox/mapbox-gl-draw'
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css'
 import WorkflowModal from '../components/organisms/WorkflowModal'
+import { getPlots, createPlot } from '../services/api'
 
 // ==========================================
 // THAI ADDRESS DATA (Compact)
@@ -252,6 +253,42 @@ function MapPage() {
             maxPitch: 85,
             antialias: true
         })
+
+        // Fetch existing plots from API
+        const loadInitialPlots = async () => {
+            try {
+                const plots = await getPlots();
+                if (plots && Array.isArray(plots)) {
+                    const processed = plots.map(p => {
+                        let geometry = p.geometry;
+                        if (typeof geometry === 'string') {
+                            try { geometry = JSON.parse(geometry); } catch (e) { }
+                        }
+                        if (!geometry && (p.lng || p.lat)) {
+                            geometry = {
+                                type: 'Point',
+                                coordinates: [parseFloat(p.lng || 0), parseFloat(p.lat || 0)]
+                            };
+                        }
+                        return {
+                            ...p,
+                            id: p.id,
+                            farmerName: p.name || p.farmer_name || 'ไม่ระบุชื่อ',
+                            carbon: parseFloat(p.carbon_tons) || 0,
+                            areaRai: parseFloat(p.area_rai) || 0,
+                            geometry: geometry,
+                            plantingYearBE: p.planting_year ? parseInt(p.planting_year) + 543 : '-',
+                            variety: p.notes?.includes('พันธุ์:') ? p.notes.split('พันธุ์:')[1]?.trim() : (p.variety || 'PB 235')
+                        };
+                    });
+                    setSavedPlots(processed.filter(p => p.geometry));
+                }
+            } catch (err) {
+                console.error('Failed to load plots for map:', err);
+            }
+        };
+
+        loadInitialPlots();
 
         // Enable 3D Globe projection
         map.current.on('load', () => {
@@ -686,14 +723,51 @@ function MapPage() {
         }
     };
 
-    const finalizeAllPending = () => {
+    const finalizeAllPending = async () => {
         if (pendingPlots.length === 0) return;
 
-        // Move all from pending to saved
-        const newlySaved = pendingPlots.map(p => ({ ...p, isPending: false }));
-        setSavedPlots(prev => [...prev, ...newlySaved]);
-        setPendingPlots([]);
-        alert(`บันทึกเรียบร้อยทั้งหมด ${newlySaved.length} แปลง!`);
+        try {
+            console.log('Finalizing plots:', pendingPlots);
+            const savePromises = pendingPlots.map(p => {
+                // Parse geometry if it's a string, otherwise use as is
+                let geometryObj = p.geometry;
+                if (typeof geometryObj === 'string') {
+                    try {
+                        geometryObj = JSON.parse(geometryObj);
+                    } catch (e) {
+                        console.error('Failed to parse geometry string:', e);
+                    }
+                }
+
+                const apiData = {
+                    name: p.farmerName || 'ไม่ระบุชื่อ',
+                    planting_year: p.plantingYearBE ? parseInt(p.plantingYearBE) - 543 : new Date().getFullYear(),
+                    geometry: geometryObj,
+                    notes: `พันธุ์: ${p.variety || 'RRIM 600'}${p.notes ? ' | ' + p.notes : ''}`
+                };
+
+                console.log('Sending apiData to createPlot:', apiData);
+                return createPlot(apiData);
+            });
+
+            const results = await Promise.all(savePromises);
+            console.log('Successfully saved plots:', results);
+
+            // Map results back to local format if needed
+            const newlySaved = results.map((result, index) => ({
+                ...pendingPlots[index],
+                id: result.id,
+                isPending: false
+            }));
+
+            setSavedPlots(prev => [...prev, ...newlySaved]);
+            setPendingPlots([]);
+            alert(`บันทึกเรียบร้อยทั้งหมด ${newlySaved.length} แปลง!\nข้อมูลพร้อมแสดงผลบนแดชบอร์ดแล้ว`);
+        } catch (err) {
+            console.error('Failed to save plots to API:', err);
+            const errorMsg = err.message || 'Unknown error';
+            alert(`เกิดข้อผิดพลาดในการบันทึกข้อมูล:\n${errorMsg}\n\nกรุณาตรวจสอบว่าเซิร์ฟเวอร์ Backend ทำงานอยู่ที่พอร์ต 8000`);
+        }
     };
 
     const handleZoomToPlot = (geometry) => {

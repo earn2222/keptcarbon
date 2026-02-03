@@ -10,7 +10,7 @@ const getAuthHeaders = (contentType = 'application/json') => {
 
 export const calculateCarbon = async (age, areaRai, method = 'tgo') => {
     try {
-        const response = await fetch(`${API_URL}/api/carbon/calculate`, {
+        const response = await fetch(`${API_URL}/api/carbon/calculate/`, {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify({
@@ -33,7 +33,7 @@ export const calculateCarbon = async (age, areaRai, method = 'tgo') => {
 
 export const getCarbonSummary = async () => {
     try {
-        const response = await fetch(`${API_URL}/api/carbon/summary`, {
+        const response = await fetch(`${API_URL}/api/carbon/summary/`, {
             headers: getAuthHeaders()
         });
         if (!response.ok) throw new Error('Failed to fetch summary');
@@ -46,7 +46,7 @@ export const getCarbonSummary = async () => {
 
 export const createPlot = async (plotData) => {
     try {
-        const response = await fetch(`${API_URL}/api/plots`, {
+        const response = await fetch(`${API_URL}/api/plots/`, {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify(plotData),
@@ -66,7 +66,7 @@ export const createPlot = async (plotData) => {
 
 export const getPlots = async () => {
     try {
-        const response = await fetch(`${API_URL}/api/plots`, {
+        const response = await fetch(`${API_URL}/api/plots/`, {
             headers: getAuthHeaders()
         });
         if (!response.ok) throw new Error('Failed to fetch plots');
