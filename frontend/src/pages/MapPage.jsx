@@ -1610,6 +1610,8 @@ function MapPage() {
                 .m-card {
                     font-family: 'Prompt', 'Inter', 'Anuphan', -apple-system, sans-serif;
                     background: #ffffff;
+                    border-radius: 16px;
+                    overflow: hidden;
                 }
 
                 /* Header - Soft Green Background */
