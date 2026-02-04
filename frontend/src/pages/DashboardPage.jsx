@@ -395,30 +395,30 @@ function DashboardPage() {
             </button>
 
             {/* ==========================================
-                VERTICAL PLOT SIDEBAR (Right Side)
+                VERTICAL PLOT SIDEBAR (Floating Card Style) - White/Green Theme
             ========================================== */}
             <div
-                className={`fixed top-0 right-0 h-full w-full max-w-[360px] z-[60] transform transition-transform duration-500 cubic-bezier(0.16, 1, 0.3, 1) ${showPlotListModal ? 'translate-x-0' : 'translate-x-full'
+                className={`fixed top-24 bottom-32 right-6 w-[85vw] md:w-80 z-[60] transform transition-all duration-500 cubic-bezier(0.16, 1, 0.3, 1) rounded-3xl ${showPlotListModal ? 'translate-x-0 opacity-100' : 'translate-x-20 opacity-0 pointer-events-none'
                     }`}
             >
-                {/* Backdrop for mobile only */}
+                {/* Backdrop for mobile only (optional, can remove if not needed for floating feel) */}
                 {showPlotListModal && (
                     <div
-                        className="fixed inset-0 bg-black/20 backdrop-blur-sm -z-10 md:hidden"
+                        className="fixed inset-0 bg-transparent -z-10 md:hidden"
                         onClick={() => setShowPlotListModal(false)}
                     />
                 )}
 
-                <div className="h-full w-full bg-slate-900/95 backdrop-blur-2xl border-l border-white/10 shadow-2xl flex flex-col">
+                <div className="h-full w-full bg-white/90 backdrop-blur-2xl border border-white/50 overflow-hidden shadow-2xl shadow-emerald-900/10 flex flex-col rounded-3xl">
                     {/* Header */}
-                    <div className="px-6 py-5 border-b border-white/10 flex items-center justify-between bg-black/20">
+                    <div className="px-5 py-5 border-b border-slate-100 flex items-center justify-between bg-white/50">
                         <div>
-                            <h3 className="text-lg font-bold text-white">รายการแปลง</h3>
-                            <p className="text-xs text-slate-400 mt-0.5">ทั้งหมด {accumulatedPlots.length} แปลง</p>
+                            <h3 className="text-lg font-bold text-slate-800">รายการแปลง</h3>
+                            <p className="text-xs text-slate-500 mt-0.5">ทั้งหมด {accumulatedPlots.length} แปลง</p>
                         </div>
                         <button
                             onClick={() => setShowPlotListModal(false)}
-                            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+                            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-700 transition-colors"
                         >
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -427,26 +427,26 @@ function DashboardPage() {
                     </div>
 
                     {/* Check / Search */}
-                    <div className="p-4 border-b border-white/5">
+                    <div className="p-4 border-b border-slate-50 bg-white/50">
                         <div className="relative">
                             <input
                                 type="text"
                                 placeholder="ค้นหาแปลง..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/50 focus:bg-black/40 transition-all placeholder-slate-500"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all placeholder-slate-400"
                             />
-                            <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                         </div>
                     </div>
 
                     {/* List */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                    <div className="flex-1 overflow-y-auto p-3 space-y-2.5 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
                         {filteredPlots.length === 0 ? (
                             <div className="text-center py-10">
-                                <p className="text-slate-500 text-sm">ไม่พบข้อมูล</p>
+                                <p className="text-slate-400 text-sm">ไม่พบข้อมูล</p>
                             </div>
                         ) : (
                             filteredPlots.map((plot, idx) => (
@@ -454,44 +454,43 @@ function DashboardPage() {
                                     key={plot.id}
                                     onClick={() => {
                                         zoomToPlot(plot);
-                                        // On mobile, maybe close sidebar? Optional.
                                         if (window.innerWidth < 768) setShowPlotListModal(false);
                                     }}
-                                    className={`group relative p-3 rounded-xl border transition-all cursor-pointer ${selectedPlotId === plot.id
-                                        ? 'bg-emerald-500/10 border-emerald-500/30'
-                                        : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10'
+                                    className={`group relative p-3 rounded-xl border transition-all cursor-pointer shadow-sm hover:shadow-md ${selectedPlotId === plot.id
+                                        ? 'bg-emerald-50 border-emerald-500 shadow-emerald-100'
+                                        : 'bg-white border-slate-100 hover:border-emerald-300'
                                         }`}
                                 >
                                     <div className="flex items-start justify-between mb-2">
                                         <div className="flex items-center gap-3">
-                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${selectedPlotId === plot.id
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-colors ${selectedPlotId === plot.id
                                                 ? 'bg-emerald-500 text-white'
-                                                : 'bg-slate-800 text-slate-400 group-hover:bg-slate-700 group-hover:text-white'
+                                                : 'bg-slate-100 text-slate-500 group-hover:bg-emerald-100 group-hover:text-emerald-700'
                                                 }`}>
                                                 #{idx + 1}
                                             </div>
                                             <div>
-                                                <h4 className={`text-sm font-bold ${selectedPlotId === plot.id ? 'text-emerald-400' : 'text-slate-200'}`}>
+                                                <h4 className={`text-sm font-bold ${selectedPlotId === plot.id ? 'text-emerald-700' : 'text-slate-700'}`}>
                                                     แปลง #{plot.id}
                                                 </h4>
-                                                <p className="text-[10px] text-slate-500">
+                                                <p className="text-[10px] text-slate-400">
                                                     {new Date(plot.date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
                                                 </p>
                                             </div>
                                         </div>
                                         {selectedPlotId === plot.id && (
-                                            <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
                                         )}
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-2 mt-2">
-                                        <div className="bg-black/20 rounded-lg px-2 py-1.5 flex flex-col">
-                                            <span className="text-[9px] text-slate-500 uppercase">พื้นที่</span>
-                                            <span className="text-xs font-medium text-slate-300">{plot.areaRai.toFixed(1)} ไร่</span>
+                                        <div className="bg-slate-50 rounded-lg px-2.5 py-1.5 flex flex-col border border-slate-100">
+                                            <span className="text-[9px] text-slate-400 uppercase font-medium">พื้นที่</span>
+                                            <span className="text-xs font-bold text-slate-700">{plot.areaRai.toFixed(1)} ไร่</span>
                                         </div>
-                                        <div className="bg-black/20 rounded-lg px-2 py-1.5 flex flex-col">
-                                            <span className="text-[9px] text-slate-500 uppercase">คาร์บอน</span>
-                                            <span className="text-xs font-medium text-emerald-400">{plot.carbon.toFixed(0)} tCO₂e</span>
+                                        <div className="bg-emerald-50/50 rounded-lg px-2.5 py-1.5 flex flex-col border border-emerald-100/50">
+                                            <span className="text-[9px] text-emerald-600/70 uppercase font-medium">คาร์บอน</span>
+                                            <span className="text-xs font-bold text-emerald-600">{plot.carbon.toFixed(0)} tCO₂e</span>
                                         </div>
                                     </div>
                                 </div>
