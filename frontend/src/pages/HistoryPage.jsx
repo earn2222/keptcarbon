@@ -263,6 +263,8 @@ function HistoryPage() {
         }
     }
 
+    const [isNavExpanded, setIsNavExpanded] = useState(false)
+
     const handleNavClick = (path) => history.push(path)
 
     const filteredPlots = plots.filter(p =>
@@ -294,9 +296,30 @@ function HistoryPage() {
     const isPositive = carbonDiff >= 0
 
     return (
-        <div className="relative w-full min-h-screen bg-[#f8fafc] flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-700">
+        <div className="relative w-full min-h-screen bg-[#f8fafc] flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-700 overflow-x-hidden">
 
-            <main className="flex-1 w-full max-w-7xl mx-auto p-4 lg:p-8 pt-32 pb-24 flex flex-col gap-8">
+            <style>{`
+        @keyframes nav-item-pop-vertical {
+            0% { transform: scale(0) translateX(-20px); opacity: 0; }
+            70% { transform: scale(1.1) translateX(2px); opacity: 1; }
+            100% { transform: scale(1) translateX(0); opacity: 1; }
+        }
+        .nav-pop-v-1 { animation: nav-item-pop-vertical 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.05s forwards; opacity: 0; }
+        .nav-pop-v-2 { animation: nav-item-pop-vertical 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.10s forwards; opacity: 0; }
+        .nav-pop-v-3 { animation: nav-item-pop-vertical 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s forwards; opacity: 0; }
+        .nav-pop-v-4 { animation: nav-item-pop-vertical 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.20s forwards; opacity: 0; }
+        .nav-pop-v-5 { animation: nav-item-pop-vertical 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s forwards; opacity: 0; }
+        
+        .glass-pill-v {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+    `}</style>
+
+            <main className="flex-1 w-full max-w-7xl mx-auto p-4 lg:p-8 pt-12 pb-32 flex flex-col gap-8">
 
                 {/* HEADER SECTION */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -478,49 +501,73 @@ function HistoryPage() {
 
             </main>
 
-            {/* NAVIGATION BAR */}
-            <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] animate-slide-down">
-                <nav className="flex items-center p-2 bg-white/80 backdrop-blur-md rounded-full border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 gap-1 md:gap-2">
+            {/* ==========================================
+                MAGIC MENU - TOP LEFT
+            ========================================== */}
+            <div
+                className="fixed top-8 left-8 z-[2000] flex items-start"
+                onMouseEnter={() => setIsNavExpanded(true)}
+                onMouseLeave={() => setIsNavExpanded(false)}
+            >
+                <div className={`
+                    glass-pill-v transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]
+                    flex flex-col items-center overflow-hidden
+                    ${isNavExpanded ? 'p-2 gap-2 rounded-[2rem]' : 'p-1 rounded-full'}
+                `}>
 
-                    <button
-                        onClick={() => handleNavClick('/')}
-                        className="group w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all bg-transparent hover:bg-white"
-                        title="หน้าหลัก"
-                    >
-                        <HomeIcon className="w-5 h-5 text-slate-400 group-hover:text-slate-800 transition-colors" />
-                    </button>
+                    {/* Collapsed Active Icon / Menu Trigger */}
+                    {!isNavExpanded && (
+                        <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg cursor-pointer">
+                            <HistoryIcon className="w-6 h-6" />
+                        </div>
+                    )}
 
-                    <button
-                        onClick={() => handleNavClick('/map')}
-                        className="group w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all bg-transparent hover:bg-white"
-                        title="แผนที่"
-                    >
-                        <MapIcon className="w-5 h-5 text-slate-400 group-hover:text-blue-500 transition-colors" />
-                    </button>
+                    {/* Expanded Items */}
+                    {isNavExpanded && (
+                        <>
+                            {/* Home */}
+                            <button
+                                onClick={() => handleNavClick('/')}
+                                className="nav-pop-v-1 group relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all hover:bg-emerald-50 text-slate-400 hover:text-emerald-600"
+                            >
+                                <HomeIcon className="w-5 h-5" />
+                                <span className="absolute left-16 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">หน้าหลัก</span>
+                            </button>
 
-                    <button
-                        onClick={() => handleNavClick('/dashboard')}
-                        className="group w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all bg-transparent hover:bg-white"
-                        title="แดชบอร์ด"
-                    >
-                        <DashboardIcon className="w-5 h-5 text-slate-400 group-hover:text-purple-500 transition-colors" />
-                    </button>
+                            {/* Map */}
+                            <button
+                                onClick={() => handleNavClick('/map')}
+                                className="nav-pop-v-2 group relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all hover:bg-emerald-50 text-slate-400 hover:text-blue-500"
+                            >
+                                <MapIcon className="w-5 h-5" />
+                                <span className="absolute left-16 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">แผนที่สังเขป</span>
+                            </button>
 
-                    <button
-                        onClick={() => handleNavClick('/dashboard/personal')}
-                        className="group w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all bg-transparent hover:bg-white"
-                        title="ส่วนตัว"
-                    >
-                        <UserIcon className="w-5 h-5 text-slate-400 group-hover:text-emerald-500 transition-colors" />
-                    </button>
+                            {/* Dashboard */}
+                            <button
+                                onClick={() => handleNavClick('/dashboard')}
+                                className="nav-pop-v-3 group relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all hover:bg-emerald-50 text-slate-400 hover:text-purple-500"
+                            >
+                                <DashboardIcon className="w-5 h-5" />
+                                <span className="absolute left-16 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">แดชบอร์ดรวม</span>
+                            </button>
 
-                    {/* Active Indicator */}
-                    <div className="relative w-12 h-12 md:w-14 md:h-14 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-emerald-500/30 transform transition-transform">
-                        <HistoryIcon className="w-6 h-6 z-10" />
-                        <div className="absolute inset-0 bg-emerald-400 blur-md opacity-40 rounded-full animate-pulse"></div>
-                    </div>
+                            {/* Personal */}
+                            <button
+                                onClick={() => handleNavClick('/dashboard/personal')}
+                                className="nav-pop-v-4 group relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all hover:bg-emerald-50 text-slate-400 hover:text-emerald-600"
+                            >
+                                <UserIcon className="w-5 h-5" />
+                                <span className="absolute left-16 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">ส่วนตัว</span>
+                            </button>
 
-                </nav>
+                            {/* History (Active) */}
+                            <div className="nav-pop-v-5 w-12 h-12 rounded-2xl bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/30">
+                                <HistoryIcon className="w-6 h-6" />
+                            </div>
+                        </>
+                    )}
+                </div>
             </div>
 
         </div>

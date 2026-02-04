@@ -84,6 +84,8 @@ function PersonalDashboardPage() {
         carbon: 0
     })
 
+    const [isNavExpanded, setIsNavExpanded] = useState(false)
+
     const handleNavClick = (path) => {
         history.push(path)
     }
@@ -287,14 +289,35 @@ function PersonalDashboardPage() {
     // RENDER
     // ==========================================
     return (
-        <div className="relative w-full min-h-screen bg-[#f7f5f2] flex flex-col">
+        <div className="relative w-full min-h-screen bg-[#f8f9fa] flex flex-col font-sans overflow-x-hidden">
+
+            <style>{`
+        @keyframes nav-item-pop-vertical {
+            0% { transform: scale(0) translateX(-20px); opacity: 0; }
+            70% { transform: scale(1.1) translateX(2px); opacity: 1; }
+            100% { transform: scale(1) translateX(0); opacity: 1; }
+        }
+        .nav-pop-v-1 { animation: nav-item-pop-vertical 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.05s forwards; opacity: 0; }
+        .nav-pop-v-2 { animation: nav-item-pop-vertical 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.10s forwards; opacity: 0; }
+        .nav-pop-v-3 { animation: nav-item-pop-vertical 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s forwards; opacity: 0; }
+        .nav-pop-v-4 { animation: nav-item-pop-vertical 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.20s forwards; opacity: 0; }
+        .nav-pop-v-5 { animation: nav-item-pop-vertical 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s forwards; opacity: 0; }
+        
+        .glass-pill-v {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+    `}</style>
 
             {/* MAIN CONTENT */}
-            <main className="flex-1 w-full max-w-7xl mx-auto p-4 lg:p-8 pt-32 pb-12 flex flex-col gap-8">
+            <main className="flex-1 w-full max-w-7xl mx-auto p-4 lg:p-8 pt-12 pb-32 flex flex-col gap-8">
 
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
+                    <div className="pl-20 md:pl-0">
                         <h1 className="text-3xl font-bold text-slate-800">แดชบอร์ดส่วนตัว</h1>
                         <p className="text-sm text-slate-500 font-medium mt-1">จัดการแปลงและดูสถิติข้อมูลคาร์บอนเครดิตของคุณ</p>
                     </div>
@@ -455,63 +478,72 @@ function PersonalDashboardPage() {
             </main>
 
             {/* ==========================================
-                TOP NAVBAR - MINIMALIST FLOATING (Improved)
+                MAGIC MENU - TOP LEFT
             ========================================== */}
-            <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] animate-slide-down">
-                <nav className="flex items-center p-2 bg-white/70 backdrop-blur-xl rounded-full border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 gap-2">
+            <div
+                className="fixed top-8 left-8 z-[2000] flex items-start"
+                onMouseEnter={() => setIsNavExpanded(true)}
+                onMouseLeave={() => setIsNavExpanded(false)}
+            >
+                <div className={`
+                    glass-pill-v transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]
+                    flex flex-col items-center overflow-hidden
+                    ${isNavExpanded ? 'p-2 gap-2 rounded-[2rem]' : 'p-1 rounded-full'}
+                `}>
 
-                    {/* Home */}
-                    <button
-                        onClick={() => handleNavClick('/')}
-                        className="group relative w-12 h-12 rounded-full flex items-center justify-center transition-all bg-transparent hover:bg-white hover:scale-105"
-                    >
-                        <div className="text-slate-400 group-hover:text-amber-500 transition-colors duration-300">
-                            <HomeIcon className="w-5 h-5" />
+                    {/* Collapsed Active Icon / Menu Trigger */}
+                    {!isNavExpanded && (
+                        <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg cursor-pointer">
+                            <UserIcon className="w-6 h-6" />
                         </div>
-                        <span className="absolute -bottom-10 opacity-0 group-hover:opacity-100 transition-all duration-300 text-[10px] font-bold text-slate-600 bg-white/90 px-2 py-1 rounded-lg shadow-xl translate-y-2 group-hover:translate-y-0 pointer-events-none">หน้าหลัก</span>
-                    </button>
+                    )}
 
-                    {/* Map */}
-                    <button
-                        onClick={() => handleNavClick('/map')}
-                        className="group relative w-12 h-12 rounded-full flex items-center justify-center transition-all bg-transparent hover:bg-white hover:scale-105"
-                    >
-                        <div className="text-slate-400 group-hover:text-blue-500 transition-colors duration-300">
-                            <MapIcon className="w-5 h-5" />
-                        </div>
-                        <span className="absolute -bottom-10 opacity-0 group-hover:opacity-100 transition-all duration-300 text-[10px] font-bold text-slate-600 bg-white/90 px-2 py-1 rounded-lg shadow-xl translate-y-2 group-hover:translate-y-0 pointer-events-none">แผนที่</span>
-                    </button>
+                    {/* Expanded Items */}
+                    {isNavExpanded && (
+                        <>
+                            {/* Home */}
+                            <button
+                                onClick={() => handleNavClick('/')}
+                                className="nav-pop-v-1 group relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all hover:bg-emerald-50 text-slate-400 hover:text-emerald-600"
+                            >
+                                <HomeIcon className="w-5 h-5" />
+                                <span className="absolute left-16 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">หน้าหลัก</span>
+                            </button>
 
-                    {/* Dashboard */}
-                    <button
-                        onClick={() => handleNavClick('/dashboard')}
-                        className="group relative w-12 h-12 rounded-full flex items-center justify-center transition-all bg-transparent hover:bg-white hover:scale-105"
-                    >
-                        <div className="text-slate-400 group-hover:text-purple-500 transition-colors duration-300">
-                            <DashboardIcon className="w-5 h-5" />
-                        </div>
-                        <span className="absolute -bottom-10 opacity-0 group-hover:opacity-100 transition-all duration-300 text-[10px] font-bold text-slate-600 bg-white/90 px-2 py-1 rounded-lg shadow-xl translate-y-2 group-hover:translate-y-0 pointer-events-none">แดชบอร์ด</span>
-                    </button>
+                            {/* Map */}
+                            <button
+                                onClick={() => handleNavClick('/map')}
+                                className="nav-pop-v-2 group relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all hover:bg-emerald-50 text-slate-400 hover:text-blue-500"
+                            >
+                                <MapIcon className="w-5 h-5" />
+                                <span className="absolute left-16 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">แผนที่สังเขป</span>
+                            </button>
 
-                    {/* Personal (Active) - Dynamic Pill Effect */}
-                    <div className="relative w-14 h-14 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-full flex items-center justify-center text-white shadow-lg shadow-emerald-500/30 transform transition-transform animate-bounce-subtle">
-                        <UserIcon className="w-6 h-6 z-10" />
-                        {/* Glow layers */}
-                        <div className="absolute inset-0 bg-emerald-400 blur-md opacity-40 rounded-full animate-pulse"></div>
-                    </div>
+                            {/* Dashboard */}
+                            <button
+                                onClick={() => handleNavClick('/dashboard')}
+                                className="nav-pop-v-3 group relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all hover:bg-emerald-50 text-slate-400 hover:text-purple-500"
+                            >
+                                <DashboardIcon className="w-5 h-5" />
+                                <span className="absolute left-16 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">แดชบอร์ดรวม</span>
+                            </button>
 
-                    {/* History */}
-                    <button
-                        onClick={() => handleNavClick('/dashboard/history')}
-                        className="group relative w-12 h-12 rounded-full flex items-center justify-center transition-all bg-transparent hover:bg-white hover:scale-105"
-                    >
-                        <div className="text-slate-400 group-hover:text-orange-500 transition-colors duration-300">
-                            <HistoryIcon className="w-5 h-5" />
-                        </div>
-                        <span className="absolute -bottom-10 opacity-0 group-hover:opacity-100 transition-all duration-300 text-[10px] font-bold text-slate-600 bg-white/90 px-2 py-1 rounded-lg shadow-xl translate-y-2 group-hover:translate-y-0 pointer-events-none">ประวัติ</span>
-                    </button>
+                            {/* Personal (Active Highlight) */}
+                            <div className="nav-pop-v-4 w-12 h-12 rounded-2xl bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/30">
+                                <UserIcon className="w-6 h-6" />
+                            </div>
 
-                </nav>
+                            {/* History */}
+                            <button
+                                onClick={() => handleNavClick('/dashboard/history')}
+                                className="nav-pop-v-5 group relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all hover:bg-emerald-50 text-slate-400 hover:text-orange-500"
+                            >
+                                <HistoryIcon className="w-5 h-5" />
+                                <span className="absolute left-16 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">ประวัติประเมิน</span>
+                            </button>
+                        </>
+                    )}
+                </div>
             </div>
         </div>
     )
