@@ -566,6 +566,84 @@ function MapPage() {
     }, [])
 
     // ==========================================
+    // HANDLE URL PARAMS (Edit Plot)
+    // ==========================================
+    useEffect(() => {
+        if (!mapLoaded || savedPlots.length === 0) return;
+
+        const params = new URLSearchParams(window.location.search);
+        const editPlotId = params.get('editPlotId');
+
+        if (editPlotId) {
+            const plot = savedPlots.find(p => p.id.toString() === editPlotId);
+            if (plot) {
+                console.log('Found plot to edit:', plot);
+                // Zoom to plot
+                handleZoomToPlot(plot.geometry);
+
+                // Open Popup REMOVED
+                // setSelectedPlotForPopup(plot); // User requested no popup
+
+                // Clear URL param to prevent re-triggering (optional but good UI)
+                const newUrl = window.location.pathname;
+                window.history.replaceState({}, '', newUrl);
+            }
+        }
+    }, [mapLoaded, savedPlots]);
+
+    // ==========================================
+    // RENDER SELECTED POPUP (Effect)
+    // ==========================================
+    useEffect(() => {
+        if (!map.current || !selectedPlotForPopup) return;
+
+        const plot = selectedPlotForPopup;
+        // Close existing popup if any
+        const existingPopups = document.getElementsByClassName('mapboxgl-popup');
+        if (existingPopups.length > 0) {
+            Array.from(existingPopups).forEach(p => p.remove());
+        }
+
+        // Determine center for popup
+        let coordinates;
+        if (plot.geometry.type === 'Point') {
+            coordinates = plot.geometry.coordinates;
+        } else {
+            // Use centroid for polygon
+            const center = turf.center(plot.geometry);
+            coordinates = center.geometry.coordinates;
+        }
+
+        // Create Popup HTML (Reuse the design from click handler)
+        const htmlContent = `
+            <div style="font-family: 'Inter', sans-serif; min-width: 220px; padding: 4px;">
+                <h4 style="font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 2px;">${plot.farmerName}</h4>
+                <p style="font-size: 11px; color: #64748b; margin-bottom: 8px;">แปลง ID: ${plot.id}</p>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; background: #f8fafc; padding: 8px; border-radius: 8px;">
+                     <div>
+                        <span style="display: block; font-size: 10px; color: #94a3b8;">พื้นที่ (ไร่)</span>
+                        <span style="display: block; font-size: 12px; font-weight: 600; color: #475569;">${plot.areaRai}</span>
+                    </div>
+                    <div>
+                        <span style="display: block; font-size: 10px; color: #94a3b8;">คาร์บอน (tCO2e)</span>
+                        <span style="display: block; font-size: 12px; font-weight: 600; color: #10b981;">${plot.carbon}</span>
+                    </div>
+                </div>
+                <div style="background: #ecfdf5; color: #047857; text-align: center; padding: 6px; border-radius: 6px; font-size: 11px; font-weight: 600;">
+                    คุณกำลังดูแปลงนี้
+                </div>
+            </div>
+        `;
+
+        new maplibregl.Popup({ closeButton: true, maxWidth: '300px', className: 'custom-popup-auto' })
+            .setLngLat(coordinates)
+            .setHTML(htmlContent)
+            .addTo(map.current);
+
+    }, [selectedPlotForPopup]);
+
+    // ==========================================
     // MAP DATA SYNC & DRAWING LOGIC
     // ==========================================
     useEffect(() => {
@@ -776,10 +854,41 @@ function MapPage() {
             const feature = geometry.type === 'FeatureCollection' ? geometry : turf.feature(geometry);
             const bbox = turf.bbox(feature);
             map.current.fitBounds(bbox, {
-                padding: { top: 120, bottom: 120, left: 120, right: window.innerWidth > 640 ? 450 : 120 },
-                maxZoom: 18,
-                duration: 1000
+                padding: 100,
+                maxZoom: 20, // Maximum satellite zoom
+                duration: 2000
             });
+
+            // Add a temporary pulsing marker to clearly show location
+            const center = turf.center(feature);
+            const el = document.createElement('div');
+            el.className = 'edit-target-marker';
+            el.innerHTML = `
+                <div style="position: relative; display: flex; flex-direction: column; items-align: center;">
+                    <div style="width: 20px; height: 20px; background: #ef4444; border-radius: 50%; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); animation: pulse-red 2s infinite;"></div>
+                    <div style="position: absolute; top: 24px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">
+                        แปลงที่เลือก
+                    </div>
+                </div>
+                <style>
+                    @keyframes pulse-red {
+                        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+                        70% { transform: scale(1); box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); }
+                        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+                    }
+                </style>
+            `;
+
+            // Remove existing edit markers
+            const existingMarkers = document.getElementsByClassName('edit-target-marker');
+            while (existingMarkers[0]) {
+                existingMarkers[0].parentNode.remove();
+            }
+
+            new maplibregl.Marker({ element: el })
+                .setLngLat(center.geometry.coordinates)
+                .addTo(map.current);
+
         } catch (err) {
             console.error('Zoom error:', err);
         }
@@ -788,8 +897,25 @@ function MapPage() {
     // ==========================================
     // INTRO ANIMATION - Globe to Thailand
     // ==========================================
+    // ==========================================
+    // INTRO ANIMATION - Globe to Thailand
+    // ==========================================
     const startIntroAnimation = useCallback(() => {
         if (!map.current) return
+
+        // Check if we are in "Edit Mode" (coming from Dashboard)
+        // If so, skip the intro animation to avoid conflicting with the plot zoom
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('editPlotId')) {
+            console.log('Skipping intro animation due to edit mode');
+            // Ensure we are in a reasonable view if plot zoom fails, but don't force fly
+            map.current.jumpTo({
+                center: [100.5018, 13.7563],
+                zoom: 6, // Closer start for Thailand
+                pitch: 0
+            });
+            return;
+        }
 
         // Start from space view
         map.current.easeTo({

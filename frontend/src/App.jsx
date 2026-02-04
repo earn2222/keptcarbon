@@ -9,6 +9,7 @@ import MapPage from './pages/MapPage'
 import MapPageNew from './pages/MapPageNew'
 import HistoryPage from './pages/HistoryPage'
 import ResponsiveDemo from './pages/ResponsiveDemo'
+import PersonalDashboardPage from './pages/PersonalDashboardPage'
 
 
 // Layout
@@ -29,6 +30,7 @@ function App() {
             <Route path="/map" component={MapPage} />
 
             {/* Dashboard Routes */}
+            <Route path="/dashboard/personal" component={PersonalDashboardPage} />
             <Route exact path="/dashboard" component={DashboardPage} />
             <Route path="/dashboard/history" component={HistoryPage} />
 

@@ -539,7 +539,7 @@ function DashboardPage() {
 
                     {/* Personal */}
                     <button
-                        onClick={() => history.push('/dashboard?view=personal')}
+                        onClick={() => history.push('/dashboard/personal')}
                         className="group relative flex flex-col items-center justify-center w-10 h-10 transition-all"
                     >
                         <div className="text-white/70 group-hover:text-white group-hover:scale-110 transition-all duration-300">
