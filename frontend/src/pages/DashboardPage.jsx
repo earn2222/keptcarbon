@@ -38,9 +38,9 @@ const HistoryIcon = ({ className = "w-5 h-5" }) => (
     </svg>
 )
 
-const LeafIcon = ({ className = "w-6 h-6" }) => (
+const CarbonIcon = ({ className = "w-6 h-6" }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 0 1 8.646 3.646 9.003 9.003 0 0 0 12 21a9.003 9.003 0 0 0 8.354-5.646Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15a4.5 4.5 0 0 0 4.5 4.5H18a3.75 3.75 0 0 0 1.332-7.257 3 3 0 0 0-3.758-3.848 5.25 5.25 0 0 0-10.233 2.33A4.502 4.502 0 0 0 2.25 15Z" />
     </svg>
 )
 
@@ -315,7 +315,7 @@ function DashboardPage() {
                         <div className="relative bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/20 shadow-lg hover:shadow-emerald-500/10 transition-all duration-500 hover:-translate-y-0.5">
                             <div className="flex items-center gap-3">
                                 <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-md shadow-emerald-500/30">
-                                    <LeafIcon className="w-5 h-5 text-white" />
+                                    <CarbonIcon className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
                                     <p className="text-emerald-300 text-[10px] font-semibold uppercase tracking-wider leading-none">ปริมาณคาร์บอน</p>
@@ -336,7 +336,7 @@ function DashboardPage() {
                         <div className="relative bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/20 shadow-lg hover:shadow-green-500/10 transition-all duration-500 hover:-translate-y-0.5">
                             <div className="flex items-center gap-3">
                                 <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-md shadow-green-500/30">
-                                    <MapPinIcon className="w-5 h-5 text-white" />
+                                    <MapIcon className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
                                     <p className="text-green-300 text-[10px] font-semibold uppercase tracking-wider leading-none">พื้นที่ทั้งหมด</p>
