@@ -375,11 +375,11 @@ function DashboardPage() {
             </div>
 
             {/* ==========================================
-                SIDEBAR TOGGLE BUTTON
+                SIDEBAR TOGGLE BUTTON (Bottom Right)
             ========================================== */}
             <button
                 onClick={() => setShowPlotListModal(!showPlotListModal)}
-                className={`absolute top-6 right-6 z-50 transition-all duration-300 ${showPlotListModal ? 'right-80 mr-4 opacity-0 pointer-events-none' : 'opacity-100'}`}
+                className={`absolute bottom-28 right-6 z-50 transition-all duration-300 ${showPlotListModal ? 'translate-x-20 opacity-0 pointer-events-none' : 'opacity-100'}`}
             >
                 <div className="relative w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-lg flex items-center justify-center hover:bg-white/20 transition-all active:scale-95 group">
                     <MenuIcon className="w-6 h-6 text-white group-hover:scale-110 transition-transform" />
