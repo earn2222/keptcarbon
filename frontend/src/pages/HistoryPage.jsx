@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useHistory } from 'react-router-dom'
 import { getPlots, deletePlot } from '../services/api'
 
@@ -53,11 +53,146 @@ const SearchIcon = ({ className = "w-5 h-5" }) => (
     </svg>
 )
 
+// ==========================================
+// CHART COMPONENTS (Responsive & Dynamic)
+// ==========================================
+
+// --- Trend Chart (Line) ---
+const TrendChart = ({ data }) => {
+    if (!data || data.length === 0) return <div className="h-48 flex items-center justify-center text-slate-300">ไม่มีข้อมูล</div>
+
+    const padding = 10
+    const height = 100
+    const width = 300
+    const maxY = Math.max(...data.map(d => d.value), 100) * 1.2
+
+    // Calculate points
+    const points = data.map((d, i) => {
+        const x = (i / (data.length - 1 || 1)) * (width - 2 * padding) + padding
+        const y = height - (d.value / maxY) * (height - 2 * padding) - padding
+        return { x, y, value: d.value, label: d.label }
+    })
+
+    // Smooth Curve Generator
+    const createPath = (pts) => {
+        if (pts.length === 0) return ""
+        if (pts.length === 1) return `M ${pts[0].x} ${pts[0].y} h 1`
+
+        let path = `M ${pts[0].x} ${pts[0].y}`
+        for (let i = 0; i < pts.length - 1; i++) {
+            const p0 = pts[i]
+            const p1 = pts[i + 1]
+            path += ` C ${p0.x + (p1.x - p0.x) * 0.5} ${p0.y}, ${p0.x + (p1.x - p0.x) * 0.5} ${p1.y}, ${p1.x} ${p1.y}`
+        }
+        return path
+    }
+
+    const linePath = createPath(points)
+    const areaPath = `${linePath} L ${points[points.length - 1].x} ${height} L ${points[0].x} ${height} Z`
+
+    return (
+        <div className="w-full h-full relative">
+            <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible" preserveAspectRatio="none">
+                <defs>
+                    <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#10b981" stopOpacity="0.2" />
+                        <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+                    </linearGradient>
+                </defs>
+
+                {/* Grid Lines */}
+                {[0, 0.25, 0.5, 0.75, 1].map(ratio => (
+                    <line
+                        key={ratio}
+                        x1="0" y1={height - (ratio * (height - 2 * padding)) - padding}
+                        x2={width} y2={height - (ratio * (height - 2 * padding)) - padding}
+                        stroke="#f1f5f9"
+                        strokeWidth="1"
+                        vectorEffect="non-scaling-stroke"
+                    />
+                ))}
+
+                {/* Area & Line */}
+                <path d={areaPath} fill="url(#trendGradient)" />
+                <path d={linePath} fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+
+                {/* Interactive Points */}
+                {points.map((p, i) => (
+                    <g key={i} className="group">
+                        <circle cx={p.x} cy={p.y} r="3" fill="#ffffff" stroke="#10b981" strokeWidth="2" className="transition-all duration-300 group-hover:r-5 cursor-pointer" vectorEffect="non-scaling-stroke" />
+                        <foreignObject x={p.x - 30} y={p.y - 40} width="60" height="30" className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                            <div className="flex items-center justify-center">
+                                <span className="bg-slate-800 text-white text-[9px] py-1 px-2 rounded-lg shadow-lg whitespace-nowrap">
+                                    {p.value.toLocaleString()} t
+                                </span>
+                            </div>
+                        </foreignObject>
+                    </g>
+                ))}
+            </svg>
+
+            {/* Axis Labels */}
+            <div className="flex justify-between mt-2 px-2 text-[10px] text-slate-400 font-medium">
+                {points.map((p, i) => (
+                    <span key={i} style={{ left: `${(p.x / width) * 100}%` }} className="text-center transform -translate-x-1/2 w-8">
+                        {p.label}
+                    </span>
+                ))}
+            </div>
+        </div>
+    )
+}
+
+// --- Bar Chart (Comparison) ---
+const BarChart = ({ data }) => {
+    if (!data || data.length === 0) return <div className="h-48 flex items-center justify-center text-slate-300">ไม่มีข้อมูล</div>
+
+    const maxVal = Math.max(...data.map(d => d.value), 1)
+
+    return (
+        <div className="h-full w-full flex items-end justify-between gap-2 md:gap-4 pb-6">
+            {data.map((d, i) => {
+                const heightPercent = (d.value / maxVal) * 100
+                return (
+                    <div key={i} className="group relative flex flex-col items-center justify-end h-full flex-1 w-full">
+                        <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-all duration-300 z-10">
+                            <div className="bg-slate-800 text-white text-[10px] py-1 px-2 rounded-lg shadow-lg whitespace-nowrap">
+                                {d.value.toLocaleString()} tCO₂e
+                            </div>
+                        </div>
+
+                        <div
+                            style={{ height: `${heightPercent}%` }}
+                            className={`w-full max-w-[40px] md:max-w-[50px] rounded-t-lg transition-all duration-500 ease-out 
+                                ${i === 0 ? 'bg-gradient-to-t from-emerald-500 to-emerald-300 shadow-lg shadow-emerald-200' : 'bg-gradient-to-t from-emerald-100 to-emerald-200 hover:from-emerald-300 hover:to-emerald-400'}
+                            `}
+                        ></div>
+
+                        <span className="mt-2 text-[10px] text-slate-400 font-medium truncate w-full text-center block px-1">
+                            {d.label}
+                        </span>
+                    </div>
+                )
+            })}
+        </div>
+    )
+}
+
+// ==========================================
+// MAIN PAGE COMPONENT
+// ==========================================
+
 function HistoryPage() {
     const history = useHistory()
     const [plots, setPlots] = useState([])
-    const [stats, setStats] = useState({ plots: 0, area: 0, carbon: 0 })
     const [searchTerm, setSearchTerm] = useState('')
+    const [userStats, setUserStats] = useState({
+        totalPlots: 0,
+        totalArea: 0,
+        totalCarbon: 0,
+        thisYearCarbon: 0,
+        lastYearCarbon: 0
+    })
 
     useEffect(() => {
         fetchPlots()
@@ -66,41 +201,50 @@ function HistoryPage() {
     const fetchPlots = async () => {
         try {
             const data = await getPlots()
-            // Transform data to fit table requirements
+
+            // Transform data
             const processed = data.map((p, index) => {
                 let geometry = p.geometry;
-                if (typeof geometry === 'string') {
-                    try { geometry = JSON.parse(geometry); } catch (e) { }
-                }
+                if (typeof geometry === 'string') try { geometry = JSON.parse(geometry); } catch (e) { }
 
-                // Mock random coordinates for display if missing
                 const lat = geometry?.type === 'Point' ? geometry.coordinates[1] : (geometry?.coordinates?.[0]?.[0]?.[1] || 18.80)
                 const lng = geometry?.type === 'Point' ? geometry.coordinates[0] : (geometry?.coordinates?.[0]?.[0]?.[0] || 98.95)
 
+                const carbonVal = parseFloat(p.carbon_tons) || 0
+                const dateObj = p.created_at ? new Date(p.created_at) : new Date(2024, index % 12, 1)
+
                 return {
                     id: p.id || index + 1,
-                    date: p.created_at ? new Date(p.created_at).toLocaleDateString('th-TH') : '5 ม.ค. 2557', // Mock if missing
+                    dateObj: dateObj,
+                    date: dateObj.toLocaleDateString('th-TH'),
+                    year: dateObj.getFullYear(),
                     name: p.name || `แปลงที่ ${index + 1}`,
-                    tambon: 'สุเทพ', // Mock
-                    amphoe: 'เมือง', // Mock
-                    province: 'เชียงใหม่', // Mock
-                    coordinates: `${lat.toFixed(2)}, ${lng.toFixed(2)}`,
+                    tambon: 'สุเทพ',
+                    amphoe: 'เมือง',
+                    province: 'เชียงใหม่',
+                    coordinates: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
                     area: parseFloat(p.area_rai) || 0,
-                    method: p.method || `วิธีที่ ${Math.floor(Math.random() * 3) + 1}`,
+                    method: p.method || `การคำนวณมาตรฐาน`,
                     age: parseInt(p.tree_age) || 0,
-                    carbon: parseFloat(p.carbon_tons) || 0,
+                    carbon: carbonVal,
                     fullData: p
                 }
             })
             setPlots(processed)
 
-            // Calculate stats
+            // Calculate Stats
+            const currentYear = new Date().getFullYear()
             const totalArea = processed.reduce((sum, p) => sum + p.area, 0)
             const totalCarbon = processed.reduce((sum, p) => sum + p.carbon, 0)
-            setStats({
-                plots: processed.length,
-                area: totalArea,
-                carbon: totalCarbon
+            const thisYearCarbon = processed.filter(p => p.year === currentYear).reduce((sum, p) => sum + p.carbon, 0)
+            const lastYearCarbon = processed.filter(p => p.year === currentYear - 1).reduce((sum, p) => sum + p.carbon, 0)
+
+            setUserStats({
+                totalPlots: processed.length,
+                totalArea,
+                totalCarbon,
+                thisYearCarbon,
+                lastYearCarbon
             })
 
         } catch (error) {
@@ -108,310 +252,272 @@ function HistoryPage() {
         }
     }
 
-    const handleNavClick = (path) => {
-        history.push(path)
-    }
-
     const handleDelete = async (id) => {
         if (window.confirm('คุณต้องการลบรายการนี้ใช่หรือไม่?')) {
             try {
                 await deletePlot(id)
-                fetchPlots() // Refresh
+                fetchPlots()
             } catch (err) {
-                alert('ลบไม่สำเร็จ')
+                alert('ลบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง')
             }
         }
     }
 
-    // Filter plots
+    const handleNavClick = (path) => history.push(path)
+
     const filteredPlots = plots.filter(p =>
-        p.name.includes(searchTerm) ||
+        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.id.toString().includes(searchTerm)
     )
 
+    // Chart Data Preparation
+    const trendData = useMemo(() => {
+        if (plots.length === 0) return []
+        const grouped = {}
+        const currentYear = new Date().getFullYear()
+        for (let y = currentYear - 4; y <= currentYear; y++) grouped[y] = 0
+        plots.forEach(p => { if (grouped[p.year] !== undefined) grouped[p.year] += p.carbon })
+        return Object.keys(grouped).map(year => ({ label: year, value: grouped[year] }))
+    }, [plots])
+
+    const topPlotsData = useMemo(() => {
+        if (plots.length === 0) return []
+        return [...plots].sort((a, b) => b.carbon - a.carbon).slice(0, 5).map(p => ({
+            label: p.name, value: p.carbon, id: p.id
+        }))
+    }, [plots])
+
+    const carbonDiff = userStats.thisYearCarbon - userStats.lastYearCarbon
+    const carbonPercent = userStats.lastYearCarbon > 0
+        ? ((carbonDiff / userStats.lastYearCarbon) * 100).toFixed(1)
+        : (userStats.thisYearCarbon > 0 ? '100' : '0')
+    const isPositive = carbonDiff >= 0
+
     return (
-        <div className="relative w-full min-h-screen bg-[#f7f5f2] flex flex-col font-sans">
+        <div className="relative w-full min-h-screen bg-[#f8fafc] flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-700">
 
-            {/* MAIN CONTENT */}
-            <main className="flex-1 w-full max-w-7xl mx-auto p-4 lg:p-8 pt-32 pb-12 flex flex-col gap-6">
+            <main className="flex-1 w-full max-w-7xl mx-auto p-4 lg:p-8 pt-32 pb-24 flex flex-col gap-8">
 
-                {/* TOP PROFILE & STATS ROW */}
+                {/* HEADER SECTION */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* User Profile Card */}
-                    <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row items-center gap-8">
-                        <div className="relative">
-                            <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-500 p-[2px]">
+                    {/* Profile Card */}
+                    <div className="bg-white rounded-3xl p-6 lg:p-8 shadow-sm border border-slate-100 flex flex-col sm:flex-row items-center gap-6 lg:gap-8 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
+                        <div className="relative shrink-0">
+                            <div className="w-20 h-20 lg:w-24 lg:h-24 rounded-full bg-gradient-to-tr from-emerald-400 to-teal-500 p-[2px] shadow-lg shadow-emerald-200">
                                 <div className="w-full h-full rounded-full bg-white p-1">
-                                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Kanyapat" alt="Profile" className="w-full h-full rounded-full bg-slate-50" />
+                                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin" alt="Profile" className="w-full h-full rounded-full bg-slate-50" />
                                 </div>
                             </div>
-                            <div className="absolute bottom-0 right-0 w-6 h-6 bg-emerald-500 border-4 border-white rounded-full"></div>
+                            <div className="absolute bottom-1 right-1 w-5 h-5 bg-emerald-500 border-2 border-white rounded-full"></div>
                         </div>
-                        <div className="flex-1 text-center md:text-left">
-                            <h2 className="text-2xl font-bold text-slate-800">Kanyapat Daungjai</h2>
-                            <p className="text-slate-400 font-medium mb-6">daungjai.16002@gmail.com</p>
 
-                            <div className="flex justify-center md:justify-start gap-8">
-                                <div className="text-center">
-                                    <p className="text-3xl font-black text-slate-800">{stats.plots}</p>
-                                    <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">แปลงทั้งหมด</p>
+                        <div className="flex-1 text-center sm:text-left z-10 w-full">
+                            <h2 className="text-xl lg:text-2xl font-bold text-slate-800">ผู้ดูแลระบบ</h2>
+                            <p className="text-slate-400 text-sm font-medium mb-6">admin@keptcarbon.com</p>
+
+                            <div className="grid grid-cols-3 gap-2 sm:gap-6 divide-x divide-slate-100">
+                                <div className="text-center px-2">
+                                    <p className="text-2xl lg:text-3xl font-black text-slate-800">{userStats.totalPlots}</p>
+                                    <p className="text-[10px] sm:text-xs text-slate-400 font-bold uppercase tracking-wide mt-1">แปลงทั้งหมด</p>
                                 </div>
-                                <div className="w-px h-12 bg-slate-100"></div>
-                                <div className="text-center">
-                                    <p className="text-3xl font-black text-blue-600">{stats.area.toLocaleString()}</p>
-                                    <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">ไร่รวม</p>
+                                <div className="text-center px-2">
+                                    <p className="text-2xl lg:text-3xl font-black text-blue-500">{userStats.totalArea.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                                    <p className="text-[10px] sm:text-xs text-slate-400 font-bold uppercase tracking-wide mt-1">ไร่รวม</p>
                                 </div>
-                                <div className="w-px h-12 bg-slate-100"></div>
-                                <div className="text-center">
-                                    <p className="text-3xl font-black text-emerald-600">{stats.carbon.toFixed(0)}</p>
-                                    <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">tCO₂e</p>
+                                <div className="text-center px-2">
+                                    <p className="text-2xl lg:text-3xl font-black text-emerald-500">{userStats.totalCarbon.toFixed(0)}</p>
+                                    <p className="text-[10px] sm:text-xs text-slate-400 font-bold uppercase tracking-wide mt-1">tCO₂e</p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Quick Stats Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex flex-col justify-center items-center text-center">
-                            <p className="text-slate-500 text-xs font-medium mb-2">คาร์บอนรวมปีนี้</p>
-                            <h3 className="text-3xl font-bold text-slate-800">2,580 <span className="text-xs text-slate-400 font-normal">tCO₂e</span></h3>
-                            <span className="text-xs font-bold text-emerald-500 bg-emerald-50 px-2 py-1 rounded-full mt-2">Currently</span>
+                    {/* Quick Stats */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col justify-center items-center text-center hover:shadow-md transition-shadow">
+                            <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">ปี {new Date().getFullYear()}</p>
+                            <h3 className="text-2xl lg:text-3xl font-bold text-slate-800">{userStats.thisYearCarbon.toFixed(0)} <span className="text-xs text-slate-400 font-normal">t</span></h3>
+                            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full mt-2 border border-emerald-100">คาร์บอนล่าสุด</span>
                         </div>
-                        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex flex-col justify-center items-center text-center">
-                            <p className="text-slate-500 text-xs font-medium mb-2">คาร์บอนรวมปีก่อน</p>
-                            <h3 className="text-3xl font-bold text-slate-800">2,240 <span className="text-xs text-slate-400 font-normal">tCO₂e</span></h3>
+                        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col justify-center items-center text-center hover:shadow-md transition-shadow">
+                            <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">ปี {new Date().getFullYear() - 1}</p>
+                            <h3 className="text-2xl lg:text-3xl font-bold text-slate-800">{userStats.lastYearCarbon.toFixed(0)} <span className="text-xs text-slate-400 font-normal">t</span></h3>
                         </div>
-                        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex flex-col justify-center items-center text-center">
-                            <p className="text-slate-500 text-xs font-medium mb-2">การเปลี่ยนแปลง</p>
-                            <h3 className="text-3xl font-bold text-slate-800">+340 <span className="text-xs text-slate-400 font-normal">tCO₂e</span></h3>
-                            <span className="text-xs font-bold text-emerald-500 flex items-center gap-1 mt-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-                                +15.2% เพิ่มขึ้น
+                        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col justify-center items-center text-center hover:shadow-md transition-shadow">
+                            <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">การเปลี่ยนแปลง</p>
+                            <h3 className={`text-2xl lg:text-3xl font-bold ${isPositive ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                {isPositive ? '+' : ''}{carbonDiff.toFixed(0)}
+                            </h3>
+                            <span className={`text-[10px] font-bold flex items-center gap-1 mt-2 ${isPositive ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                {isPositive ? '▲' : '▼'} {carbonPercent}%
                             </span>
                         </div>
                     </div>
                 </div>
 
-                {/* CHARTS ROW */}
+                {/* CHARTS */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Line Chart */}
-                    <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
-                        <h3 className="text-lg font-bold text-slate-800 mb-6">แนวโน้มคาร์บอนเครดิตรายปี <span className="text-xs font-normal text-slate-400 ml-2">carbon credit trend</span></h3>
-                        <div className="relative h-64 w-full flex items-end justify-between px-4 pb-6 mt-8">
-                            {/* Grid Lines */}
-                            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
-                                {[2000, 1600, 1200, 800, 400, 0].map(val => (
-                                    <div key={val} className="w-full border-b border-slate-50 h-0 relative">
-                                        <span className="absolute -left-8 -top-2 text-[10px] text-slate-300">{val}</span>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* SVG Chart */}
-                            <svg className="absolute inset-0 w-full h-full overflow-visible" preserveAspectRatio="none">
-                                <path d="M0,80 Q100,120 200,80 T400,60 T600,100" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" className="drop-shadow-lg" vectorEffect="non-scaling-stroke" />
-                                <path d="M0,80 Q100,120 200,80 T400,60 T600,100 V300 H0 Z" fill="url(#gradient)" opacity="0.1" vectorEffect="non-scaling-stroke" />
-                                <defs>
-                                    <linearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stopColor="#10b981" />
-                                        <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-                                    </linearGradient>
-                                </defs>
-                                {/* Points */}
-                                <circle cx="0%" cy="27%" r="4" fill="white" stroke="#10b981" strokeWidth="2" />
-                                <circle cx="25%" cy="38%" r="4" fill="white" stroke="#10b981" strokeWidth="2" />
-                                <circle cx="50%" cy="20%" r="4" fill="white" stroke="#10b981" strokeWidth="2" />
-                                <circle cx="75%" cy="28%" r="4" fill="white" stroke="#10b981" strokeWidth="2" />
-                                <circle cx="100%" cy="33%" r="4" fill="white" stroke="#10b981" strokeWidth="2" />
-                            </svg>
-
-                            {/* X Labels */}
-                            <div className="absolute -bottom-6 left-0 w-full flex justify-between text-[10px] text-slate-400 font-medium">
-                                <span>2021</span>
-                                <span>2022</span>
-                                <span>2023</span>
-                                <span>2024</span>
-                                <span>2025</span>
-                            </div>
+                    <div className="bg-white p-6 lg:p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col">
+                        <div className="mb-6">
+                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                <span className="w-2 h-6 bg-emerald-500 rounded-full"></span>
+                                แนวโน้มคาร์บอนรายปี
+                            </h3>
+                            <p className="text-xs text-slate-400 pl-4 mt-1">Carbon Credit Trend</p>
+                        </div>
+                        <div className="flex-1 min-h-[250px] w-full mt-4">
+                            <TrendChart data={trendData} />
                         </div>
                     </div>
 
-                    {/* Bar Chart */}
-                    <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-lg font-bold text-slate-800">เปรียบเทียบคาร์บอนรายแปลง <span className="text-xs font-normal text-slate-400 ml-2">carbon comparison</span></h3>
-                            <button className="text-xs bg-slate-50 px-3 py-1 rounded-lg text-slate-500 border border-slate-100">แสดงแปลง: 1-5</button>
-                        </div>
-                        <div className="relative h-64 w-full flex items-end justify-around px-2 pb-6 gap-4">
-                            {/* Grid Lines */}
-                            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
-                                {[2000, 1600, 1200, 800, 400, 0].map(val => (
-                                    <div key={val} className="w-full border-b border-slate-50 h-0 relative">
-                                        <span className="absolute -left-8 -top-2 text-[10px] text-slate-300">{val}</span>
-                                    </div>
-                                ))}
+                    <div className="bg-white p-6 lg:p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col">
+                        <div className="flex justify-between items-start mb-6">
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                    <span className="w-2 h-6 bg-blue-500 rounded-full"></span>
+                                    5 อันดับแปลงคาร์บอนสูงสุด
+                                </h3>
+                                <p className="text-xs text-slate-400 pl-4 mt-1">Top 5 Plots</p>
                             </div>
-
-                            {[1500, 1100, 1400, 1200, 1100].map((val, i) => (
-                                <div key={i} className="flex flex-col items-center gap-2 group w-full relative z-10 h-full justify-end">
-                                    <div
-                                        style={{ height: `${(val / 2000) * 100}%` }}
-                                        className="w-full max-w-[60px] bg-gradient-to-t from-emerald-200 to-emerald-400 rounded-t-xl hover:from-emerald-400 hover:to-emerald-500 transition-all cursor-pointer relative group-hover:shadow-lg"
-                                    >
-                                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                                            {val}
-                                        </div>
-                                    </div>
-                                    <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">แปลงที่ {i + 1}</span>
-                                </div>
-                            ))}
+                        </div>
+                        <div className="flex-1 min-h-[250px] w-full mt-4 px-2">
+                            <BarChart data={topPlotsData} />
                         </div>
                     </div>
                 </div>
 
-                {/* TABLE SECTION */}
-                <div className="bg-white rounded-[2.5rem] p-6 lg:p-8 shadow-sm border border-slate-100">
+                {/* TABLE */}
+                <div className="bg-white rounded-[2rem] p-6 lg:p-8 shadow-sm border border-slate-100 mt-2">
                     <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-                        <h3 className="text-lg font-bold text-slate-800">ประวัติการประเมินรายแปลง</h3>
-                        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-full px-4 py-2 w-full md:w-auto">
-                            <span className="text-sm text-slate-500 whitespace-nowrap">ค้นหา :</span>
+                        <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
+                                <HistoryIcon className="w-5 h-5" />
+                            </div>
+                            ประวัติการประเมิน
+                        </h3>
+                        <div className="relative group w-full md:w-auto">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <SearchIcon className="h-4 w-4 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                            </div>
                             <input
                                 type="text"
-                                placeholder="ชื่อแปลง, ID..."
+                                placeholder="ค้นหาชื่อแปลง, ID..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="bg-transparent border-none outline-none text-sm w-full md:w-64 text-slate-700 placeholder-slate-400"
+                                className="pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl w-full md:w-72 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all placeholder:text-slate-400"
                             />
-                            <SearchIcon className="w-4 h-4 text-slate-400" />
                         </div>
                     </div>
 
-                    <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 pb-4">
-                        <table className="w-full min-w-[1200px]">
+                    <div className="overflow-x-auto">
+                        <table className="w-full min-w-[1000px] text-left border-collapse">
                             <thead>
                                 <tr className="border-b border-slate-100">
-                                    <th className="py-4 text-left font-bold text-slate-400 uppercase text-[10px] tracking-wider pl-4">Id</th>
-                                    <th className="py-4 text-left font-bold text-slate-400 uppercase text-[10px] tracking-wider">วันที่ประเมิน</th>
-                                    <th className="py-4 text-left font-bold text-slate-400 uppercase text-[10px] tracking-wider">ข้อมูลชื่อเรียกแปลง</th>
-                                    <th className="py-4 text-left font-bold text-slate-400 uppercase text-[10px] tracking-wider">ตำบล</th>
-                                    <th className="py-4 text-left font-bold text-slate-400 uppercase text-[10px] tracking-wider">อำเภอ</th>
-                                    <th className="py-4 text-left font-bold text-slate-400 uppercase text-[10px] tracking-wider">จังหวัด</th>
-                                    <th className="py-4 text-left font-bold text-slate-400 uppercase text-[10px] tracking-wider">ระบบพิกัด</th>
-                                    <th className="py-4 text-left font-bold text-slate-400 uppercase text-[10px] tracking-wider">เนื้อที่แปลงนี้</th>
-                                    <th className="py-4 text-left font-bold text-slate-400 uppercase text-[10px] tracking-wider">วิธีที่ใช้ในการคำนวณ</th>
-                                    <th className="py-4 text-left font-bold text-slate-400 uppercase text-[10px] tracking-wider">อายุต้นยางพารา</th>
-                                    <th className="py-4 text-left font-bold text-slate-400 uppercase text-[10px] tracking-wider">ปริมาณกักเก็บคาร์บอน</th>
-                                    <th className="py-4 text-center font-bold text-slate-400 uppercase text-[10px] tracking-wider pr-4">Actions</th>
+                                    {['ID', 'วันที่', 'ชื่อแปลง', 'ที่ตั้ง', 'ขนาด (ไร่)', 'วิธีคำนวณ', 'คาร์บอน (tCO₂e)', 'จัดการ'].map((h, i) => (
+                                        <th key={i} className={`py-4 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider ${i === 7 ? 'text-center' : ''}`}>
+                                            {h}
+                                        </th>
+                                    ))}
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {filteredPlots.map((p) => (
-                                    <tr key={p.id} className="group hover:bg-slate-50 transition-colors">
-                                        <td className="py-5 pl-4 text-sm font-medium text-slate-600">{p.id}</td>
-                                        <td className="py-5 text-sm text-slate-600">{p.date}</td>
-                                        <td className="py-5 text-sm font-bold text-slate-800">{p.name}</td>
-                                        <td className="py-5 text-sm text-slate-600">{p.tambon}</td>
-                                        <td className="py-5 text-sm text-slate-600">{p.amphoe}</td>
-                                        <td className="py-5 text-sm text-slate-600">{p.province}</td>
-                                        <td className="py-5 text-xs font-mono text-slate-500">{p.coordinates}</td>
-                                        <td className="py-5 text-sm font-bold text-slate-700">{p.area.toFixed(2)} ไร่</td>
-                                        <td className="py-5 text-sm text-slate-600">{p.method}</td>
-                                        <td className="py-5 text-sm text-slate-600">{p.age} ปี</td>
-                                        <td className="py-5 text-sm font-bold text-emerald-600">{p.carbon.toFixed(2)} tCO₂e</td>
-                                        <td className="py-5 pr-4">
-                                            <div className="flex items-center justify-center gap-3">
-                                                <button
-                                                    onClick={() => history.push(`/map?editPlotId=${p.id}`)}
-                                                    className="flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-full transition-all shadow-sm shadow-emerald-200"
-                                                >
-                                                    <EditIcon className="w-3 h-3" />
-                                                    คลิก
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(p.id)}
-                                                    className="text-slate-300 hover:text-red-500 transition-colors"
-                                                >
-                                                    <TrashIcon />
-                                                </button>
-                                            </div>
+                            <tbody className="divide-y divide-slate-50">
+                                {filteredPlots.length > 0 ? (
+                                    filteredPlots.map((p) => (
+                                        <tr key={p.id} className="group hover:bg-emerald-50/30 transition-colors duration-200">
+                                            <td className="py-4 px-4 text-sm font-semibold text-slate-500">#{p.id}</td>
+                                            <td className="py-4 px-4 text-sm text-slate-600">{p.date}</td>
+                                            <td className="py-4 px-4 text-sm font-bold text-slate-800">{p.name}</td>
+                                            <td className="py-4 px-4 text-sm text-slate-500">
+                                                {p.tambon}, {p.province}
+                                                <div className="text-[10px] font-mono text-slate-300 mt-0.5">{p.coordinates}</div>
+                                            </td>
+                                            <td className="py-4 px-4 text-sm font-medium text-slate-700">{p.area.toFixed(2)}</td>
+                                            <td className="py-4 px-4 text-xs">
+                                                <span className="bg-slate-100 text-slate-500 px-2 py-1 rounded-md border border-slate-200">
+                                                    {p.method}
+                                                </span>
+                                            </td>
+                                            <td className="py-4 px-4">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm font-bold text-emerald-600 tabular-nums">{p.carbon.toFixed(2)}</span>
+                                                    {p.carbon > 50 && <span className="text-[10px] bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded font-bold">High</span>}
+                                                </div>
+                                            </td>
+                                            <td className="py-4 px-4">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <button
+                                                        onClick={() => history.push(`/map?editPlotId=${p.id}`)}
+                                                        className="p-2 text-emerald-500 hover:text-white hover:bg-emerald-500 rounded-lg transition-all"
+                                                        title="ดูบนแผนที่"
+                                                    >
+                                                        <EditIcon className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(p.id)}
+                                                        className="p-2 text-slate-300 hover:text-white hover:bg-rose-500 rounded-lg transition-all"
+                                                        title="ลบข้อมูล"
+                                                    >
+                                                        <TrashIcon className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan="8" className="py-12 text-center text-slate-400 text-sm">
+                                            ไม่พบข้อมูลแปลงที่ค้นหา
                                         </td>
                                     </tr>
-                                ))}
+                                )}
                             </tbody>
                         </table>
-                    </div>
-
-                    <div className="flex flex-col md:flex-row items-center justify-between mt-6 gap-4 text-slate-500 text-xs font-medium">
-                        <div>Showing 1 to {filteredPlots.length} of {filteredPlots.length} entries</div>
-                        <div className="flex items-center gap-1">
-                            <button className="px-3 py-1 hover:bg-slate-100 rounded">Previous</button>
-                            <button className="w-8 h-8 flex items-center justify-center bg-emerald-100 text-emerald-600 rounded-lg font-bold">1</button>
-                            <button className="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded-lg">2</button>
-                            <button className="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded-lg">3</button>
-                            <span>...</span>
-                            <button className="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded-lg">5</button>
-                            <button className="px-3 py-1 hover:bg-slate-100 rounded">Next</button>
-                        </div>
                     </div>
                 </div>
 
             </main>
 
-            {/* ==========================================
-                TOP NAVBAR - COPIED FROM PERSONAL DASHBOARD
-            ========================================== */}
+            {/* NAVIGATION BAR */}
             <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] animate-slide-down">
-                <nav className="flex items-center p-2 bg-white/70 backdrop-blur-xl rounded-full border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 gap-2">
+                <nav className="flex items-center p-2 bg-white/80 backdrop-blur-md rounded-full border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 gap-1 md:gap-2">
 
-                    {/* Home */}
                     <button
                         onClick={() => handleNavClick('/')}
-                        className="group relative w-12 h-12 rounded-full flex items-center justify-center transition-all bg-transparent hover:bg-white hover:scale-105"
+                        className="group w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all bg-transparent hover:bg-white"
+                        title="หน้าหลัก"
                     >
-                        <div className="text-slate-400 group-hover:text-amber-500 transition-colors duration-300">
-                            <HomeIcon className="w-5 h-5" />
-                        </div>
-                        <span className="absolute -bottom-10 opacity-0 group-hover:opacity-100 transition-all duration-300 text-[10px] font-bold text-slate-600 bg-white/90 px-2 py-1 rounded-lg shadow-xl translate-y-2 group-hover:translate-y-0 pointer-events-none">หน้าหลัก</span>
+                        <HomeIcon className="w-5 h-5 text-slate-400 group-hover:text-slate-800 transition-colors" />
                     </button>
 
-                    {/* Map */}
                     <button
                         onClick={() => handleNavClick('/map')}
-                        className="group relative w-12 h-12 rounded-full flex items-center justify-center transition-all bg-transparent hover:bg-white hover:scale-105"
+                        className="group w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all bg-transparent hover:bg-white"
+                        title="แผนที่"
                     >
-                        <div className="text-slate-400 group-hover:text-blue-500 transition-colors duration-300">
-                            <MapIcon className="w-5 h-5" />
-                        </div>
-                        <span className="absolute -bottom-10 opacity-0 group-hover:opacity-100 transition-all duration-300 text-[10px] font-bold text-slate-600 bg-white/90 px-2 py-1 rounded-lg shadow-xl translate-y-2 group-hover:translate-y-0 pointer-events-none">แผนที่</span>
+                        <MapIcon className="w-5 h-5 text-slate-400 group-hover:text-blue-500 transition-colors" />
                     </button>
 
-                    {/* Dashboard */}
                     <button
                         onClick={() => handleNavClick('/dashboard')}
-                        className="group relative w-12 h-12 rounded-full flex items-center justify-center transition-all bg-transparent hover:bg-white hover:scale-105"
+                        className="group w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all bg-transparent hover:bg-white"
+                        title="แดชบอร์ด"
                     >
-                        <div className="text-slate-400 group-hover:text-purple-500 transition-colors duration-300">
-                            <DashboardIcon className="w-5 h-5" />
-                        </div>
-                        <span className="absolute -bottom-10 opacity-0 group-hover:opacity-100 transition-all duration-300 text-[10px] font-bold text-slate-600 bg-white/90 px-2 py-1 rounded-lg shadow-xl translate-y-2 group-hover:translate-y-0 pointer-events-none">แดชบอร์ด</span>
+                        <DashboardIcon className="w-5 h-5 text-slate-400 group-hover:text-purple-500 transition-colors" />
                     </button>
 
-                    {/* Personal */}
                     <button
-                        onClick={() => handleNavClick('/dashboard?view=personal')}
-                        className="group relative w-12 h-12 rounded-full flex items-center justify-center transition-all bg-transparent hover:bg-white hover:scale-105"
+                        onClick={() => handleNavClick('/dashboard/personal')}
+                        className="group w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all bg-transparent hover:bg-white"
+                        title="ส่วนตัว"
                     >
-                        <div className="text-slate-400 group-hover:text-emerald-500 transition-colors duration-300">
-                            <UserIcon className="w-5 h-5" />
-                        </div>
-                        <span className="absolute -bottom-10 opacity-0 group-hover:opacity-100 transition-all duration-300 text-[10px] font-bold text-slate-600 bg-white/90 px-2 py-1 rounded-lg shadow-xl translate-y-2 group-hover:translate-y-0 pointer-events-none">ส่วนตัว</span>
+                        <UserIcon className="w-5 h-5 text-slate-400 group-hover:text-emerald-500 transition-colors" />
                     </button>
 
-                    {/* History (Active) */}
-                    <div className="relative w-14 h-14 bg-gradient-to-tr from-orange-400 to-amber-400 rounded-full flex items-center justify-center text-white shadow-lg shadow-orange-400/30 transform transition-transform animate-bounce-subtle">
+                    {/* Active Indicator */}
+                    <div className="relative w-12 h-12 md:w-14 md:h-14 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-emerald-500/30 transform transition-transform">
                         <HistoryIcon className="w-6 h-6 z-10" />
-                        {/* Glow layers */}
-                        <div className="absolute inset-0 bg-orange-400 blur-md opacity-40 rounded-full animate-pulse"></div>
+                        <div className="absolute inset-0 bg-emerald-400 blur-md opacity-40 rounded-full animate-pulse"></div>
                     </div>
 
                 </nav>
