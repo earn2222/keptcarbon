@@ -374,157 +374,132 @@ function DashboardPage() {
                 </div>
             </div>
 
-            {/* FLOATING PLOT LIST BUTTON */}
+            {/* ==========================================
+                SIDEBAR TOGGLE BUTTON
+            ========================================== */}
             <button
                 onClick={() => setShowPlotListModal(!showPlotListModal)}
-                className="absolute top-6 right-6 z-50 group"
+                className={`absolute top-6 right-6 z-50 transition-all duration-300 ${showPlotListModal ? 'right-80 mr-4 opacity-0 pointer-events-none' : 'opacity-100'}`}
             >
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-300 animate-pulse" />
-                <div className="relative w-16 h-16 bg-white/10 backdrop-blur-2xl rounded-full border border-white/20 shadow-2xl flex items-center justify-center hover:scale-110 transition-all duration-300">
-                    <MenuIcon className="w-7 h-7 text-emerald-300 group-hover:text-emerald-200" />
+                <div className="relative w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-lg flex items-center justify-center hover:bg-white/20 transition-all active:scale-95 group">
+                    <MenuIcon className="w-6 h-6 text-white group-hover:scale-110 transition-transform" />
                     {recentPlots.length > 0 && (
-                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center text-[11px] text-white font-black shadow-lg shadow-emerald-500/50 border-2 border-white/20">
-                            {recentPlots.length}
-                        </div>
+                        <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 text-[9px] font-bold text-white items-center justify-center">
+                                {recentPlots.length}
+                            </span>
+                        </span>
                     )}
                 </div>
             </button>
 
-            {/* PLOT LIST MODAL */}
-            {showPlotListModal && (
-                <div className="absolute inset-0 z-50 flex items-center justify-center p-4">
+            {/* ==========================================
+                VERTICAL PLOT SIDEBAR (Right Side)
+            ========================================== */}
+            <div
+                className={`fixed top-0 right-0 h-full w-full max-w-[360px] z-[60] transform transition-transform duration-500 cubic-bezier(0.16, 1, 0.3, 1) ${showPlotListModal ? 'translate-x-0' : 'translate-x-full'
+                    }`}
+            >
+                {/* Backdrop for mobile only */}
+                {showPlotListModal && (
                     <div
-                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        className="fixed inset-0 bg-black/20 backdrop-blur-sm -z-10 md:hidden"
                         onClick={() => setShowPlotListModal(false)}
                     />
+                )}
 
-                    <div className="relative max-w-3xl w-full max-h-[85vh]">
-                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-green-500/20 rounded-3xl blur-2xl" />
-                        <div className="relative bg-white/10 backdrop-blur-3xl rounded-3xl border border-white/20 shadow-2xl overflow-hidden">
-                            {/* Header */}
-                            <div className="relative bg-gradient-to-r from-emerald-600 to-green-600 px-8 py-6">
-                                <div className="absolute inset-0 bg-white/10" />
-                                <div className="relative flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-xl flex items-center justify-center">
-                                            <MenuIcon className="w-6 h-6 text-white" />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-2xl font-black text-white">รายการแปลงทั้งหมด</h3>
-                                            <p className="text-emerald-100 text-sm mt-1">คลิกเพื่อดูรายละเอียดและซูมแผนที่</p>
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => setShowPlotListModal(false)}
-                                        className="w-11 h-11 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-xl flex items-center justify-center transition-all duration-300 hover:scale-110 border border-white/20"
-                                    >
-                                        <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
+                <div className="h-full w-full bg-slate-900/95 backdrop-blur-2xl border-l border-white/10 shadow-2xl flex flex-col">
+                    {/* Header */}
+                    <div className="px-6 py-5 border-b border-white/10 flex items-center justify-between bg-black/20">
+                        <div>
+                            <h3 className="text-lg font-bold text-white">รายการแปลง</h3>
+                            <p className="text-xs text-slate-400 mt-0.5">ทั้งหมด {accumulatedPlots.length} แปลง</p>
+                        </div>
+                        <button
+                            onClick={() => setShowPlotListModal(false)}
+                            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+                        >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
 
-                            {/* Search Box */}
-                            <div className="px-6 pt-4 pb-2">
-                                <div className="relative">
-                                    <input
-                                        type="text"
-                                        placeholder="ค้นหาแปลง... (เช่น #0001)"
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="w-full bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl px-4 py-3 pl-12 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all duration-300"
-                                    />
-                                    <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                    </svg>
-                                    {searchQuery && (
-                                        <button
-                                            onClick={() => setSearchQuery('')}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all duration-300"
-                                        >
-                                            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* List */}
-                            <div className="overflow-y-auto max-h-[calc(85vh-220px)] p-6">
-                                {filteredPlots.length === 0 ? (
-                                    <div className="text-center text-white/60 py-16">
-                                        {searchQuery ? (
-                                            <>
-                                                <svg className="w-16 h-16 mx-auto mb-4 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                                </svg>
-                                                <p className="text-lg">ไม่พบแปลงที่ค้นหา</p>
-                                                <p className="text-sm mt-2">ลองค้นหาด้วยคำอื่น</p>
-                                            </>
-                                        ) : (
-                                            <p className="text-lg">ยังไม่มีข้อมูลแปลง</p>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {filteredPlots.map((plot, idx) => (
-                                            <div
-                                                key={plot.id}
-                                                onClick={() => {
-                                                    zoomToPlot(plot)
-                                                    setShowPlotListModal(false)
-                                                }}
-                                                className="group relative cursor-pointer"
-                                            >
-                                                <div className={`absolute inset-0 ${selectedPlotId === plot.id
-                                                    ? 'bg-gradient-to-br from-amber-400 to-amber-600'
-                                                    : 'bg-gradient-to-br from-emerald-400 to-green-600'
-                                                    } rounded-2xl blur-lg opacity-20 group-hover:opacity-40 transition-opacity duration-300`} />
-                                                <div className={`relative bg-white/10 backdrop-blur-2xl rounded-2xl p-5 border transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl ${selectedPlotId === plot.id
-                                                    ? 'border-amber-400/50 shadow-amber-500/20'
-                                                    : 'border-white/20 hover:border-emerald-400/50'
-                                                    }`}>
-                                                    <div className="flex items-start gap-4">
-                                                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-lg ${selectedPlotId === plot.id
-                                                            ? 'bg-gradient-to-br from-amber-400 to-amber-600 shadow-amber-500/40'
-                                                            : 'bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/40'
-                                                            }`}>
-                                                            #{idx + 1}
-                                                        </div>
-                                                        <div className="flex-1">
-                                                            <p className="text-white font-black text-lg">แปลง #{plot.id.toString().padStart(4, '0')}</p>
-                                                            <p className={`text-sm font-semibold mt-1 ${selectedPlotId === plot.id ? 'text-amber-300' : 'text-emerald-300'
-                                                                }`}>
-                                                                {new Date(plot.date).toLocaleDateString('th-TH', {
-                                                                    day: 'numeric',
-                                                                    month: 'long',
-                                                                    year: 'numeric'
-                                                                })}
-                                                            </p>
-                                                            <div className="flex items-center gap-4 mt-3">
-                                                                <div className="flex items-center gap-2">
-                                                                    <MapPinIcon className="w-4 h-4 text-green-400" />
-                                                                    <span className="text-white text-sm font-bold">{plot.areaRai.toFixed(1)} ไร่</span>
-                                                                </div>
-                                                                <div className="flex items-center gap-2">
-                                                                    <LeafIcon className="w-4 h-4 text-emerald-400" />
-                                                                    <span className="text-white text-sm font-bold">{plot.carbon.toFixed(0)} ตัน</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
+                    {/* Check / Search */}
+                    <div className="p-4 border-b border-white/5">
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder="ค้นหาแปลง..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/50 focus:bg-black/40 transition-all placeholder-slate-500"
+                            />
+                            <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
                         </div>
                     </div>
+
+                    {/* List */}
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                        {filteredPlots.length === 0 ? (
+                            <div className="text-center py-10">
+                                <p className="text-slate-500 text-sm">ไม่พบข้อมูล</p>
+                            </div>
+                        ) : (
+                            filteredPlots.map((plot, idx) => (
+                                <div
+                                    key={plot.id}
+                                    onClick={() => {
+                                        zoomToPlot(plot);
+                                        // On mobile, maybe close sidebar? Optional.
+                                        if (window.innerWidth < 768) setShowPlotListModal(false);
+                                    }}
+                                    className={`group relative p-3 rounded-xl border transition-all cursor-pointer ${selectedPlotId === plot.id
+                                        ? 'bg-emerald-500/10 border-emerald-500/30'
+                                        : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10'
+                                        }`}
+                                >
+                                    <div className="flex items-start justify-between mb-2">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${selectedPlotId === plot.id
+                                                ? 'bg-emerald-500 text-white'
+                                                : 'bg-slate-800 text-slate-400 group-hover:bg-slate-700 group-hover:text-white'
+                                                }`}>
+                                                #{idx + 1}
+                                            </div>
+                                            <div>
+                                                <h4 className={`text-sm font-bold ${selectedPlotId === plot.id ? 'text-emerald-400' : 'text-slate-200'}`}>
+                                                    แปลง #{plot.id}
+                                                </h4>
+                                                <p className="text-[10px] text-slate-500">
+                                                    {new Date(plot.date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        {selectedPlotId === plot.id && (
+                                            <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                                        )}
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-2 mt-2">
+                                        <div className="bg-black/20 rounded-lg px-2 py-1.5 flex flex-col">
+                                            <span className="text-[9px] text-slate-500 uppercase">พื้นที่</span>
+                                            <span className="text-xs font-medium text-slate-300">{plot.areaRai.toFixed(1)} ไร่</span>
+                                        </div>
+                                        <div className="bg-black/20 rounded-lg px-2 py-1.5 flex flex-col">
+                                            <span className="text-[9px] text-slate-500 uppercase">คาร์บอน</span>
+                                            <span className="text-xs font-medium text-emerald-400">{plot.carbon.toFixed(0)} tCO₂e</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
-            )}
+            </div>
 
             {/* ==========================================
                 CRYSTAL NAVBAR (Bottom) - DASHBOARD ACTIVE
