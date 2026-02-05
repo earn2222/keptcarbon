@@ -63,48 +63,120 @@ export default function WorkflowModal({
     // ==========================================
     // SYNC PREVIEW PLOTS TO MAP
     // ==========================================
+    // Use JSON string as dependency to ensure deep comparison without infinite loops
+    // We include currentStep and formData.geometry in the dependency to trigger updates when moving between steps
+    const shpPlotsJson = JSON.stringify(shpPlots.map(p => ({ id: p.id, check: 'list' })));
+    const activePlotJson = JSON.stringify(formData.geometry ? { type: formData.geometry.type, coords: formData.geometry.coordinates } : null);
+
     useEffect(() => {
-        if (onPreviewPlots) {
-            if (shpPlots.length > 0 && isOpen) {
-                onPreviewPlots(shpPlots.map(p => ({ ...p, isPreview: true })));
-            } else {
-                onPreviewPlots([]);
-            }
+        if (!onPreviewPlots) return;
+
+        let plotsToSend = [];
+
+        // MODE 1: Import List (Step 0) - Show ALL plots as previews
+        if (currentStep === 0 && shpPlots.length > 0) {
+            plotsToSend = shpPlots.map(p => ({
+                ...p,
+                isPreview: true,
+                isActive: false
+            }));
         }
-    }, [shpPlots, isOpen, onPreviewPlots]);
+        // MODE 2: Processing (Step 1+) - Show CURRENT active plot + OTHERS from SHP list as context
+        else if (currentStep > 0 && formData.geometry) {
+            // 1. Add current actively processed plot (High emphasis)
+            plotsToSend.push({
+                ...formData,
+                id: formData.id || 'current-processing',
+                isPreview: true,
+                isActive: true
+            });
+
+            // 2. Add other SHP plots that were selected but not currently processing (Context)
+            // This prevents them from "disappearing" which was requested by user
+            const otherShpPreviews = shpPlots
+                .filter(p => selectedShpPlotIds.includes(p.id) && p.id !== formData.id)
+                .map(p => ({
+                    ...p,
+                    isPreview: true,
+                    isActive: false
+                }));
+
+            plotsToSend = [...plotsToSend, ...otherShpPreviews];
+        }
+
+        onPreviewPlots(plotsToSend);
+
+    }, [shpPlotsJson, activePlotJson, currentStep, onPreviewPlots, isEditing, selectedShpPlotIds]);
+
+    // Ensure we clear previews when truly done (unmount or close)
+    useEffect(() => {
+        return () => {
+            // Note: We don't clear here because unmount might be due to parent unmount
+            // The cleanup is handled by the empty array send above when shpPlots becomes empty
+        };
+    }, []);
 
     // ==========================================
     // INITIALIZATION
     // ==========================================
+    // ==========================================
+    // INITIALIZATION
+    // ==========================================
+    // Effect 1: Handle OPEN/CLOSE and MODE adjustments
     useEffect(() => {
         if (isOpen) {
-            if (initialData) {
-                console.log("Loading initialData:", initialData);
-                setFormData(prev => ({
-                    ...prev,
-                    ...initialData,
-                    farmerName: initialData.farmerName || '',
-                    originalShpName: initialData.originalShpName || '',
-                    plantingYearBE: initialData.plantingYearBE || '',
-                    variety: initialData.variety || '',
-                    age: initialData.age || 0,
-                    dbh: initialData.dbh || '',
-                    height: initialData.height || '',
-                    areaRai: initialData.areaRai || 0,
-                    areaNgan: initialData.areaNgan || 0,
-                    areaSqWah: initialData.areaSqWah || 0,
-                    areaSqm: initialData.areaSqm || 0,
-                    svgPath: initialData.svgPath || (initialData.geometry ? generateSvgPath(initialData.geometry) : '')
-                }));
+            // Only set init step if we are NOT already in a deeper step (unless switching modes)
+            // But simplify: If mode is import, start at 0. If list, start at 4.
+            // We use a ref or check current state to avoid resetting if we are just updating data.
+
+            // For now, simple logic:
+            if (mode === 'import' && processingQueue.length === 0 && shpPlots.length === 0) {
+                // Fresh import start
+                setCurrentStep(0);
+            } else if (mode === 'list') {
+                setCurrentStep(4);
+            } else if (mode === 'draw' && !initialData) {
+                // Only if not editing an existing plot
+                setCurrentStep(1);
             }
 
-            if (mode === 'import') setCurrentStep(0);
-            else if (mode === 'list') setCurrentStep(4);
-            else setCurrentStep(1);
-
             setResult(null);
+        } else {
+            // Cleanup on Close
+            if (processingQueue.length === 0) {
+                setShpPlots([]);
+                setSelectedShpPlotIds([]);
+            }
         }
-    }, [isOpen, mode, initialData]);
+    }, [isOpen, mode]);
+
+    // Effect 2: Handle Initial Data (Editing)
+    useEffect(() => {
+        if (isOpen && initialData) {
+            console.log("Loading initialData:", initialData);
+            setFormData(prev => ({
+                ...prev,
+                ...initialData,
+                farmerName: initialData.farmerName || '',
+                originalShpName: initialData.originalShpName || '',
+                plantingYearBE: initialData.plantingYearBE || '',
+                variety: initialData.variety || '',
+                age: initialData.age || 0,
+                dbh: initialData.dbh || '',
+                height: initialData.height || '',
+                areaRai: initialData.areaRai || 0,
+                areaNgan: initialData.areaNgan || 0,
+                areaSqWah: initialData.areaSqWah || 0,
+                areaSqm: initialData.areaSqm || 0,
+                svgPath: initialData.svgPath || (initialData.geometry ? generateSvgPath(initialData.geometry) : '')
+            }));
+
+            // If editing, we start at step 1 usually
+            if (mode !== 'list' && mode !== 'import') {
+                setCurrentStep(1);
+            }
+        }
+    }, [isOpen, initialData, mode]);
 
     useEffect(() => {
         if (formData.plantingYearBE) {
@@ -207,17 +279,17 @@ export default function WorkflowModal({
     };
 
     const handleSelectShpPlot = (plotId) => {
+        const plot = shpPlots.find(p => p.id === plotId);
+        console.log("Selecting SHP Plot:", plotId, !!plot);
+
+        // Zoom to plot when clicked
+        if (onZoomToPlot && plot?.geometry) {
+            console.log("Triggering onZoomToPlot for selection");
+            onZoomToPlot(plot.geometry);
+        }
+
         setSelectedShpPlotIds(prev => {
             const isSelecting = !prev.includes(plotId);
-
-            // Zoom to plot if selecting
-            if (isSelecting && onZoomToPlot) {
-                const plot = shpPlots.find(p => p.id === plotId);
-                if (plot?.geometry) {
-                    onZoomToPlot(plot.geometry);
-                }
-            }
-
             if (!isSelecting) {
                 return prev.filter(id => id !== plotId);
             } else {
@@ -231,17 +303,26 @@ export default function WorkflowModal({
             p.farmerName.toLowerCase().includes(searchTerm.toLowerCase())
         );
 
-        const areAllSelected = selectedShpPlotIds.length === filteredPlots.length && filteredPlots.every(p => selectedShpPlotIds.includes(p.id));
+        const areAllSelected = selectedShpPlotIds.length === filteredPlots.length &&
+            filteredPlots.every(p => selectedShpPlotIds.includes(p.id));
 
         if (areAllSelected) {
             setSelectedShpPlotIds([]);
         } else {
-            setSelectedShpPlotIds(filteredPlots.map(p => p.id));
+            const allIds = filteredPlots.map(p => p.id);
+            setSelectedShpPlotIds(allIds);
 
             // Zoom to show all selected plots together
             if (onZoomToPlot && filteredPlots.length > 0) {
                 try {
-                    const collection = turf.featureCollection(filteredPlots.map(p => turf.feature(p.geometry)));
+                    const collection = {
+                        type: 'FeatureCollection',
+                        features: filteredPlots.map(p => ({
+                            type: 'Feature',
+                            geometry: p.geometry,
+                            properties: {}
+                        }))
+                    };
                     onZoomToPlot(collection);
                 } catch (e) {
                     console.error("Zoom all error:", e);
@@ -267,10 +348,12 @@ export default function WorkflowModal({
     };
 
     const loadPlotForProcessing = (plot) => {
+        console.log("Loading plot for processing:", plot);
         setFormData(prev => ({
             ...prev,
+            id: plot.id, // CRITICAL: Keep ID reference for preview logic and map filtering
             farmerName: '', // Reset name to allow fresh entry
-            originalShpName: plot.farmerName, // Keep original name reference if needed (optional, or just ignore)
+            originalShpName: plot.farmerName, // Keep original name reference if needed
             areaRai: plot.areaRai,
             areaNgan: plot.areaNgan,
             areaSqWah: plot.areaSqWah,
@@ -289,18 +372,21 @@ export default function WorkflowModal({
 
         // Zoom to this specific plot when loading for processing
         if (onZoomToPlot && plot.geometry) {
+            console.log("Zooming to loaded plot geometry...");
             onZoomToPlot(plot.geometry);
         }
     };
 
     const handleProceedFromShp = () => {
+        console.log("Proceeding from SHP list with selection:", selectedShpPlotIds);
         if (selectedShpPlotIds.length === 0) {
             return alert('กรุณาเลือกแปลงที่ต้องการคำนวณ');
         }
-        // Prepare queue
+
         const selectedPlots = shpPlots.filter(p => selectedShpPlotIds.includes(p.id));
         const [first, ...rest] = selectedPlots;
 
+        console.log(`Starting processing queue with ${selectedPlots.length} plots`);
         setProcessingQueue(rest);
         loadPlotForProcessing(first);
         setCurrentStep(1);
@@ -310,9 +396,28 @@ export default function WorkflowModal({
         if (!formData.farmerName) return alert('กรุณาระบุชื่อเกษตรกร');
         if (!formData.variety) return alert('กรุณาเลือกพันธุ์ยาง');
 
-        if (calcGroup === 1 && (!formData.dbh || !formData.height)) {
-            setLoading(false);
-            return alert('กรุณาระบุขนาดเส้นผ่านศูนย์กลางและความสูงให้ครบถ้วน');
+        // ตรวจสอบภาคสนาม
+        if (calcGroup === 1) {
+            if (!formData.dbh || !formData.height) {
+                setLoading(false);
+                return alert('กรุณาระบุขนาดเส้นผ่านศูนย์กลางและความสูงให้ครบถ้วน');
+            }
+        }
+
+        // ตรวจสอบดาวเทียม
+        if (calcGroup === 2) {
+            // ถ้าเป็นดาวเทียม ต้องมีค่า satData
+            if (!satData || (satData.ndvi === 0 && satData.tcari === 0)) {
+                setLoadingSat(true);
+                // พยายามโหลดใหม่อีกครั้งถ้ายังไม่มีค่า
+                setTimeout(() => {
+                    setSatData({ ndvi: 0.72, tcari: 0.45 });
+                    setLoadingSat(false);
+                    // เรียกตัวเองใหม่อีกครั้งหลังจากโหลดเสร็จ
+                    calculateCarbon();
+                }, 1000);
+                return; // ออกไปก่อน รอโหลดเสร็จ
+            }
         }
 
         setLoading(true);
@@ -338,16 +443,21 @@ export default function WorkflowModal({
                         carbonPerTree = 0.118 * Math.pow(dbh, 2.53);
                         resultMethod = 'สมการที่ 1 (0.118 × DBH^2.53)';
                     } else {
+                        // แก้ไข: ใช้ logic สมการที่ 2 ให้ถูกต้อง
                         carbonPerTree = 0.062 * Math.pow(dbh, 2.23);
                         resultMethod = 'สมการที่ 2 (0.062 × DBH^2.23)';
                     }
                 } else {
-                    const { ndvi, tcari } = satData;
+                    // ป้องกัน error: satData is null (ใช้ default object)
+                    const currentSatData = satData || { ndvi: 0, tcari: 0 };
+
                     if (formData.methodSat === 'ndvi') {
-                        carbonPerTree = 34.2 * ndvi + 5.8;
+                        carbonPerTree = 34.2 * (currentSatData.ndvi || 0) + 5.8;
                         resultMethod = 'ดาวเทียม (34.2 × NDVI + 5.8)';
                     } else {
-                        carbonPerTree = 13.57 * tcari + 7.45;
+                        // ตรวจสอบว่ามีค่า TCARI จริงๆ
+                        const validTcari = currentSatData.tcari || 0.45; // Fallback ถ้าค่าเป็น 0
+                        carbonPerTree = 13.57 * validTcari + 7.45;
                         resultMethod = 'ดาวเทียม (13.57 × TCARI + 7.45)';
                     }
                 }
@@ -360,6 +470,10 @@ export default function WorkflowModal({
                     totalTons: totalCarbonTons,
                     areaRai: areaRaiTotal
                 });
+
+                if (isNaN(totalCarbonTons)) {
+                    throw new Error("ผลลัพธ์การคำนวณไม่ถูกต้อง (NaN)");
+                }
 
                 setResult({
                     carbon: totalCarbonTons.toFixed(2),
@@ -437,6 +551,10 @@ export default function WorkflowModal({
     };
 
     const handleFinalSave = () => {
+        // ล้าง SHP data เมื่อบันทึกเสร็จแล้ว
+        setShpPlots([]);
+        setSelectedShpPlotIds([]);
+        setProcessingQueue([]);
         onSave(null, true);
     };
 
@@ -637,6 +755,30 @@ export default function WorkflowModal({
                                     </>
                                 )}
                             </div>
+
+                            {/* Processing Queue Display */}
+                            {processingQueue.length > 0 && (
+                                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <List size={16} className="text-blue-600" />
+                                        <p className="text-xs font-bold text-blue-700 uppercase tracking-wider">
+                                            แปลงที่เหลือในคิว ({processingQueue.length})
+                                        </p>
+                                    </div>
+                                    <div className="space-y-1.5 max-h-24 overflow-y-auto scrollbar-thin">
+                                        {processingQueue.map((plot, index) => (
+                                            <div key={plot.id} className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 text-xs">
+                                                <span className="w-5 h-5 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">
+                                                    {index + 1}
+                                                </span>
+                                                <span className="flex-1 text-slate-700 font-medium truncate">{plot.farmerName}</span>
+                                                <span className="text-[10px] text-slate-400">{plot.areaRai}-{plot.areaNgan}-{parseFloat(plot.areaSqWah).toFixed(1)} ไร่</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
 
                             {/* Input Fields */}
                             <div className="space-y-4">

@@ -160,26 +160,49 @@ function PersonalDashboardPage() {
     useEffect(() => {
         const fetchPersonalData = async () => {
             try {
-                const allPlots = await getPlots()
+                const response = await getPlots()
+                // ตรวจสอบว่า response เป็น Array หรือไม่ (บางทีอาจจะอยู่ใน response.data)
+                const allPlots = Array.isArray(response) ? response : (response?.data || []);
+
+                if (!Array.isArray(allPlots)) {
+                    console.error("API Error: Plots data is not an array", response);
+                    setPlots([]);
+                    return;
+                }
+
                 const myPlots = allPlots.map(p => {
-                    let geometry = p.geometry;
-                    if (typeof geometry === 'string') {
-                        try { geometry = JSON.parse(geometry); } catch (e) { console.warn('GeoJSON Parse Error', e) }
+                    try {
+                        let geometry = p.geometry;
+                        if (typeof geometry === 'string') {
+                            try { geometry = JSON.parse(geometry); } catch (e) { console.warn('Dashboard: GeoJSON Parse Error', e) }
+                        }
+
+                        // ตรวจสอบ latitude/longitude กรณีไม่มี geometry
+                        if (!geometry && (p.lat || p.lng)) {
+                            geometry = {
+                                type: 'Point',
+                                coordinates: [parseFloat(p.lng || 0), parseFloat(p.lat || 0)]
+                            };
+                        }
+
+                        return {
+                            ...p,
+                            geometry,
+                            farmerName: p.name || p.farmer_name || 'ไม่ระบุชื่อ',
+                            area: parseFloat(p.area_rai) || 0,
+                            carbon: parseFloat(p.carbon_tons) || 0,
+                            age: p.tree_age ? parseInt(String(p.tree_age).replace(/[^\d]/g, '')) || 0 : 0,
+                            plantingYearBE: p.planting_year ? parseInt(String(p.planting_year).replace(/[^\d]/g, '')) + 543 : '-',
+                            variety: p.notes && String(p.notes).includes('พันธุ์:') ? String(p.notes).split('พันธุ์:')[1]?.trim() : (p.variety || 'RRIM 600'),
+                            methodTitle: p.method ? getMethodDetails(p.method).name : 'ไม่ระบุ',
+                            methodFormula: p.method ? getMethodDetails(p.method).formula : '-',
+                            date: p.created_at || new Date().toISOString()
+                        }
+                    } catch (err) {
+                        console.warn("Error processing plot:", p, err);
+                        return null;
                     }
-                    return {
-                        ...p,
-                        geometry,
-                        farmerName: p.name || p.farmer_name || 'ไม่ระบุชื่อ',
-                        area: parseFloat(p.area_rai) || 0,
-                        carbon: parseFloat(p.carbon_tons) || 0,
-                        age: parseInt(p.tree_age) || 0,
-                        plantingYearBE: p.planting_year ? parseInt(p.planting_year) + 543 : '-',
-                        variety: p.notes?.includes('พันธุ์:') ? p.notes.split('พันธุ์:')[1]?.trim() : (p.variety || 'RRIM 600'),
-                        methodTitle: getMethodDetails(p.method).name,
-                        methodFormula: getMethodDetails(p.method).formula,
-                        date: p.created_at
-                    }
-                }).filter(p => p.geometry)
+                }).filter(p => p && p.geometry); // Filter valid plots only
 
                 setPlots(myPlots)
 
@@ -195,6 +218,7 @@ function PersonalDashboardPage() {
 
             } catch (err) {
                 console.error("Failed to fetch personal plots", err)
+                setPlots([]) // Reset valid plots on error
             }
         }
         fetchPersonalData()

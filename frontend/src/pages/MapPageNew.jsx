@@ -203,6 +203,9 @@ function MapPageNew() {
     const [popupPlotId, setPopupPlotId] = useState(null)
     const popupRef = useRef(null)
 
+    // Preview plots from SHP import
+    const [previewPlots, setPreviewPlots] = useState([])
+
     // ... (rest of search logic)
 
 
@@ -409,10 +412,26 @@ function MapPageNew() {
 
         const updateMap = () => {
             if (!map.current) return;
+
+            // Helper to validate geometry
+            const isValidGeometry = (geometry) => {
+                if (!geometry) return false;
+                try {
+                    const bbox = turf.bbox(geometry);
+                    const [minX, minY, maxX, maxY] = bbox;
+                    return (
+                        !isNaN(minX) && !isNaN(minY) && !isNaN(maxX) && !isNaN(maxY) &&
+                        minX >= -180 && maxX <= 180 && minY >= -90 && maxY <= 90
+                    );
+                } catch (e) {
+                    return false;
+                }
+            };
+
             const geojson = {
                 type: 'FeatureCollection',
                 features: accumulatedPlots
-                    .filter(p => p.geometry)
+                    .filter(p => isValidGeometry(p.geometry))
                     .map(p => ({
                         type: 'Feature',
                         geometry: p.geometry,
@@ -424,6 +443,94 @@ function MapPageNew() {
                     }))
             };
 
+            // ==========================================
+            // PREVIEW PLOTS (SHP Import)
+            // ==========================================
+            const previewSourceId = 'preview-plots';
+            const previewGeojson = {
+                type: 'FeatureCollection',
+                features: previewPlots
+                    .filter(p => isValidGeometry(p.geometry))
+                    .map(p => ({
+                        type: 'Feature',
+                        geometry: p.geometry,
+                        properties: {
+                            id: p.id,
+                            farmerName: p.farmerName
+                        }
+                    }))
+            };
+
+            if (map.current.getSource(previewSourceId)) {
+                map.current.getSource(previewSourceId).setData(previewGeojson);
+            } else {
+                map.current.addSource(previewSourceId, {
+                    type: 'geojson',
+                    data: previewGeojson
+                });
+
+                // Preview fill layer (blue/transparent)
+                map.current.addLayer({
+                    id: 'preview-plots-fill',
+                    type: 'fill',
+                    source: previewSourceId,
+                    paint: {
+                        'fill-color': '#3b82f6', // Blue 500
+                        'fill-opacity': 0.5
+                    }
+                });
+
+                // Preview outline (solid)
+                map.current.addLayer({
+                    id: 'preview-plots-line',
+                    type: 'line',
+                    source: previewSourceId,
+                    paint: {
+                        'line-color': '#2563eb', // Blue 600
+                        'line-width': 3
+                    }
+                });
+
+                // Preview Badge/Label "แปลงที่เลือก"
+                map.current.addLayer({
+                    id: 'preview-plots-label',
+                    type: 'symbol',
+                    source: previewSourceId,
+                    layout: {
+                        'text-field': 'แปลงที่เลือก',
+                        'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+                        'text-size': 12,
+                        'text-offset': [0, -1.5],
+                        'text-anchor': 'bottom',
+                        // Only show this label if it has 'isActive' property
+                        'visibility': 'visible'
+                    },
+                    paint: {
+                        'text-color': '#ffffff',
+                        'text-halo-color': '#111827', // Gray 900
+                        'text-halo-width': 4
+                    },
+                    filter: ['==', 'isActive', true]
+                });
+
+                // Active dot marker
+                map.current.addLayer({
+                    id: 'preview-plots-active-dot',
+                    type: 'circle',
+                    source: previewSourceId,
+                    paint: {
+                        'circle-radius': 6,
+                        'circle-color': '#ef4444', // Red 500
+                        'circle-stroke-width': 2,
+                        'circle-stroke-color': '#ffffff'
+                    },
+                    filter: ['==', 'isActive', true]
+                });
+            }
+
+            // ==========================================
+            // SAVED PLOTS (Green) - Draw ON TOP
+            // ==========================================
             if (map.current.getSource(sourceId)) {
                 map.current.getSource(sourceId).setData(geojson);
             } else {
@@ -500,7 +607,7 @@ function MapPageNew() {
                 });
             }
         }
-    }, [accumulatedPlots, mapLoaded]);
+    }, [accumulatedPlots, previewPlots, mapLoaded]);
 
     // ==========================================
     // PLOT INTERACTION HANDLERS
@@ -532,6 +639,14 @@ function MapPageNew() {
                 // Create content
                 const popupContent = document.createElement('div');
                 popupContent.className = 'custom-map-popup';
+
+                // คำนวณราคาคาร์บอน (สมมติราคา 100 บาท/tCO₂e)
+                const carbonPrice = 100; // บาท/ตัน
+                const totalPrice = (parseFloat(plotData.carbon) * carbonPrice).toLocaleString('th-TH', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+
                 popupContent.innerHTML = `
                     <div class="p-4 min-w-[220px]">
                         <div class="flex items-center gap-3 mb-3">
@@ -544,9 +659,20 @@ function MapPageNew() {
                             </div>
                         </div>
                         
-                        <div class="bg-emerald-50 rounded-lg p-3 mb-3 border border-emerald-100">
-                            <p class="text-xs text-gray-500 mb-0.5">คาร์บอนเครดิต</p>
-                            <p class="text-xl font-bold text-emerald-600">${plotData.carbon} <span class="text-xs font-normal text-gray-500">tCO₂e</span></p>
+                        <div class="space-y-2 mb-3">
+                            <div class="bg-emerald-50 rounded-lg p-3 border border-emerald-100">
+                                <p class="text-xs text-gray-500 mb-0.5">คาร์บอนเครดิต</p>
+                                <p class="text-xl font-bold text-emerald-600">${plotData.carbon} <span class="text-xs font-normal text-gray-500">tCO₂e</span></p>
+                            </div>
+                            
+                            <div class="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-lg p-3 border border-amber-200">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-600"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                                    <p class="text-xs text-amber-700 font-medium">มูลค่าโดยประมาณ</p>
+                                </div>
+                                <p class="text-lg font-bold text-amber-600">${totalPrice} <span class="text-xs font-normal text-amber-600/70">บาท</span></p>
+                                <p class="text-[10px] text-amber-600/60 mt-1">@ ${carbonPrice} บาท/tCO₂e</p>
+                            </div>
                         </div>
         
                         <button id="popup-edit-btn-${plotId}" class="w-full py-2 bg-gray-900 text-white rounded-lg text-sm font-medium shadow-md active:scale-95 transition-transform flex items-center justify-center gap-2">
@@ -1270,17 +1396,42 @@ function MapPageNew() {
                 onZoomToPlot={(geometry) => {
                     if (map.current && geometry) {
                         try {
-                            const bbox = turf.bbox(geometry);
+                            // รองรับทั้ง geometry object และ FeatureCollection
+                            let bbox;
+                            if (geometry.type === 'FeatureCollection') {
+                                bbox = turf.bbox(geometry);
+                            } else if (geometry.type === 'Feature') {
+                                bbox = turf.bbox(geometry);
+                            } else {
+                                bbox = turf.bbox(turf.feature(geometry));
+                            }
+
+                            // Validate BBox [minX, minY, maxX, maxY]
+                            const [minX, minY, maxX, maxY] = bbox;
+                            const isValid =
+                                !isNaN(minX) && !isNaN(minY) && !isNaN(maxX) && !isNaN(maxY) &&
+                                minX >= -180 && maxX <= 180 && minY >= -90 && maxY <= 90;
+
+                            if (!isValid) {
+                                console.warn("Invalid BBox for zoom:", bbox);
+                                // ถ้าพิกัดผิดปกติ (เช่น UTM) อาจจะต้อง convert (แต่ library shpjs ควรทำให้อยู่แล้ว)
+                                // หรือถ้าผิดเล็กน้อย ให้ลองซูมไปที่ accumulatedPlots แทนถ้ามี
+                                return;
+                            }
+
                             map.current.fitBounds(bbox, {
-                                padding: 200, // เพิ่ม padding ให้เห็นรอบๆ
+                                padding: 100, // padding ให้เห็นรอบๆ
                                 maxZoom: 17,
-                                duration: 2000
+                                duration: 1500
                             });
                         } catch (e) {
                             console.error("Zoom Error:", e);
                         }
                     }
                 }}
+                onPreviewPlots={useCallback((plots) => {
+                    setPreviewPlots(plots || []);
+                }, [])}
                 onSave={(finalData, shouldClose) => {
                     if (finalData) {
                         setAccumulatedPlots(prev => {

@@ -92,17 +92,84 @@ function DashboardPage() {
         markersRef.current = [];
     }
 
-    // Update Markers Effect
+    // ==========================================
+    // UNIFIED MAP DATA UPDATE EFFECT
+    // Handles Sources, Layers, and HTML Markers
+    // ==========================================
     useEffect(() => {
         if (!map.current || !mapLoaded) return;
 
-        // Clear existing markers first
+        const sourceId = 'dashboard-source';
+        const fillId = 'dashboard-fill';
+        const lineId = 'dashboard-line';
+        const glowId = 'dashboard-glow';
+
+        // 1. Clear existing markers
         clearMarkers();
 
+        // 2. Prepare GeoJSON
+        const geojson = {
+            type: 'FeatureCollection',
+            features: accumulatedPlots
+                .filter(p => p.geometry)
+                .map(p => ({
+                    type: 'Feature',
+                    geometry: p.geometry,
+                    properties: {
+                        id: p.id,
+                        carbon: p.carbon,
+                        area: p.areaRai,
+                        selected: p.id === selectedPlotId
+                    }
+                }))
+        };
+
+        // 3. Update or Add Source & Layers
+        if (map.current.getSource(sourceId)) {
+            map.current.getSource(sourceId).setData(geojson);
+        } else {
+            map.current.addSource(sourceId, { type: 'geojson', data: geojson });
+
+            // Glow Layer (Selection highlight)
+            map.current.addLayer({
+                id: glowId,
+                type: 'line',
+                source: sourceId,
+                paint: {
+                    'line-color': ['case', ['get', 'selected'], '#fbbf24', '#10b981'],
+                    'line-width': ['case', ['get', 'selected'], 12, 0],
+                    'line-blur': 8,
+                    'line-opacity': ['case', ['get', 'selected'], 0.8, 0]
+                }
+            });
+
+            // Fill Layer
+            map.current.addLayer({
+                id: fillId,
+                type: 'fill',
+                source: sourceId,
+                paint: {
+                    'fill-color': ['case', ['get', 'selected'], '#fbbf24', '#10b981'],
+                    'fill-opacity': ['case', ['get', 'selected'], 0.5, 0.3]
+                }
+            });
+
+            // Line Layer
+            map.current.addLayer({
+                id: lineId,
+                type: 'line',
+                source: sourceId,
+                paint: {
+                    'line-color': ['case', ['get', 'selected'], '#f59e0b', '#059669'],
+                    'line-width': ['case', ['get', 'selected'], 2, 1.5]
+                }
+            });
+        }
+
+        // 4. Create HTML Markers for each plot
         accumulatedPlots.forEach(plot => {
             if (!plot.geometry) return;
 
-            // Calculate center
             let center;
             try {
                 if (plot.geometry.type === 'Point') {
@@ -115,7 +182,6 @@ function DashboardPage() {
 
             if (!center) return;
 
-            // Create Custom Marker Element
             const el = document.createElement('div');
             const isSelected = plot.id === selectedPlotId;
             el.className = 'custom-marker-container';
@@ -127,27 +193,22 @@ function DashboardPage() {
                 z-index: ${isSelected ? 50 : 10};
             `;
 
-            // Inner HTML with CSS Animation
             el.innerHTML = `
                 <div class="relative w-full h-full group">
                     <div class="absolute inset-0 bg-emerald-500 rounded-full opacity-20 animate-ping group-hover:opacity-40"></div>
                     <div class="relative w-10 h-10 bg-gradient-to-br ${isSelected ? 'from-amber-400 to-orange-500 scale-110' : 'from-emerald-500 to-teal-600'} rounded-full shadow-lg border-2 border-white flex items-center justify-center transform transition-transform duration-300 group-hover:scale-110 group-hover:-translate-y-1">
-                        <!-- Aesthetic Bushy Tree Icon -->
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white drop-shadow-sm" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M16.21 4.5C14.53 4.5 13.06 5.4 12.28 6.78C11.58 5.75 10.37 5 9 5C6.79 5 5 6.79 5 9C5 9.17 5.01 9.33 5.04 9.49C3.26 9.8 2 11.28 2 13C2 15.21 3.79 17 6 17H11V22H13V17H18C20.21 17 22 15.21 22 13C22 10.96 20.47 9.27 18.5 9.04C18.82 8.42 19 7.73 19 7C19 5.62 17.8 4.5 16.21 4.5Z" />
                         </svg>
                     </div>
-                    ${isSelected ? '<div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-amber-500 rounded-full shadow-[0_0_10px_3px_rgba(245,158,11,0.6)]"></div>' : ''}
                 </div>
             `;
 
-            // Add click listener
             el.addEventListener('click', (e) => {
-                e.stopPropagation(); // Prevent map click
+                e.stopPropagation();
                 zoomToPlot(plot);
             });
 
-            // Add to map
             const marker = new maplibregl.Marker({
                 element: el,
                 anchor: 'bottom',
@@ -159,74 +220,6 @@ function DashboardPage() {
             markersRef.current.push(marker);
         });
 
-    }, [accumulatedPlots, mapLoaded, selectedPlotId]);
-
-    // ==========================================
-    // ADD SHAPES TO MAP
-    // ==========================================
-    useEffect(() => {
-        if (!map.current || !mapLoaded || accumulatedPlots.length === 0) return;
-
-        const sourceId = 'dashboard-source';
-        // Note: We don't need centerSourceId anymore for markers, as we use HTML markers now
-
-        const fillId = 'dashboard-fill';
-        const lineId = 'dashboard-line';
-        const glowId = 'dashboard-glow';
-
-        // 1. Shapes GeoJSON
-        const geojson = {
-            type: 'FeatureCollection',
-            features: accumulatedPlots
-                .filter(p => p.geometry)
-                .map(p => ({
-                    type: 'Feature',
-                    geometry: p.geometry,
-                    properties: { id: p.id, carbon: p.carbon, area: p.areaRai, selected: p.id === selectedPlotId }
-                }))
-        };
-
-        if (map.current.getSource(sourceId)) {
-            map.current.getSource(sourceId).setData(geojson);
-        } else {
-            // Adds Sources
-            map.current.addSource(sourceId, { type: 'geojson', data: geojson });
-
-            map.current.addLayer({
-                id: glowId,
-                type: 'line',
-                source: sourceId,
-                paint: {
-                    'line-color': ['case', ['get', 'selected'], '#fbbf24', '#10b981'],
-                    'line-width': ['case', ['get', 'selected'], 12, 0], // Only glow when selected
-                    'line-blur': 8,
-                    'line-opacity': ['case', ['get', 'selected'], 0.8, 0]
-                }
-            });
-
-            map.current.addLayer({
-                id: fillId,
-                type: 'fill',
-                source: sourceId,
-                paint: {
-                    'fill-color': ['case', ['get', 'selected'], '#fbbf24', '#10b981'],
-                    'fill-opacity': ['case', ['get', 'selected'], 0.5, 0.3]
-                }
-            });
-
-            map.current.addLayer({
-                id: lineId,
-                type: 'line',
-                source: sourceId,
-                paint: {
-                    'line-color': ['case', ['get', 'selected'], '#f59e0b', '#059669'],
-                    'line-width': ['case', ['get', 'selected'], 3, 2]
-                }
-            });
-
-            // Removed: 'plot-markers' and 'plot-markers-pulse' circle layers
-            // Reason: Replaced with beautiful HTML Markers in the useEffect above
-        }
     }, [accumulatedPlots, mapLoaded, selectedPlotId]);
 
     useEffect(() => {
@@ -438,127 +431,8 @@ function DashboardPage() {
         }
     }, [])
 
-    // ==========================================
-    // ADD PLOTS TO MAP
-    // ==========================================
-    useEffect(() => {
-        if (!map.current || !mapLoaded || accumulatedPlots.length === 0) return;
-
-        const sourceId = 'dashboard-source';
-        const centerSourceId = 'dashboard-centers-source';
-
-        const fillId = 'dashboard-fill';
-        const lineId = 'dashboard-line';
-        const glowId = 'dashboard-glow';
-
-        // 1. Shapes GeoJSON
-        const geojson = {
-            type: 'FeatureCollection',
-            features: accumulatedPlots
-                .filter(p => p.geometry)
-                .map(p => ({
-                    type: 'Feature',
-                    geometry: p.geometry,
-                    properties: { id: p.id, carbon: p.carbon, area: p.areaRai, selected: p.id === selectedPlotId }
-                }))
-        };
-
-        // 2. Centers GeoJSON (The Dots)
-        const centerGeojson = {
-            type: 'FeatureCollection',
-            features: accumulatedPlots
-                .filter(p => p.geometry)
-                .map(p => {
-                    let centerGeom;
-                    try {
-                        if (p.geometry.type === 'Point') {
-                            centerGeom = p.geometry;
-                        } else {
-                            centerGeom = turf.centroid(p.geometry).geometry;
-                        }
-                    } catch (e) { return null; }
-
-                    if (!centerGeom) return null;
-
-                    return {
-                        type: 'Feature',
-                        geometry: centerGeom,
-                        properties: { id: p.id, selected: p.id === selectedPlotId }
-                    };
-                })
-                .filter(Boolean)
-        };
-
-        if (map.current.getSource(sourceId)) {
-            map.current.getSource(sourceId).setData(geojson);
-            if (map.current.getSource(centerSourceId)) {
-                map.current.getSource(centerSourceId).setData(centerGeojson);
-            }
-        } else {
-            // Adds Sources
-            map.current.addSource(sourceId, { type: 'geojson', data: geojson });
-            map.current.addSource(centerSourceId, { type: 'geojson', data: centerGeojson });
-
-            map.current.addLayer({
-                id: glowId,
-                type: 'line',
-                source: sourceId,
-                paint: {
-                    'line-color': ['case', ['get', 'selected'], '#fbbf24', '#10b981'],
-                    'line-width': ['case', ['get', 'selected'], 12, 0], // Only glow when selected
-                    'line-blur': 8,
-                    'line-opacity': ['case', ['get', 'selected'], 0.8, 0]
-                }
-            });
-
-            map.current.addLayer({
-                id: fillId,
-                type: 'fill',
-                source: sourceId,
-                paint: {
-                    'fill-color': ['case', ['get', 'selected'], '#fbbf24', '#10b981'],
-                    'fill-opacity': ['case', ['get', 'selected'], 0.5, 0.3]
-                }
-            });
-
-            map.current.addLayer({
-                id: lineId,
-                type: 'line',
-                source: sourceId,
-                paint: {
-                    'line-color': ['case', ['get', 'selected'], '#f59e0b', '#059669'],
-                    'line-width': ['case', ['get', 'selected'], 3, 2]
-                }
-            });
-
-            // MARKER DOTS LAYER (Shows location for ALL plots)
-            map.current.addLayer({
-                id: 'plot-markers',
-                type: 'circle',
-                source: centerSourceId,
-                paint: {
-                    'circle-radius': 6,
-                    'circle-color': ['case', ['get', 'selected'], '#fbbf24', '#10b981'],
-                    'circle-stroke-width': 2,
-                    'circle-stroke-color': '#ffffff',
-                    'circle-opacity': 1
-                }
-            });
-
-            // Pulsing Selected Marker (Underneath)
-            map.current.addLayer({
-                id: 'plot-markers-pulse',
-                type: 'circle',
-                source: centerSourceId,
-                paint: {
-                    'circle-radius': 15,
-                    'circle-color': '#fbbf24',
-                    'circle-opacity': ['case', ['get', 'selected'], 0.4, 0],
-                    'circle-blur': 0.5
-                }
-            }, 'plot-markers'); // Add before dots
-        }
-    }, [accumulatedPlots, mapLoaded, selectedPlotId]);
+    // Unified Map Data Update Effect
+    // (Consolidated duplicate logic that was previously at lines 444-561)
 
 
 

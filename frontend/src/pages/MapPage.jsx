@@ -198,7 +198,6 @@ function MapPage() {
     const [pendingPlots, setPendingPlots] = useState([])
     const [previewPlots, setPreviewPlots] = useState([])
     const [coordinates, setCoordinates] = useState({ lat: 13.7563, lng: 100.5018, zoom: 5 })
-    const [selectedPlotForPopup, setSelectedPlotForPopup] = useState(null)
     const popupRef = useRef(null)
 
     // Draw state
@@ -589,13 +588,20 @@ function MapPage() {
             const plot = savedPlots.find(p => p.id.toString() === editPlotId);
             if (plot) {
                 console.log('Found plot to edit:', plot);
-                // Zoom to plot
-                handleZoomToPlot(plot.geometry);
+                // 1. Zoom to plot AND show target marker
+                // This identifies the plot location clearly
+                handleZoomToPlot(plot.geometry, true);
 
-                // Open Popup REMOVED
-                // setSelectedPlotForPopup(plot); // User requested no popup
+                // 2. Highlight the plot as "Active" (Red) on the map immediately
+                // This fulfills "up plot in map" (ขึ้นแปลงในแผนที่) without opening a modal popup
+                setPreviewPlots([{
+                    ...plot,
+                    isPreview: true,
+                    isActive: true,
+                    id: plot.id
+                }]);
 
-                // Clear URL param to prevent re-triggering (optional but good UI)
+                // Clear URL param to prevent re-triggering on manual refresh
                 const newUrl = window.location.pathname;
                 window.history.replaceState({}, '', newUrl);
             }
@@ -603,64 +609,27 @@ function MapPage() {
     }, [mapLoaded, savedPlots]);
 
     // ==========================================
-    // RENDER SELECTED POPUP (Effect)
-    // ==========================================
-    useEffect(() => {
-        if (!map.current || !selectedPlotForPopup) return;
-
-        const plot = selectedPlotForPopup;
-        // Close existing popup if any
-        const existingPopups = document.getElementsByClassName('mapboxgl-popup');
-        if (existingPopups.length > 0) {
-            Array.from(existingPopups).forEach(p => p.remove());
-        }
-
-        // Determine center for popup
-        let coordinates;
-        if (plot.geometry.type === 'Point') {
-            coordinates = plot.geometry.coordinates;
-        } else {
-            // Use centroid for polygon
-            const center = turf.center(plot.geometry);
-            coordinates = center.geometry.coordinates;
-        }
-
-        // Create Popup HTML (Reuse the design from click handler)
-        const htmlContent = `
-            <div style="font-family: 'Inter', sans-serif; min-width: 220px; padding: 4px;">
-                <h4 style="font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 2px;">${plot.farmerName}</h4>
-                <p style="font-size: 11px; color: #64748b; margin-bottom: 8px;">แปลง ID: ${plot.id}</p>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; background: #f8fafc; padding: 8px; border-radius: 8px;">
-                     <div>
-                        <span style="display: block; font-size: 10px; color: #94a3b8;">พื้นที่ (ไร่)</span>
-                        <span style="display: block; font-size: 12px; font-weight: 600; color: #475569;">${plot.areaRai}</span>
-                    </div>
-                    <div>
-                        <span style="display: block; font-size: 10px; color: #94a3b8;">คาร์บอน (tCO2e)</span>
-                        <span style="display: block; font-size: 12px; font-weight: 600; color: #10b981;">${plot.carbon}</span>
-                    </div>
-                </div>
-                <div style="background: #ecfdf5; color: #047857; text-align: center; padding: 6px; border-radius: 6px; font-size: 11px; font-weight: 600;">
-                    คุณกำลังดูแปลงนี้
-                </div>
-            </div>
-        `;
-
-        new maplibregl.Popup({ closeButton: true, maxWidth: '300px', className: 'custom-popup-auto' })
-            .setLngLat(coordinates)
-            .setHTML(htmlContent)
-            .addTo(map.current);
-
-    }, [selectedPlotForPopup]);
-
-    // ==========================================
     // MAP DATA SYNC & DRAWING LOGIC
     // ==========================================
     useEffect(() => {
         if (!map.current || !mapLoaded) return;
 
-        const allPlots = [...savedPlots, ...pendingPlots, ...previewPlots];
+        // Filter out plots with missing geometry to prevent map errors
+        // Also: Filter out original saved plots if they are currently being edited or saved (present in preview or pending)
+        const previewIds = previewPlots.map(p => p.id);
+        const pendingIds = pendingPlots.map(p => p.id);
+        const activeIds = [...previewIds, ...pendingIds];
+
+        const filteredSaved = savedPlots.filter(p => !activeIds.includes(p.id));
+
+        const allPlots = [...filteredSaved, ...pendingPlots, ...previewPlots].filter(p => p.geometry);
+        console.log(`Map updating with ${allPlots.length} total plots:`, {
+            saved: filteredSaved.length,
+            hiddenForEdit: savedPlots.length - filteredSaved.length,
+            pending: pendingPlots.length,
+            preview: previewPlots.length,
+            active: allPlots.filter(p => p.isActive).length
+        });
 
         // Add Source if not exists
         if (!map.current.getSource('saved-plots')) {
@@ -691,13 +660,19 @@ function MapPage() {
                 paint: {
                     'fill-color': [
                         'case',
+                        ['get', 'isActive'], '#ef4444', // Red for currently processing
                         ['get', 'isPreview'], '#3b82f6',
                         ['get', 'isPending'], '#fbbf24',
                         '#10b981'
                     ],
-                    'fill-opacity': 0.3,
+                    'fill-opacity': [
+                        'case',
+                        ['get', 'isActive'], 0.5,
+                        0.3
+                    ],
                     'fill-outline-color': [
                         'case',
+                        ['get', 'isActive'], '#b91c1c',
                         ['get', 'isPreview'], '#2563eb',
                         ['get', 'isPending'], '#d97706',
                         '#059669'
@@ -712,11 +687,16 @@ function MapPage() {
                 paint: {
                     'line-color': [
                         'case',
+                        ['get', 'isActive'], '#dc2626',
                         ['get', 'isPreview'], '#2563eb',
                         ['get', 'isPending'], '#d97706',
                         '#059669'
                     ],
-                    'line-width': 2
+                    'line-width': [
+                        'case',
+                        ['get', 'isActive'], 3,
+                        2
+                    ]
                 }
             });
         } else {
@@ -732,6 +712,7 @@ function MapPage() {
                         carbon: plot.carbon,
                         isPending: plot.isPending || false,
                         isPreview: plot.isPreview || false,
+                        isActive: plot.isActive || false,
                         allData: JSON.stringify(plot)
                     }
                 }))
@@ -859,49 +840,76 @@ function MapPage() {
         }
     };
 
-    const handleZoomToPlot = (geometry) => {
+    const handleZoomToPlot = (geometry, showMarker = false) => {
         if (!map.current || !geometry) return;
         try {
-            const feature = geometry.type === 'FeatureCollection' ? geometry : turf.feature(geometry);
+            console.log('handleZoomToPlot called with:', geometry.type, 'showMarker:', showMarker);
+
+            // Handle both Geometry objects and Feature objects
+            const feature = (geometry.type === 'Feature' || geometry.type === 'FeatureCollection')
+                ? geometry
+                : turf.feature(geometry);
+
             const bbox = turf.bbox(feature);
-            map.current.fitBounds(bbox, {
-                padding: 100,
-                maxZoom: 20, // Maximum satellite zoom
-                duration: 2000
-            });
 
-            // Add a temporary pulsing marker to clearly show location
-            const center = turf.center(feature);
-            const el = document.createElement('div');
-            el.className = 'edit-target-marker';
-            el.innerHTML = `
-                <div style="position: relative; display: flex; flex-direction: column; items-align: center;">
-                    <div style="width: 20px; height: 20px; background: #ef4444; border-radius: 50%; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); animation: pulse-red 2s infinite;"></div>
-                    <div style="position: absolute; top: 24px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">
-                        แปลงที่เลือก
-                    </div>
-                </div>
-                <style>
-                    @keyframes pulse-red {
-                        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-                        70% { transform: scale(1); box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); }
-                        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-                    }
-                </style>
-            `;
-
-            // Remove existing edit markers
-            const existingMarkers = document.getElementsByClassName('edit-target-marker');
-            while (existingMarkers[0]) {
-                existingMarkers[0].parentNode.remove();
+            // Check for valid bbox
+            if (bbox.some(coord => isNaN(coord))) {
+                console.error('Invalid BBOX calculated:', bbox);
+                return;
             }
 
-            new maplibregl.Marker({ element: el })
-                .setLngLat(center.geometry.coordinates)
-                .addTo(map.current);
+            // Fly to for smoother feeling
+            map.current.fitBounds(bbox, {
+                padding: { top: 100, bottom: 250, left: 100, right: window.innerWidth > 1024 ? 380 : 100 },
+                maxZoom: 19,
+                duration: 2000,
+                essential: true
+            });
+
+            // Cleanup ALL existing markers FIRST
+            const existingMarkers = document.getElementsByClassName('edit-target-marker');
+            while (existingMarkers[0]) {
+                const parent = existingMarkers[0].parentNode;
+                if (parent && parent.remove) parent.remove();
+                else if (parent && parent.parentNode) parent.parentNode.removeChild(parent);
+                else break;
+            }
+
+            // ONLY show marker if explicitly requested (e.g. during EDIT mode from Dashboard)
+            if (showMarker) {
+                const center = turf.center(feature);
+                const el = document.createElement('div');
+                el.className = 'edit-target-marker';
+                el.innerHTML = `
+                    <div style="position: relative; display: flex; flex-direction: column; align-items: center;">
+                        <div style="width: 28px; height: 28px; background: rgba(239, 68, 68, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; animation: pulse-red-ring 2s infinite;">
+                            <div style="width: 12px; height: 12px; background: #ef4444; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 10px rgba(0,0,0,0.3);"></div>
+                        </div>
+                        <div style="position: absolute; top: 32px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: #ef4444; color: white; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 900; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4); text-transform: uppercase; letter-spacing: 0.05em;">
+                            แปลงที่คุณเลือก
+                        </div>
+                    </div>
+                    <style>
+                        @keyframes pulse-red-ring {
+                            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+                            70% { box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); }
+                            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+                        }
+                    </style>
+                `;
+
+                const marker = new maplibregl.Marker({ element: el })
+                    .setLngLat(center.geometry.coordinates)
+                    .addTo(map.current);
+
+                // Auto-remove marker after 8 seconds
+                setTimeout(() => {
+                    try { marker.remove(); } catch (e) { }
+                }, 8000);
+            }
 
         } catch (err) {
-            console.error('Zoom error:', err);
+            console.error('Zoom error details:', err);
         }
     };
 

@@ -415,12 +415,13 @@ function HistoryPage() {
         }
 
         @keyframes active-spring {
-            0% { transform: scale(1); }
-            40% { transform: scale(1.2); }
-            70% { transform: scale(0.9); }
-            100% { transform: scale(1); }
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+            100% { transform: translateY(0); }
         }
-        .active-tab-spring { animation: active-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .active-tab-spring {
+            animation: active-spring 3s ease-in-out infinite;
+        }
         
         @keyframes dot-pop {
             0% { transform: scale(0) translateY(5px); opacity: 0; }
@@ -429,11 +430,11 @@ function HistoryPage() {
         .indicator-dot { animation: dot-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both; }
 
         .minimalist-glass {
-            background: rgba(255, 255, 255, 0.82);
-            backdrop-filter: blur(25px) saturate(180%);
-            -webkit-backdrop-filter: blur(25px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08);
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(15px) saturate(180%);
+            -webkit-backdrop-filter: blur(15px) saturate(180%);
+            border: 0.5px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
         }
     `}</style>
 
