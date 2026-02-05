@@ -131,6 +131,7 @@ function PersonalDashboardPage() {
 
     const [userProfile, setUserProfile] = useState(null)
     const [isNavExpanded, setIsNavExpanded] = useState(false)
+    const [isStatsExpanded, setIsStatsExpanded] = useState(false)
 
     useEffect(() => {
         const profile = localStorage.getItem('userProfile')
@@ -407,8 +408,8 @@ function PersonalDashboardPage() {
                     </div>
                 </div>
 
-                {/* STATS CARDS */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* DESKTOP STATS SECTION (Hidden on Mobile) */}
+                <div className="hidden md:grid grid-cols-3 gap-4 relative z-[100]">
                     {/* Plots */}
                     <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-xl transition-all duration-500 hover:-translate-y-1">
                         <div className="absolute right-0 top-0 w-24 h-24 bg-emerald-50 rounded-bl-full -mr-4 -mt-4 transition-transform duration-500 group-hover:scale-110"></div>
@@ -447,12 +448,63 @@ function PersonalDashboardPage() {
                 </div>
 
                 {/* MAP & LIST SECTION */}
-                <div className="grid lg:grid-cols-3 gap-6 h-[500px] lg:h-[600px]">
-                    {/* MAP */}
+                <div className="grid lg:grid-cols-3 gap-6 h-[500px] lg:h-[600px] relative z-20">
                     <div className="lg:col-span-3 bg-white rounded-[2.5rem] shadow-lg border border-slate-100 overflow-hidden relative group h-full">
                         <div ref={mapContainer} className="absolute inset-0 w-full h-full" />
-                        <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-4 py-2 rounded-xl text-xs font-bold text-slate-700 shadow-sm border border-white/50 z-10">
+
+                        {/* Status Label (Desktop Only) */}
+                        <div className="hidden md:block absolute top-4 left-4 bg-white/90 backdrop-blur px-4 py-2 rounded-xl text-xs font-bold text-slate-700 shadow-sm border border-white/50 z-10">
                             แผนที่สังเขปแปลง
+                        </div>
+
+                        {/* MOBILE FLOATING STATS DOCK */}
+                        <div className="md:hidden absolute top-4 left-1/2 -translate-x-1/2 w-[90%] z-[50]">
+                            <div className={`
+                                minimalist-glass rounded-[1.5rem] p-3 transition-all duration-500 ease-out overflow-hidden
+                                ${isStatsExpanded ? 'h-auto scale-100' : 'h-[56px] scale-95 opacity-90'}
+                            `}>
+                                {/* Summary Bar */}
+                                <div
+                                    className="flex items-center justify-between cursor-pointer h-[32px]"
+                                    onClick={() => setIsStatsExpanded(!isStatsExpanded)}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-1">
+                                            <LeafIcon className="w-3 h-3 text-emerald-600" />
+                                            <span className="text-xs font-black text-slate-700">{stats.carbon.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                                        </div>
+                                        <div className="w-[1px] h-3 bg-slate-300/50"></div>
+                                        <div className="flex items-center gap-1">
+                                            <MapIcon className="w-3 h-3 text-blue-600" />
+                                            <span className="text-xs font-black text-slate-700">{stats.area.toLocaleString()}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-white/50 w-6 h-6 rounded-full flex items-center justify-center text-slate-400 transition-transform duration-300" style={{ transform: isStatsExpanded ? 'rotate(180deg)' : 'none' }}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
+                                </div>
+
+                                {/* Expanded Details */}
+                                {isStatsExpanded && (
+                                    <div className="mt-3 pt-3 border-t border-slate-200/50 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                        <div className="flex justify-between items-center px-1">
+                                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">จำนวนแปลง</span>
+                                            <span className="text-xs font-black text-slate-700">{stats.plots} แปลง</span>
+                                        </div>
+                                        <div className="flex justify-between items-center px-1">
+                                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">พื้นที่รวม</span>
+                                            <span className="text-xs font-black text-slate-700">{stats.area.toLocaleString()} ไร่</span>
+                                        </div>
+                                        <div className="flex justify-between items-center px-1">
+                                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">คาร์บอนรวม</span>
+                                            <span className="text-xs font-black text-emerald-600">{stats.carbon.toLocaleString(undefined, { maximumFractionDigits: 1 })} tCO₂e</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -83,6 +83,7 @@ function DashboardPage() {
         totalCarbon: 0
     })
 
+    const [showMobileStats, setShowMobileStats] = useState(false)
     const [userProfile, setUserProfile] = useState(null)
 
     // Clear markers helper
@@ -246,26 +247,28 @@ function DashboardPage() {
         const validPlots = accumulatedPlots.filter(p => p.geometry);
         if (validPlots.length === 0) return;
 
-        // Create bounds
-        const coordinates = validPlots.map(p => {
-            if (p.geometry.type === 'Point') {
-                return p.geometry.coordinates;
-            } else if (p.geometry.type === 'Polygon') {
-                return p.geometry.coordinates[0][0]; // First coordinate of polygon
-            }
-            return null;
-        }).filter(Boolean);
+        try {
+            const collection = {
+                type: 'FeatureCollection',
+                features: validPlots.map(p => ({
+                    type: 'Feature',
+                    geometry: p.geometry,
+                    properties: {}
+                }))
+            };
 
-        if (coordinates.length > 0) {
-            const bounds = coordinates.reduce((bounds, coord) => {
-                return bounds.extend(coord);
-            }, new maplibregl.LngLatBounds(coordinates[0], coordinates[0]));
+            const bbox = turf.bbox(collection);
 
-            map.current.fitBounds(bounds, {
-                padding: { top: 100, bottom: 100, left: 100, right: 450 },
-                duration: 1500,
-                maxZoom: 14
-            });
+            map.current.fitBounds(
+                [[bbox[0], bbox[1]], [bbox[2], bbox[3]]],
+                {
+                    padding: { top: 100, bottom: 100, left: 100, right: window.innerWidth < 768 ? 100 : 450 },
+                    duration: 1500,
+                    maxZoom: 14
+                }
+            );
+        } catch (error) {
+            console.error('Error in zoomToAllPlots:', error);
         }
 
         setSelectedPlotId(null);
@@ -582,8 +585,34 @@ function DashboardPage() {
 
             {/* No Overlay - Pure Map View */}
 
+            {/* 
+                DYNAMIC STATS TOGGLE (Mobile Only) 
+            */}
+            <div className="md:hidden absolute top-6 right-6 z-[45]">
+                <button
+                    onClick={() => setShowMobileStats(!showMobileStats)}
+                    className={`w-10 h-10 bg-white/10 backdrop-blur-xl border border-white/30 rounded-full flex items-center justify-center text-white shadow-lg active:scale-90 transition-all ${showMobileStats ? 'rotate-45 opacity-50' : 'rotate-0 opacity-100'}`}
+                >
+                    <SparklesIcon className="w-5 h-5 text-emerald-400" />
+                </button>
+            </div>
+
+            {/* BACKDROP (Mobile Only) - Click anywhere outside to close */}
+            {window.innerWidth < 768 && showMobileStats && (
+                <div
+                    className="fixed inset-0 z-30 bg-black/5 backdrop-blur-[1px] md:hidden animate-in fade-in duration-300"
+                    onClick={() => setShowMobileStats(false)}
+                />
+            )}
+
             {/* การ์ดสถิติแบบ Premium Glassmorphism - ตัดกับพื้นหลังเข้ม */}
-            <div className="absolute top-5 left-5 right-5 z-40 max-w-4xl mx-auto">
+            <div
+                className={`
+                    absolute top-5 left-5 right-5 z-40 max-w-4xl mx-auto transition-all duration-500
+                    ${window.innerWidth < 768 && !showMobileStats ? 'opacity-0 -translate-y-10 pointer-events-none' : 'opacity-100 translate-y-0'}
+                `}
+                onClick={(e) => e.stopPropagation()} // Prevent closing when clicking on the cards themselves
+            >
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* การ์ดคาร์บอน */}
                     <div className="group relative">
