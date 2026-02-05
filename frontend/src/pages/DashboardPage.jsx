@@ -608,19 +608,19 @@ function DashboardPage() {
 
                     {/* การ์ดพื้นที่ */}
                     <div className="group relative">
-                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-2xl blur opacity-25 group-hover:opacity-50 transition-all duration-500" />
-                        <div className="relative bg-white/10 backdrop-blur-xl rounded-2xl p-4 border border-white/20 shadow-xl hover:shadow-blue-500/20 transition-all duration-500 hover:-translate-y-1">
+                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-green-400 rounded-2xl blur opacity-25 group-hover:opacity-50 transition-all duration-500" />
+                        <div className="relative bg-white/10 backdrop-blur-xl rounded-2xl p-4 border border-white/20 shadow-xl hover:shadow-emerald-500/20 transition-all duration-500 hover:-translate-y-1">
                             <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/30">
                                     <MapIcon className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <p className="text-blue-300 text-[10px] font-bold uppercase tracking-wider mb-0.5">พื้นที่ทั้งหมด</p>
+                                    <p className="text-emerald-300 text-[10px] font-bold uppercase tracking-wider mb-0.5">พื้นที่ทั้งหมด</p>
                                     <div className="flex items-baseline gap-2">
                                         <h2 className="text-2xl font-black text-white leading-none tracking-tight">
                                             {stats.totalArea.toLocaleString('th-TH', { maximumFractionDigits: 0 })}
                                         </h2>
-                                        <span className="text-blue-400 text-xs font-bold">ไร่</span>
+                                        <span className="text-emerald-400 text-xs font-bold">ไร่</span>
                                     </div>
                                 </div>
                             </div>
@@ -629,19 +629,19 @@ function DashboardPage() {
 
                     {/* การ์ดผู้เข้าร่วม */}
                     <div className="group relative">
-                        <div className="absolute inset-0 bg-gradient-to-r from-violet-500 to-purple-400 rounded-2xl blur opacity-25 group-hover:opacity-50 transition-all duration-500" />
-                        <div className="relative bg-white/10 backdrop-blur-xl rounded-2xl p-4 border border-white/20 shadow-xl hover:shadow-violet-500/20 transition-all duration-500 hover:-translate-y-1">
+                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-green-400 rounded-2xl blur opacity-25 group-hover:opacity-50 transition-all duration-500" />
+                        <div className="relative bg-white/10 backdrop-blur-xl rounded-2xl p-4 border border-white/20 shadow-xl hover:shadow-emerald-500/20 transition-all duration-500 hover:-translate-y-1">
                             <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center text-white shadow-lg shadow-violet-500/30">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/30">
                                     <UserIcon className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <p className="text-violet-300 text-[10px] font-bold uppercase tracking-wider mb-0.5">ผู้เข้าร่วม</p>
+                                    <p className="text-emerald-300 text-[10px] font-bold uppercase tracking-wider mb-0.5">ผู้เข้าร่วม</p>
                                     <div className="flex items-baseline gap-2">
                                         <h2 className="text-2xl font-black text-white leading-none tracking-tight">
                                             {stats.totalPlots.toLocaleString('th-TH')}
                                         </h2>
-                                        <span className="text-violet-400 text-xs font-bold">ราย</span>
+                                        <span className="text-emerald-400 text-xs font-bold">ราย</span>
                                     </div>
                                 </div>
                             </div>
