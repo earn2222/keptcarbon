@@ -75,7 +75,19 @@ const LogoutIcon = () => (
 
 const DashboardLayout = ({ children }) => {
     const [mobileOpen, setMobileOpen] = useState(false)
+    const [userProfile, setUserProfile] = useState(null)
     const location = useLocation()
+
+    React.useEffect(() => {
+        const profile = localStorage.getItem('userProfile')
+        if (profile) {
+            try {
+                setUserProfile(JSON.parse(profile))
+            } catch (e) {
+                console.error('Failed to parse user profile', e)
+            }
+        }
+    }, [])
 
     const navigation = [
         { name: 'หน้าหลัก', path: '/', icon: HomeIcon },
@@ -211,16 +223,20 @@ const DashboardLayout = ({ children }) => {
                             <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-red-500 border border-white rounded-full"></span>
                         </button>
                         <div className="w-[1px] h-5 bg-gray-200 mx-0.5"></div>
-                        <div className="flex items-center gap-3 pr-1 cursor-pointer group">
-                            <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-[#4c7c44] flex items-center justify-center text-white text-[10px] lg:text-xs font-bold shadow-md ring-2 ring-white transition-all group-hover:scale-105">
-                                JD
+                        <NavLink to="/dashboard/personal" className="flex items-center gap-3 pr-1 cursor-pointer group">
+                            <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-2xl bg-[#4c7c44] flex items-center justify-center text-white text-[10px] lg:text-xs font-bold shadow-md transition-all group-hover:scale-105 overflow-hidden">
+                                {userProfile?.picture ? (
+                                    <img src={userProfile.picture} alt="Profile" className="w-full h-full object-cover" />
+                                ) : (
+                                    userProfile?.name ? userProfile.name.split(' ').map(n => n[0]).join('') : 'JD'
+                                )}
                             </div>
                             {/* Desktop Name */}
                             <div className="hidden sm:block pr-2">
-                                <div className="font-bold text-xs text-[#2d4a27] tracking-tight">John Doe</div>
-                                <div className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Farmer Agent</div>
+                                <div className="font-bold text-xs text-[#2d4a27] tracking-tight group-hover:text-[#4c7c44] transition-colors">{userProfile?.name || "John Doe"}</div>
+                                <div className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">{userProfile?.email || "Farmer Agent"}</div>
                             </div>
-                        </div>
+                        </NavLink>
                     </div>
                 </div>
             </header>

@@ -76,6 +76,31 @@ function LoginPage() {
         setIsLoading(true)
         setError('')
         try {
+            // Decode JWT to get user profile info (name, picture, email)
+            const decodeJWT = (token) => {
+                try {
+                    const base64Url = token.split('.')[1];
+                    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
+                        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                    }).join(''));
+                    return JSON.parse(jsonPayload);
+                } catch (e) {
+                    return null;
+                }
+            };
+
+            const profile = decodeJWT(credentialResponse.credential);
+            if (profile) {
+                localStorage.setItem('userProfile', JSON.stringify({
+                    name: profile.name,
+                    email: profile.email,
+                    picture: profile.picture,
+                    given_name: profile.given_name,
+                    family_name: profile.family_name
+                }));
+            }
+
             const response = await axios.post(`${API_URL}/api/auth/google`, {
                 token: credentialResponse.credential
             })

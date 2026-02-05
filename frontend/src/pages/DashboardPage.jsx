@@ -82,6 +82,19 @@ function DashboardPage() {
         totalCarbon: 0
     })
 
+    const [userProfile, setUserProfile] = useState(null)
+
+    useEffect(() => {
+        const profile = localStorage.getItem('userProfile')
+        if (profile) {
+            try {
+                setUserProfile(JSON.parse(profile))
+            } catch (e) {
+                console.error('Failed to parse user profile', e)
+            }
+        }
+    }, [])
+
     // Function to zoom to a specific plot
     const zoomToPlot = (plot) => {
         if (!map.current || !plot.geometry) return;
@@ -542,9 +555,13 @@ function DashboardPage() {
                         onClick={() => history.push('/dashboard/personal')}
                         className="group relative flex flex-col items-center justify-center w-10 h-10 transition-all"
                     >
-                        <div className="text-white/70 group-hover:text-white group-hover:scale-110 transition-all duration-300">
-                            <UserIcon />
-                        </div>
+                        {userProfile?.picture ? (
+                            <img src={userProfile.picture} alt="Profile" className="w-7 h-7 rounded-md object-cover group-hover:scale-110 transition-all duration-300" />
+                        ) : (
+                            <div className="text-white/70 group-hover:text-white group-hover:scale-110 transition-all duration-300">
+                                <UserIcon />
+                            </div>
+                        )}
                         <span className="absolute -bottom-8 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-white font-medium bg-black/50 px-2 py-0.5 rounded-md backdrop-blur-md">ส่วนตัว</span>
                     </button>
 

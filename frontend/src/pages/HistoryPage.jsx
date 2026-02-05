@@ -47,6 +47,12 @@ const EditIcon = ({ className = "w-5 h-5" }) => (
     </svg>
 )
 
+const LogoutIcon = ({ className = "w-6 h-6" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+    </svg>
+)
+
 const SearchIcon = ({ className = "w-5 h-5" }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -263,9 +269,31 @@ function HistoryPage() {
         }
     }
 
+    const [userProfile, setUserProfile] = useState(null)
     const [isNavExpanded, setIsNavExpanded] = useState(false)
 
-    const handleNavClick = (path) => history.push(path)
+    useEffect(() => {
+        const profile = localStorage.getItem('userProfile')
+        if (profile) {
+            try {
+                setUserProfile(JSON.parse(profile))
+            } catch (e) {
+                console.error('Failed to parse user profile', e)
+            }
+        }
+    }, [])
+
+    const handleNavClick = (path) => {
+        history.push(path)
+    }
+
+    const handleLogout = () => {
+        if (window.confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
+            localStorage.removeItem('userProfile')
+            // localStorage.removeItem('token')
+            history.push('/login')
+        }
+    }
 
     const filteredPlots = plots.filter(p =>
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -328,16 +356,16 @@ function HistoryPage() {
                         <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
                         <div className="relative shrink-0">
                             <div className="w-20 h-20 lg:w-24 lg:h-24 rounded-full bg-gradient-to-tr from-emerald-400 to-teal-500 p-[2px] shadow-lg shadow-emerald-200">
-                                <div className="w-full h-full rounded-full bg-white p-1">
-                                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin" alt="Profile" className="w-full h-full rounded-full bg-slate-50" />
+                                <div className="w-full h-full rounded-full bg-white p-1 overflow-hidden">
+                                    <img src={userProfile?.picture || "https://api.dicebear.com/7.x/avataaars/svg?seed=Admin"} alt="Profile" className="w-full h-full rounded-full bg-slate-50 object-cover" />
                                 </div>
                             </div>
                             <div className="absolute bottom-1 right-1 w-5 h-5 bg-emerald-500 border-2 border-white rounded-full"></div>
                         </div>
 
                         <div className="flex-1 text-center sm:text-left z-10 w-full">
-                            <h2 className="text-xl lg:text-2xl font-bold text-slate-800">ผู้ดูแลระบบ</h2>
-                            <p className="text-slate-400 text-sm font-medium mb-6">admin@keptcarbon.com</p>
+                            <h2 className="text-xl lg:text-2xl font-bold text-slate-800">{userProfile?.name || "ผู้ดูแลระบบ"}</h2>
+                            <p className="text-slate-400 text-sm font-medium mb-6">{userProfile?.email || "admin@keptcarbon.com"}</p>
 
                             <div className="grid grid-cols-3 gap-2 sm:gap-6 divide-x divide-slate-100">
                                 <div className="text-center px-2">
@@ -515,10 +543,22 @@ function HistoryPage() {
                     ${isNavExpanded ? 'p-2 gap-2 rounded-[2rem]' : 'p-1 rounded-full'}
                 `}>
 
-                    {/* Collapsed Active Icon / Menu Trigger */}
+                    {/* Collapsed Menu Trigger (Always show profile if available) */}
                     {!isNavExpanded && (
-                        <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg cursor-pointer">
-                            <HistoryIcon className="w-6 h-6" />
+                        <div className="w-12 h-12 relative flex items-center justify-center cursor-pointer group">
+                            {/* Glow Effect */}
+                            <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-md group-hover:blur-lg transition-all duration-500 animate-pulse"></div>
+
+                            {/* Profile Image/Icon */}
+                            <div className="relative w-11 h-11 bg-white p-[2px] rounded-full shadow-lg border border-emerald-100 group-hover:scale-105 transition-transform duration-300">
+                                {userProfile?.picture ? (
+                                    <img src={userProfile.picture} alt="Profile" className="w-full h-full rounded-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
+                                        <UserIcon className="w-6 h-6" />
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
 
@@ -531,7 +571,10 @@ function HistoryPage() {
                                 className="nav-pop-v-1 group relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all hover:bg-emerald-50 text-slate-400 hover:text-emerald-600"
                             >
                                 <HomeIcon className="w-5 h-5" />
-                                <span className="absolute left-16 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">หน้าหลัก</span>
+                                <div className="absolute left-16 px-3 py-1.5 bg-slate-900/90 backdrop-blur-md text-white text-[11px] font-bold rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-[-10px] group-hover:translate-x-0 whitespace-nowrap pointer-events-none shadow-xl border border-white/10 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
+                                    หน้าหลัก
+                                </div>
                             </button>
 
                             {/* Map */}
@@ -540,7 +583,10 @@ function HistoryPage() {
                                 className="nav-pop-v-2 group relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all hover:bg-emerald-50 text-slate-400 hover:text-blue-500"
                             >
                                 <MapIcon className="w-5 h-5" />
-                                <span className="absolute left-16 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">แผนที่สังเขป</span>
+                                <div className="absolute left-16 px-3 py-1.5 bg-slate-900/90 backdrop-blur-md text-white text-[11px] font-bold rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-[-10px] group-hover:translate-x-0 whitespace-nowrap pointer-events-none shadow-xl border border-white/10 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                                    แผนที่สังเขป
+                                </div>
                             </button>
 
                             {/* Dashboard */}
@@ -549,7 +595,10 @@ function HistoryPage() {
                                 className="nav-pop-v-3 group relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all hover:bg-emerald-50 text-slate-400 hover:text-purple-500"
                             >
                                 <DashboardIcon className="w-5 h-5" />
-                                <span className="absolute left-16 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">แดชบอร์ดรวม</span>
+                                <div className="absolute left-16 px-3 py-1.5 bg-slate-900/90 backdrop-blur-md text-white text-[11px] font-bold rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-[-10px] group-hover:translate-x-0 whitespace-nowrap pointer-events-none shadow-xl border border-white/10 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-purple-400"></div>
+                                    แดชบอร์ดรวม
+                                </div>
                             </button>
 
                             {/* Personal */}
@@ -557,14 +606,40 @@ function HistoryPage() {
                                 onClick={() => handleNavClick('/dashboard/personal')}
                                 className="nav-pop-v-4 group relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all hover:bg-emerald-50 text-slate-400 hover:text-emerald-600"
                             >
-                                <UserIcon className="w-5 h-5" />
-                                <span className="absolute left-16 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">ส่วนตัว</span>
+                                {userProfile?.picture ? (
+                                    <img src={userProfile.picture} alt="Profile" className="w-7 h-7 rounded-md object-cover group-hover:scale-110 transition-all duration-300" />
+                                ) : (
+                                    <UserIcon className="w-5 h-5 group-hover:scale-110 transition-all duration-300" />
+                                )}
+                                <div className="absolute left-16 px-3 py-1.5 bg-slate-900/90 backdrop-blur-md text-white text-[11px] font-bold rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-[-10px] group-hover:translate-x-0 whitespace-nowrap pointer-events-none shadow-xl border border-white/10 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
+                                    ส่วนตัว
+                                </div>
                             </button>
 
-                            {/* History (Active) */}
-                            <div className="nav-pop-v-5 w-12 h-12 rounded-2xl bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/30">
+                            {/* History (Active Highlight) */}
+                            <div className="nav-pop-v-5 group relative w-12 h-12 rounded-2xl bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/30 overflow-hidden border-2 border-white/20">
                                 <HistoryIcon className="w-6 h-6" />
+                                <div className="absolute left-16 px-3 py-1.5 bg-slate-900/90 backdrop-blur-md text-white text-[11px] font-bold rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-[-10px] group-hover:translate-x-0 whitespace-nowrap pointer-events-none shadow-xl border border-white/10 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                                    ประวัติประเมิน (กำลังดู)
+                                </div>
                             </div>
+
+                            {/* Divider */}
+                            <div className="w-8 h-[1px] bg-slate-100 my-1"></div>
+
+                            {/* Logout */}
+                            <button
+                                onClick={handleLogout}
+                                className="nav-pop-v-5 group relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all hover:bg-rose-50 text-slate-400 hover:text-rose-500"
+                            >
+                                <LogoutIcon className="w-5 h-5" />
+                                <div className="absolute left-16 px-3 py-1.5 bg-slate-900/90 backdrop-blur-md text-white text-[11px] font-bold rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-[-10px] group-hover:translate-x-0 whitespace-nowrap pointer-events-none shadow-xl border border-white/10 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-rose-500"></div>
+                                    ออกจากระบบ
+                                </div>
+                            </button>
                         </>
                     )}
                 </div>

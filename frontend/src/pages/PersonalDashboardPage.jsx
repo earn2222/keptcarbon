@@ -51,6 +51,12 @@ const MapPinIcon = ({ className = "w-6 h-6" }) => (
     </svg>
 )
 
+const LogoutIcon = ({ className = "w-6 h-6" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+    </svg>
+)
+
 // Helper for Area Formatting
 const formatArea = (rai) => {
     if (!rai) return '0 ไร่ 0 งาน 0 ตร.ว.';
@@ -84,10 +90,30 @@ function PersonalDashboardPage() {
         carbon: 0
     })
 
+    const [userProfile, setUserProfile] = useState(null)
     const [isNavExpanded, setIsNavExpanded] = useState(false)
+
+    useEffect(() => {
+        const profile = localStorage.getItem('userProfile')
+        if (profile) {
+            try {
+                setUserProfile(JSON.parse(profile))
+            } catch (e) {
+                console.error('Failed to parse user profile', e)
+            }
+        }
+    }, [])
 
     const handleNavClick = (path) => {
         history.push(path)
+    }
+
+    const handleLogout = () => {
+        if (window.confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
+            localStorage.removeItem('userProfile')
+            // localStorage.removeItem('token') // หากมีการใช้ token
+            history.push('/login')
+        }
     }
 
     // Fetch and process user plots
@@ -492,9 +518,22 @@ function PersonalDashboardPage() {
                 `}>
 
                     {/* Collapsed Active Icon / Menu Trigger */}
+                    {/* Collapsed Active Icon / Menu Trigger */}
                     {!isNavExpanded && (
-                        <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg cursor-pointer">
-                            <UserIcon className="w-6 h-6" />
+                        <div className="w-12 h-12 relative flex items-center justify-center cursor-pointer group">
+                            {/* Glow Effect */}
+                            <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-md group-hover:blur-lg transition-all duration-500 animate-pulse"></div>
+
+                            {/* Profile Image/Icon */}
+                            <div className="relative w-11 h-11 bg-white p-[2px] rounded-full shadow-lg border border-emerald-100 group-hover:scale-105 transition-transform duration-300">
+                                {userProfile?.picture ? (
+                                    <img src={userProfile.picture} alt="Profile" className="w-full h-full rounded-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
+                                        <UserIcon className="w-6 h-6" />
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
 
@@ -507,7 +546,10 @@ function PersonalDashboardPage() {
                                 className="nav-pop-v-1 group relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all hover:bg-emerald-50 text-slate-400 hover:text-emerald-600"
                             >
                                 <HomeIcon className="w-5 h-5" />
-                                <span className="absolute left-16 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">หน้าหลัก</span>
+                                <div className="absolute left-16 px-3 py-1.5 bg-slate-900/90 backdrop-blur-md text-white text-[11px] font-bold rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-[-10px] group-hover:translate-x-0 whitespace-nowrap pointer-events-none shadow-xl border border-white/10 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
+                                    หน้าหลัก
+                                </div>
                             </button>
 
                             {/* Map */}
@@ -516,7 +558,10 @@ function PersonalDashboardPage() {
                                 className="nav-pop-v-2 group relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all hover:bg-emerald-50 text-slate-400 hover:text-blue-500"
                             >
                                 <MapIcon className="w-5 h-5" />
-                                <span className="absolute left-16 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">แผนที่สังเขป</span>
+                                <div className="absolute left-16 px-3 py-1.5 bg-slate-900/90 backdrop-blur-md text-white text-[11px] font-bold rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-[-10px] group-hover:translate-x-0 whitespace-nowrap pointer-events-none shadow-xl border border-white/10 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                                    แผนที่สังเขป
+                                </div>
                             </button>
 
                             {/* Dashboard */}
@@ -525,12 +570,23 @@ function PersonalDashboardPage() {
                                 className="nav-pop-v-3 group relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all hover:bg-emerald-50 text-slate-400 hover:text-purple-500"
                             >
                                 <DashboardIcon className="w-5 h-5" />
-                                <span className="absolute left-16 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">แดชบอร์ดรวม</span>
+                                <div className="absolute left-16 px-3 py-1.5 bg-slate-900/90 backdrop-blur-md text-white text-[11px] font-bold rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-[-10px] group-hover:translate-x-0 whitespace-nowrap pointer-events-none shadow-xl border border-white/10 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-purple-400"></div>
+                                    แดชบอร์ดรวม
+                                </div>
                             </button>
 
                             {/* Personal (Active Highlight) */}
-                            <div className="nav-pop-v-4 w-12 h-12 rounded-2xl bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/30">
-                                <UserIcon className="w-6 h-6" />
+                            <div className="nav-pop-v-4 group relative w-12 h-12 rounded-2xl bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/30 overflow-hidden">
+                                {userProfile?.picture ? (
+                                    <img src={userProfile.picture} alt="Profile" className="w-10 h-10 rounded-md object-cover" />
+                                ) : (
+                                    <UserIcon className="w-8 h-8" />
+                                )}
+                                <div className="absolute left-16 px-3 py-1.5 bg-slate-900/90 backdrop-blur-md text-white text-[11px] font-bold rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-[-10px] group-hover:translate-x-0 whitespace-nowrap pointer-events-none shadow-xl border border-white/10 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                                    ส่วนตัว (กำลังดู)
+                                </div>
                             </div>
 
                             {/* History */}
@@ -539,7 +595,25 @@ function PersonalDashboardPage() {
                                 className="nav-pop-v-5 group relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all hover:bg-emerald-50 text-slate-400 hover:text-orange-500"
                             >
                                 <HistoryIcon className="w-5 h-5" />
-                                <span className="absolute left-16 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">ประวัติประเมิน</span>
+                                <div className="absolute left-16 px-3 py-1.5 bg-slate-900/90 backdrop-blur-md text-white text-[11px] font-bold rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-[-10px] group-hover:translate-x-0 whitespace-nowrap pointer-events-none shadow-xl border border-white/10 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-orange-400"></div>
+                                    ประวัติประเมิน
+                                </div>
+                            </button>
+
+                            {/* Divider */}
+                            <div className="w-8 h-[1px] bg-slate-100 my-1"></div>
+
+                            {/* Logout */}
+                            <button
+                                onClick={handleLogout}
+                                className="nav-pop-v-5 group relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all hover:bg-rose-50 text-slate-400 hover:text-rose-500"
+                            >
+                                <LogoutIcon className="w-5 h-5" />
+                                <div className="absolute left-16 px-3 py-1.5 bg-slate-900/90 backdrop-blur-md text-white text-[11px] font-bold rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-[-10px] group-hover:translate-x-0 whitespace-nowrap pointer-events-none shadow-xl border border-white/10 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-rose-500"></div>
+                                    ออกจากระบบ
+                                </div>
                             </button>
                         </>
                     )}
