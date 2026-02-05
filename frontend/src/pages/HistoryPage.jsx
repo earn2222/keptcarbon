@@ -2,6 +2,59 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { useHistory } from 'react-router-dom'
 import { getPlots, deletePlot } from '../services/api'
 
+// Helper for Area Formatting (Thai format)
+const formatArea = (rai) => {
+    if (!rai) return '0 ไร่ 0 งาน 0 ตร.ว.';
+    const rVal = parseFloat(rai);
+    if (isNaN(rVal)) return '0 ไร่ 0 งาน 0 ตร.ว.';
+
+    const r = Math.floor(rVal);
+    const nganDouble = (rVal - r) * 4;
+    const n = Math.floor(nganDouble);
+    const wah = Math.round((nganDouble - n) * 100);
+
+    return `${r} ไร่ ${n} งาน ${wah} ตร.ว.`;
+}
+
+// Get calculation method details
+const getMethodDetails = (method) => {
+    // Satellite methods
+    if (method === 'ndvi' || method?.includes('NDVI')) {
+        return {
+            type: 'ดาวเทียม',
+            name: 'ดัชนี NDVI',
+            formula: 'AGB = 34.2 × NDVI + 5.8',
+            description: 'ใช้ดัชนีพืชพรรณจากดาวเทียม'
+        };
+    }
+    if (method === 'tcari' || method?.includes('TCARI')) {
+        return {
+            type: 'ดาวเทียม',
+            name: 'ดัชนี TCARI',
+            formula: 'AGB = 13.57 × TCARI + 7.45',
+            description: 'ใช้ดัชนีคลอโรฟิลล์จากดาวเทียม'
+        };
+    }
+
+    // Field methods
+    if (method === 'field2' || method?.includes('สมการที่ 2')) {
+        return {
+            type: 'ภาคสนาม',
+            name: 'สมการที่ 2',
+            formula: 'AGB = 0.062 × DBH^2.23',
+            description: 'ใช้เส้นรอบวงลำต้น'
+        };
+    }
+
+    // Default: Field Method 1
+    return {
+        type: 'ภาคสนาม',
+        name: 'สมการที่ 1',
+        formula: 'AGB = 0.118 × DBH^2.53',
+        description: 'ใช้เส้นรอบวงลำต้น'
+    };
+}
+
 // ==========================================
 // ICONS
 // ==========================================
@@ -218,20 +271,35 @@ function HistoryPage() {
 
                 const carbonVal = parseFloat(p.carbon_tons) || 0
                 const dateObj = p.created_at ? new Date(p.created_at) : new Date(2024, index % 12, 1)
+                const areaRai = parseFloat(p.area_rai) || 0
+
+                // Get calculation method details
+                const methodDetails = getMethodDetails(p.method)
 
                 return {
                     id: p.id || index + 1,
                     dateObj: dateObj,
                     date: dateObj.toLocaleDateString('th-TH'),
                     year: dateObj.getFullYear(),
-                    name: p.name || `แปลงที่ ${index + 1}`,
-                    tambon: 'สุเทพ',
-                    amphoe: 'เมือง',
-                    province: 'เชียงใหม่',
+                    name: p.name || p.farmer_name || `แปลงที่ ${index + 1}`,
+                    tambon: p.tambon || p.subdistrict || '-',
+                    amphoe: p.amphoe || p.district || '-',
+                    province: p.province || 'เชียงใหม่',
                     coordinates: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
-                    area: parseFloat(p.area_rai) || 0,
-                    method: p.method || `การคำนวณมาตรฐาน`,
+                    address: [
+                        p.tambon || p.subdistrict,
+                        p.amphoe || p.district,
+                        p.province || 'เชียงใหม่'
+                    ].filter(Boolean).join(', ') || '-',
+                    area: areaRai,
+                    areaFormatted: formatArea(areaRai),
+                    method: p.method || 'standard',
+                    methodType: methodDetails.type,
+                    methodName: methodDetails.name,
+                    methodFormula: methodDetails.formula,
+                    methodDescription: methodDetails.description,
                     age: parseInt(p.tree_age) || 0,
+                    variety: p.variety || p.notes?.includes('พันธุ์:') ? p.notes.split('พันธุ์:')[1]?.trim() : 'RRIM 600',
                     carbon: carbonVal,
                     fullData: p
                 }
@@ -461,52 +529,180 @@ function HistoryPage() {
                         </div>
                     </div>
 
-                    <div className="overflow-x-auto">
+                    {/* Mobile Card View */}
+                    <div className="block lg:hidden space-y-4 mb-6">
+                        {filteredPlots.length > 0 ? (
+                            filteredPlots.map((p, idx) => (
+                                <div
+                                    key={p.id}
+                                    className="bg-gradient-to-br from-white to-slate-50/50 rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300"
+                                >
+                                    {/* Header */}
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">#{p.id}</span>
+                                                <span className="text-xs text-slate-400">{p.date}</span>
+                                            </div>
+                                            <h4 className="text-base font-bold text-slate-800">{p.name}</h4>
+                                        </div>
+                                        <div className="flex gap-1.5">
+                                            <button
+                                                onClick={() => history.push(`/map?editPlotId=${p.id}`)}
+                                                className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all"
+                                            >
+                                                <EditIcon className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(p.id)}
+                                                className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+                                            >
+                                                <TrashIcon className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Info Grid */}
+                                    <div className="grid grid-cols-2 gap-3 mb-3">
+                                        <div className="bg-white/60 rounded-xl p-3 border border-slate-100">
+                                            <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">ที่ตั้ง</div>
+                                            <div className="text-sm font-medium text-slate-700 line-clamp-1">{p.province}</div>
+                                            <div className="text-xs text-slate-500 line-clamp-1">{p.amphoe}, {p.tambon}</div>
+                                        </div>
+                                        <div className="bg-white/60 rounded-xl p-3 border border-slate-100">
+                                            <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">ขนาดพื้นที่</div>
+                                            <div className="text-sm font-bold text-blue-600">{p.areaFormatted}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Method & Formula */}
+                                    <div className="bg-emerald-50/50 rounded-xl p-3 border border-emerald-100 mb-3">
+                                        <div className="flex items-start justify-between gap-2 mb-2">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md ${p.methodType === 'ภาคสนาม'
+                                                        ? 'bg-blue-100 text-blue-700'
+                                                        : 'bg-purple-100 text-purple-700'
+                                                        }`}>
+                                                        {p.methodType}
+                                                    </span>
+                                                    <div className="text-[10px] font-semibold text-emerald-600 uppercase tracking-wider">วิธีคำนวณ</div>
+                                                </div>
+                                                <div className="text-xs font-bold text-slate-700">{p.methodName}</div>
+                                                <div className="text-[10px] text-slate-500 mt-0.5">{p.methodDescription}</div>
+                                            </div>
+                                        </div>
+                                        <div className="font-mono text-[10px] bg-white/60 text-emerald-700 px-2 py-1.5 rounded-md border border-emerald-200">
+                                            {p.methodFormula}
+                                        </div>
+                                    </div>
+
+                                    {/* Carbon Result */}
+                                    <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl p-4 text-center">
+                                        <div className="text-[10px] font-semibold text-white/80 uppercase tracking-wider mb-1">คาร์บอนสะสม</div>
+                                        <div className="text-2xl font-black text-white">{p.carbon.toFixed(2)}</div>
+                                        <div className="text-xs font-medium text-white/90">tCO₂e</div>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="py-12 text-center text-slate-400 text-sm">
+                                ไม่พบข้อมูลแปลงที่ค้นหา
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Desktop Table View */}
+                    <div className="hidden lg:block overflow-x-auto">
                         <table className="w-full min-w-[1000px] text-left border-collapse">
                             <thead>
-                                <tr className="border-b border-slate-100">
-                                    {['ID', 'วันที่', 'ชื่อแปลง', 'ที่ตั้ง', 'ขนาด (ไร่)', 'วิธีคำนวณ', 'คาร์บอน (tCO₂e)', 'จัดการ'].map((h, i) => (
-                                        <th key={i} className={`py-4 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider ${i === 7 ? 'text-center' : ''}`}>
-                                            {h}
-                                        </th>
-                                    ))}
+                                <tr className="border-b-2 border-slate-200">
+                                    <th className="py-4 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">ID</th>
+                                    <th className="py-4 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">วันที่</th>
+                                    <th className="py-4 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">ชื่อแปลง</th>
+                                    <th className="py-4 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">ที่ตั้ง</th>
+                                    <th className="py-4 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">ขนาดพื้นที่</th>
+                                    <th className="py-4 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">วิธีคำนวณ</th>
+                                    <th className="py-4 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">คาร์บอน</th>
+                                    <th className="py-4 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">จัดการ</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
                                 {filteredPlots.length > 0 ? (
                                     filteredPlots.map((p) => (
-                                        <tr key={p.id} className="group hover:bg-emerald-50/30 transition-colors duration-200">
-                                            <td className="py-4 px-4 text-sm font-semibold text-slate-500">#{p.id}</td>
-                                            <td className="py-4 px-4 text-sm text-slate-600">{p.date}</td>
-                                            <td className="py-4 px-4 text-sm font-bold text-slate-800">{p.name}</td>
-                                            <td className="py-4 px-4 text-sm text-slate-500">
-                                                {p.tambon}, {p.province}
-                                                <div className="text-[10px] font-mono text-slate-300 mt-0.5">{p.coordinates}</div>
-                                            </td>
-                                            <td className="py-4 px-4 text-sm font-medium text-slate-700">{p.area.toFixed(2)}</td>
-                                            <td className="py-4 px-4 text-xs">
-                                                <span className="bg-slate-100 text-slate-500 px-2 py-1 rounded-md border border-slate-200">
-                                                    {p.method}
-                                                </span>
+                                        <tr key={p.id} className="group hover:bg-emerald-50/40 transition-all duration-200">
+                                            <td className="py-4 px-4">
+                                                <span className="text-sm font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">#{p.id}</span>
                                             </td>
                                             <td className="py-4 px-4">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-sm font-bold text-emerald-600 tabular-nums">{p.carbon.toFixed(2)}</span>
-                                                    {p.carbon > 50 && <span className="text-[10px] bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded font-bold">High</span>}
+                                                <div className="text-sm text-slate-600">{p.date}</div>
+                                            </td>
+                                            <td className="py-4 px-4">
+                                                <div className="text-sm font-bold text-slate-800">{p.name}</div>
+                                                {p.variety && <div className="text-xs text-slate-400 mt-0.5">พันธุ์: {p.variety}</div>}
+                                            </td>
+                                            <td className="py-4 px-4">
+                                                <div className="text-sm text-slate-700">{p.province}</div>
+                                                <div className="text-xs text-slate-400">
+                                                    {p.amphoe !== '-' ? p.amphoe : ''} {p.tambon !== '-' ? `, ${p.tambon}` : ''}
+                                                </div>
+                                                <div className="text-[10px] font-mono text-slate-300 mt-0.5">{p.coordinates}</div>
+                                            </td>
+                                            <td className="py-4 px-4">
+                                                <div className="text-sm font-semibold text-blue-600">{p.areaFormatted}</div>
+                                                <div className="text-xs text-slate-400">{p.area.toFixed(2)} ไร่</div>
+                                            </td>
+                                            <td className="py-4 px-4">
+                                                <div className="group/method relative inline-block">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`text-[9px] font-bold px-2 py-1 rounded-md ${p.methodType === 'ภาคสนาม'
+                                                            ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                                                            : 'bg-purple-100 text-purple-700 border border-purple-200'
+                                                            }`}>
+                                                            {p.methodType}
+                                                        </span>
+                                                        <div className="text-xs font-medium text-slate-700 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 cursor-help">
+                                                            {p.methodName}
+                                                        </div>
+                                                    </div>
+                                                    {/* Tooltip */}
+                                                    <div className="absolute left-0 top-full mt-2 z-50 opacity-0 invisible group-hover/method:opacity-100 group-hover/method:visible transition-all duration-200">
+                                                        <div className="bg-slate-900 text-white text-xs rounded-xl p-3 shadow-xl border border-slate-700 w-72">
+                                                            <div className="flex items-center gap-2 mb-2">
+                                                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md ${p.methodType === 'ภาคสนาม'
+                                                                    ? 'bg-blue-500 text-white'
+                                                                    : 'bg-purple-500 text-white'
+                                                                    }`}>
+                                                                    {p.methodType}
+                                                                </span>
+                                                                <div className="font-bold">{p.methodName}</div>
+                                                            </div>
+                                                            <div className="text-slate-300 mb-2">{p.methodDescription}</div>
+                                                            <div className="font-mono text-emerald-400 bg-slate-800 px-2 py-1 rounded text-[10px]">
+                                                                {p.methodFormula}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="py-4 px-4 text-right">
+                                                <div className="inline-flex flex-col items-end">
+                                                    <span className="text-lg font-black text-emerald-600 tabular-nums">{p.carbon.toFixed(2)}</span>
+                                                    <span className="text-[10px] text-slate-400 font-medium">tCO₂e</span>
                                                 </div>
                                             </td>
                                             <td className="py-4 px-4">
                                                 <div className="flex items-center justify-center gap-2">
                                                     <button
                                                         onClick={() => history.push(`/map?editPlotId=${p.id}`)}
-                                                        className="p-2 text-emerald-500 hover:text-white hover:bg-emerald-500 rounded-lg transition-all"
+                                                        className="p-2.5 text-emerald-500 hover:text-white hover:bg-emerald-500 rounded-xl transition-all hover:scale-110"
                                                         title="ดูบนแผนที่"
                                                     >
                                                         <EditIcon className="w-4 h-4" />
                                                     </button>
                                                     <button
                                                         onClick={() => handleDelete(p.id)}
-                                                        className="p-2 text-slate-300 hover:text-white hover:bg-rose-500 rounded-lg transition-all"
+                                                        className="p-2.5 text-slate-400 hover:text-white hover:bg-rose-500 rounded-xl transition-all hover:scale-110"
                                                         title="ลบข้อมูล"
                                                     >
                                                         <TrashIcon className="w-4 h-4" />

@@ -75,6 +75,45 @@ const formatArea = (rai) => {
     return `${r} ไร่ ${n} งาน ${Math.round(wah)} ตร.ว.`;
 }
 
+// Get calculation method details
+const getMethodDetails = (method) => {
+    // Satellite methods
+    if (method === 'ndvi' || method?.includes('NDVI')) {
+        return {
+            type: 'ดาวเทียม',
+            name: 'ดัชนี NDVI',
+            formula: 'AGB = 34.2 × NDVI + 5.8',
+            description: 'ใช้ดัชนีพืชพรรณจากดาวเทียม'
+        };
+    }
+    if (method === 'tcari' || method?.includes('TCARI')) {
+        return {
+            type: 'ดาวเทียม',
+            name: 'ดัชนี TCARI',
+            formula: 'AGB = 13.57 × TCARI + 7.45',
+            description: 'ใช้ดัชนีคลอโรฟิลล์จากดาวเทียม'
+        };
+    }
+
+    // Field methods
+    if (method === 'field2' || method?.includes('สมการที่ 2')) {
+        return {
+            type: 'ภาคสนาม',
+            name: 'สมการที่ 2',
+            formula: 'AGB = 0.062 × DBH^2.23',
+            description: 'ใช้เส้นรอบวงลำต้น'
+        };
+    }
+
+    // Default: Field Method 1
+    return {
+        type: 'ภาคสนาม',
+        name: 'สมการที่ 1',
+        formula: 'AGB = 0.118 × DBH^2.53',
+        description: 'ใช้เส้นรอบวงลำต้น'
+    };
+}
+
 // ==========================================
 // PERSONAL DASHBOARD PAGE
 // ==========================================

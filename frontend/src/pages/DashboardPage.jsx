@@ -70,6 +70,7 @@ function DashboardPage() {
     const history = useHistory()
     const mapContainer = useRef(null)
     const map = useRef(null)
+    const markersRef = useRef([])
 
     const [mapLoaded, setMapLoaded] = useState(false)
     const [accumulatedPlots, setAccumulatedPlots] = useState([])
@@ -84,6 +85,149 @@ function DashboardPage() {
 
     const [userProfile, setUserProfile] = useState(null)
 
+    // Clear markers helper
+    const clearMarkers = () => {
+        markersRef.current.forEach(marker => marker.remove());
+        markersRef.current = [];
+    }
+
+    // Update Markers Effect
+    useEffect(() => {
+        if (!map.current || !mapLoaded) return;
+
+        // Clear existing markers first
+        clearMarkers();
+
+        accumulatedPlots.forEach(plot => {
+            if (!plot.geometry) return;
+
+            // Calculate center
+            let center;
+            try {
+                if (plot.geometry.type === 'Point') {
+                    center = plot.geometry.coordinates;
+                } else {
+                    const centroid = turf.centroid(plot.geometry);
+                    center = centroid.geometry.coordinates;
+                }
+            } catch (e) { return; }
+
+            if (!center) return;
+
+            // Create Custom Marker Element
+            const el = document.createElement('div');
+            const isSelected = plot.id === selectedPlotId;
+            el.className = 'custom-marker-container';
+            el.style.cssText = `
+                width: 40px;
+                height: 40px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                z-index: ${isSelected ? 50 : 10};
+            `;
+
+            // Inner HTML with CSS Animation
+            el.innerHTML = `
+                <div class="relative w-full h-full group">
+                    <div class="absolute inset-0 bg-emerald-500 rounded-full opacity-20 animate-ping group-hover:opacity-40"></div>
+                    <div class="relative w-10 h-10 bg-gradient-to-br ${isSelected ? 'from-amber-400 to-orange-500 scale-110' : 'from-emerald-500 to-teal-600'} rounded-full shadow-lg border-2 border-white flex items-center justify-center transform transition-transform duration-300 group-hover:scale-110 group-hover:-translate-y-1">
+                        <!-- Aesthetic Bushy Tree Icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white drop-shadow-sm" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M16.21 4.5C14.53 4.5 13.06 5.4 12.28 6.78C11.58 5.75 10.37 5 9 5C6.79 5 5 6.79 5 9C5 9.17 5.01 9.33 5.04 9.49C3.26 9.8 2 11.28 2 13C2 15.21 3.79 17 6 17H11V22H13V17H18C20.21 17 22 15.21 22 13C22 10.96 20.47 9.27 18.5 9.04C18.82 8.42 19 7.73 19 7C19 5.62 17.8 4.5 16.21 4.5Z" />
+                        </svg>
+                    </div>
+                    ${isSelected ? '<div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-amber-500 rounded-full shadow-[0_0_10px_3px_rgba(245,158,11,0.6)]"></div>' : ''}
+                </div>
+            `;
+
+            // Add click listener
+            el.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent map click
+                zoomToPlot(plot);
+            });
+
+            // Add to map
+            const marker = new maplibregl.Marker({
+                element: el,
+                anchor: 'bottom',
+                offset: [0, -5]
+            })
+                .setLngLat(center)
+                .addTo(map.current);
+
+            markersRef.current.push(marker);
+        });
+
+    }, [accumulatedPlots, mapLoaded, selectedPlotId]);
+
+    // ==========================================
+    // ADD SHAPES TO MAP
+    // ==========================================
+    useEffect(() => {
+        if (!map.current || !mapLoaded || accumulatedPlots.length === 0) return;
+
+        const sourceId = 'dashboard-source';
+        // Note: We don't need centerSourceId anymore for markers, as we use HTML markers now
+
+        const fillId = 'dashboard-fill';
+        const lineId = 'dashboard-line';
+        const glowId = 'dashboard-glow';
+
+        // 1. Shapes GeoJSON
+        const geojson = {
+            type: 'FeatureCollection',
+            features: accumulatedPlots
+                .filter(p => p.geometry)
+                .map(p => ({
+                    type: 'Feature',
+                    geometry: p.geometry,
+                    properties: { id: p.id, carbon: p.carbon, area: p.areaRai, selected: p.id === selectedPlotId }
+                }))
+        };
+
+        if (map.current.getSource(sourceId)) {
+            map.current.getSource(sourceId).setData(geojson);
+        } else {
+            // Adds Sources
+            map.current.addSource(sourceId, { type: 'geojson', data: geojson });
+
+            map.current.addLayer({
+                id: glowId,
+                type: 'line',
+                source: sourceId,
+                paint: {
+                    'line-color': ['case', ['get', 'selected'], '#fbbf24', '#10b981'],
+                    'line-width': ['case', ['get', 'selected'], 12, 0], // Only glow when selected
+                    'line-blur': 8,
+                    'line-opacity': ['case', ['get', 'selected'], 0.8, 0]
+                }
+            });
+
+            map.current.addLayer({
+                id: fillId,
+                type: 'fill',
+                source: sourceId,
+                paint: {
+                    'fill-color': ['case', ['get', 'selected'], '#fbbf24', '#10b981'],
+                    'fill-opacity': ['case', ['get', 'selected'], 0.5, 0.3]
+                }
+            });
+
+            map.current.addLayer({
+                id: lineId,
+                type: 'line',
+                source: sourceId,
+                paint: {
+                    'line-color': ['case', ['get', 'selected'], '#f59e0b', '#059669'],
+                    'line-width': ['case', ['get', 'selected'], 3, 2]
+                }
+            });
+
+            // Removed: 'plot-markers' and 'plot-markers-pulse' circle layers
+            // Reason: Replaced with beautiful HTML Markers in the useEffect above
+        }
+    }, [accumulatedPlots, mapLoaded, selectedPlotId]);
+
     useEffect(() => {
         const profile = localStorage.getItem('userProfile')
         if (profile) {
@@ -94,6 +238,38 @@ function DashboardPage() {
             }
         }
     }, [])
+
+    // Function to zoom to all plots
+    const zoomToAllPlots = () => {
+        if (!map.current || accumulatedPlots.length === 0) return;
+
+        const validPlots = accumulatedPlots.filter(p => p.geometry);
+        if (validPlots.length === 0) return;
+
+        // Create bounds
+        const coordinates = validPlots.map(p => {
+            if (p.geometry.type === 'Point') {
+                return p.geometry.coordinates;
+            } else if (p.geometry.type === 'Polygon') {
+                return p.geometry.coordinates[0][0]; // First coordinate of polygon
+            }
+            return null;
+        }).filter(Boolean);
+
+        if (coordinates.length > 0) {
+            const bounds = coordinates.reduce((bounds, coord) => {
+                return bounds.extend(coord);
+            }, new maplibregl.LngLatBounds(coordinates[0], coordinates[0]));
+
+            map.current.fitBounds(bounds, {
+                padding: { top: 100, bottom: 100, left: 100, right: 450 },
+                duration: 1500,
+                maxZoom: 14
+            });
+        }
+
+        setSelectedPlotId(null);
+    };
 
     // Function to zoom to a specific plot
     const zoomToPlot = (plot) => {
@@ -133,6 +309,7 @@ function DashboardPage() {
         }
     };
 
+
     // ==========================================
     // INITIALIZE MAP & FETCH DATA
     // ==========================================
@@ -161,6 +338,10 @@ function DashboardPage() {
                         return {
                             ...p,
                             id: p.id,
+                            name: p.name || p.farmer_name || `แปลงที่ ${p.id}`,
+                            tambon: p.tambon || p.subdistrict || '-',
+                            amphoe: p.amphoe || p.district || '-',
+                            province: p.province || 'เชียงใหม่',
                             carbon: parseFloat(p.carbon_tons) || 0,
                             areaRai: parseFloat(p.area_rai) || 0,
                             geometry: geometry,
@@ -217,14 +398,33 @@ function DashboardPage() {
                 glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf'
             },
             center: [100.5018, 13.7563],
-            zoom: 6,
+            zoom: 2, // Start zoomed out to see the globe
             pitch: 0,
             bearing: 0,
-            antialias: true
+            antialias: true,
+            projection: { type: 'globe' } // Explicit object configuration
         })
+
+        map.current.on('style.load', () => {
+            // Force projection on style load just in case
+            map.current.setProjection({ type: 'globe' });
+        });
+
 
         map.current.on('load', () => {
             setMapLoaded(true)
+
+            // Set Atmosphere to match standard map feel (dark but not pitch black)
+            if (map.current.setFog) {
+                map.current.setFog({
+                    'range': [0.5, 10],
+                    'color': 'rgb(255, 255, 255)',
+                    'high-color': '#245cdf',
+                    'horizon-blend': 0.1,
+                    'space-color': '#111827', // Gray 900 (Softer than black)
+                    'star-intensity': 0.15 // Subtle stars
+                });
+            }
         })
 
         return () => {
@@ -242,10 +442,13 @@ function DashboardPage() {
         if (!map.current || !mapLoaded || accumulatedPlots.length === 0) return;
 
         const sourceId = 'dashboard-source';
+        const centerSourceId = 'dashboard-centers-source';
+
         const fillId = 'dashboard-fill';
         const lineId = 'dashboard-line';
         const glowId = 'dashboard-glow';
 
+        // 1. Shapes GeoJSON
         const geojson = {
             type: 'FeatureCollection',
             features: accumulatedPlots
@@ -257,10 +460,41 @@ function DashboardPage() {
                 }))
         };
 
+        // 2. Centers GeoJSON (The Dots)
+        const centerGeojson = {
+            type: 'FeatureCollection',
+            features: accumulatedPlots
+                .filter(p => p.geometry)
+                .map(p => {
+                    let centerGeom;
+                    try {
+                        if (p.geometry.type === 'Point') {
+                            centerGeom = p.geometry;
+                        } else {
+                            centerGeom = turf.centroid(p.geometry).geometry;
+                        }
+                    } catch (e) { return null; }
+
+                    if (!centerGeom) return null;
+
+                    return {
+                        type: 'Feature',
+                        geometry: centerGeom,
+                        properties: { id: p.id, selected: p.id === selectedPlotId }
+                    };
+                })
+                .filter(Boolean)
+        };
+
         if (map.current.getSource(sourceId)) {
             map.current.getSource(sourceId).setData(geojson);
+            if (map.current.getSource(centerSourceId)) {
+                map.current.getSource(centerSourceId).setData(centerGeojson);
+            }
         } else {
+            // Adds Sources
             map.current.addSource(sourceId, { type: 'geojson', data: geojson });
+            map.current.addSource(centerSourceId, { type: 'geojson', data: centerGeojson });
 
             map.current.addLayer({
                 id: glowId,
@@ -268,9 +502,9 @@ function DashboardPage() {
                 source: sourceId,
                 paint: {
                     'line-color': ['case', ['get', 'selected'], '#fbbf24', '#10b981'],
-                    'line-width': ['case', ['get', 'selected'], 12, 10],
+                    'line-width': ['case', ['get', 'selected'], 12, 0], // Only glow when selected
                     'line-blur': 8,
-                    'line-opacity': ['case', ['get', 'selected'], 0.8, 0.5]
+                    'line-opacity': ['case', ['get', 'selected'], 0.8, 0]
                 }
             });
 
@@ -289,10 +523,37 @@ function DashboardPage() {
                 type: 'line',
                 source: sourceId,
                 paint: {
-                    'line-color': ['case', ['get', 'selected'], '#f59e0b', '#10b981'],
+                    'line-color': ['case', ['get', 'selected'], '#f59e0b', '#059669'],
                     'line-width': ['case', ['get', 'selected'], 3, 2]
                 }
             });
+
+            // MARKER DOTS LAYER (Shows location for ALL plots)
+            map.current.addLayer({
+                id: 'plot-markers',
+                type: 'circle',
+                source: centerSourceId,
+                paint: {
+                    'circle-radius': 6,
+                    'circle-color': ['case', ['get', 'selected'], '#fbbf24', '#10b981'],
+                    'circle-stroke-width': 2,
+                    'circle-stroke-color': '#ffffff',
+                    'circle-opacity': 1
+                }
+            });
+
+            // Pulsing Selected Marker (Underneath)
+            map.current.addLayer({
+                id: 'plot-markers-pulse',
+                type: 'circle',
+                source: centerSourceId,
+                paint: {
+                    'circle-radius': 15,
+                    'circle-color': '#fbbf24',
+                    'circle-opacity': ['case', ['get', 'selected'], 0.4, 0],
+                    'circle-blur': 0.5
+                }
+            }, 'plot-markers'); // Add before dots
         }
     }, [accumulatedPlots, mapLoaded, selectedPlotId]);
 
@@ -315,28 +576,30 @@ function DashboardPage() {
     })
 
     return (
-        <div className="relative w-full h-screen overflow-hidden bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-900">
-            {/* FULLSCREEN MAP */}
+        <div className="relative w-full h-screen overflow-hidden bg-gray-900">
+            {/* FULLSCREEN MAP - True Color (No Opacity/Blend) */}
             <div ref={mapContainer} className="absolute inset-0 w-full h-full" />
 
-            {/* การ์ดสถิติแบบมินิมอล - ขนาดกลาง */}
+            {/* No Overlay - Pure Map View */}
+
+            {/* การ์ดสถิติแบบ Premium Glassmorphism - ตัดกับพื้นหลังเข้ม */}
             <div className="absolute top-5 left-5 right-5 z-40 max-w-4xl mx-auto">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* การ์ดคาร์บอน */}
                     <div className="group relative">
-                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl blur-lg opacity-20 group-hover:opacity-40 transition-opacity duration-500 animate-pulse" />
-                        <div className="relative bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/20 shadow-lg hover:shadow-emerald-500/10 transition-all duration-500 hover:-translate-y-0.5">
-                            <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-md shadow-emerald-500/30">
-                                    <CarbonIcon className="w-5 h-5 text-white" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-green-400 rounded-2xl blur opacity-25 group-hover:opacity-50 transition-all duration-500" />
+                        <div className="relative bg-white/10 backdrop-blur-xl rounded-2xl p-4 border border-white/20 shadow-xl hover:shadow-emerald-500/20 transition-all duration-500 hover:-translate-y-1">
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/30">
+                                    <CarbonIcon className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <p className="text-emerald-300 text-[10px] font-semibold uppercase tracking-wider leading-none">ปริมาณคาร์บอน</p>
-                                    <div className="flex items-baseline gap-1.5 mt-0.5">
-                                        <h2 className="text-2xl font-black text-white leading-none">
+                                    <p className="text-emerald-300 text-[10px] font-bold uppercase tracking-wider mb-0.5">ปริมาณคาร์บอน</p>
+                                    <div className="flex items-baseline gap-2">
+                                        <h2 className="text-2xl font-black text-white leading-none tracking-tight">
                                             {stats.totalCarbon.toLocaleString('th-TH', { maximumFractionDigits: 0 })}
                                         </h2>
-                                        <span className="text-emerald-300 text-[10px] font-bold">ตัน CO₂</span>
+                                        <span className="text-emerald-400 text-xs font-bold">ตัน CO₂</span>
                                     </div>
                                 </div>
                             </div>
@@ -345,19 +608,19 @@ function DashboardPage() {
 
                     {/* การ์ดพื้นที่ */}
                     <div className="group relative">
-                        <div className="absolute inset-0 bg-gradient-to-br from-green-400 to-green-600 rounded-xl blur-lg opacity-20 group-hover:opacity-40 transition-opacity duration-500" />
-                        <div className="relative bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/20 shadow-lg hover:shadow-green-500/10 transition-all duration-500 hover:-translate-y-0.5">
-                            <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-md shadow-green-500/30">
-                                    <MapIcon className="w-5 h-5 text-white" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-2xl blur opacity-25 group-hover:opacity-50 transition-all duration-500" />
+                        <div className="relative bg-white/10 backdrop-blur-xl rounded-2xl p-4 border border-white/20 shadow-xl hover:shadow-blue-500/20 transition-all duration-500 hover:-translate-y-1">
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
+                                    <MapIcon className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <p className="text-green-300 text-[10px] font-semibold uppercase tracking-wider leading-none">พื้นที่ทั้งหมด</p>
-                                    <div className="flex items-baseline gap-1.5 mt-0.5">
-                                        <h2 className="text-2xl font-black text-white leading-none">
+                                    <p className="text-blue-300 text-[10px] font-bold uppercase tracking-wider mb-0.5">พื้นที่ทั้งหมด</p>
+                                    <div className="flex items-baseline gap-2">
+                                        <h2 className="text-2xl font-black text-white leading-none tracking-tight">
                                             {stats.totalArea.toLocaleString('th-TH', { maximumFractionDigits: 0 })}
                                         </h2>
-                                        <span className="text-green-300 text-[10px] font-bold">ไร่</span>
+                                        <span className="text-blue-400 text-xs font-bold">ไร่</span>
                                     </div>
                                 </div>
                             </div>
@@ -366,19 +629,19 @@ function DashboardPage() {
 
                     {/* การ์ดผู้เข้าร่วม */}
                     <div className="group relative">
-                        <div className="absolute inset-0 bg-gradient-to-br from-teal-400 to-teal-600 rounded-xl blur-lg opacity-20 group-hover:opacity-40 transition-opacity duration-500" />
-                        <div className="relative bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/20 shadow-lg hover:shadow-teal-500/10 transition-all duration-500 hover:-translate-y-0.5">
-                            <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center shadow-md shadow-teal-500/30">
-                                    <UserIcon className="w-5 h-5 text-white" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-violet-500 to-purple-400 rounded-2xl blur opacity-25 group-hover:opacity-50 transition-all duration-500" />
+                        <div className="relative bg-white/10 backdrop-blur-xl rounded-2xl p-4 border border-white/20 shadow-xl hover:shadow-violet-500/20 transition-all duration-500 hover:-translate-y-1">
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center text-white shadow-lg shadow-violet-500/30">
+                                    <UserIcon className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <p className="text-teal-300 text-[10px] font-semibold uppercase tracking-wider leading-none">ผู้เข้าร่วม</p>
-                                    <div className="flex items-baseline gap-1.5 mt-0.5">
-                                        <h2 className="text-2xl font-black text-white leading-none">
+                                    <p className="text-violet-300 text-[10px] font-bold uppercase tracking-wider mb-0.5">ผู้เข้าร่วม</p>
+                                    <div className="flex items-baseline gap-2">
+                                        <h2 className="text-2xl font-black text-white leading-none tracking-tight">
                                             {stats.totalPlots.toLocaleString('th-TH')}
                                         </h2>
-                                        <span className="text-teal-300 text-[10px] font-bold">ราย</span>
+                                        <span className="text-violet-400 text-xs font-bold">ราย</span>
                                     </div>
                                 </div>
                             </div>
@@ -424,18 +687,31 @@ function DashboardPage() {
 
                 <div className="h-full w-full bg-white/60 backdrop-blur-3xl border border-white/40 overflow-hidden shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] flex flex-col rounded-[2rem]">
                     {/* Header */}
-                    <div className="px-5 py-5 border-b border-white/30 flex items-center justify-between bg-white/30 backdrop-blur-sm">
-                        <div>
-                            <h3 className="text-lg font-bold text-slate-800 drop-shadow-sm">รายการแปลง</h3>
-                            <p className="text-xs text-slate-600 mt-0.5">ทั้งหมด {accumulatedPlots.length} แปลง</p>
+                    <div className="px-5 py-4 border-b border-white/30 flex flex-col gap-3 bg-gradient-to-br from-white/40 to-white/20 backdrop-blur-sm">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-800 drop-shadow-sm">รายการแปลง</h3>
+                                <p className="text-xs text-slate-600 mt-0.5">ทั้งหมด {accumulatedPlots.length} แปลง</p>
+                            </div>
+                            <button
+                                onClick={() => setShowPlotListModal(false)}
+                                className="w-8 h-8 rounded-full bg-white/40 hover:bg-white/60 flex items-center justify-center text-slate-600 hover:text-slate-800 transition-colors shadow-sm"
+                            >
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
                         </div>
+
+                        {/* Zoom to All Button */}
                         <button
-                            onClick={() => setShowPlotListModal(false)}
-                            className="w-8 h-8 rounded-full bg-white/40 hover:bg-white/60 flex items-center justify-center text-slate-600 hover:text-slate-800 transition-colors shadow-sm"
+                            onClick={() => { zoomToAllPlots(); setShowPlotListModal(false); }}
+                            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-4 py-2.5 rounded-xl font-semibold text-sm shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all duration-300 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95"
                         >
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
                             </svg>
+                            ดูแปลงทั้งหมด
                         </button>
                     </div>
 
