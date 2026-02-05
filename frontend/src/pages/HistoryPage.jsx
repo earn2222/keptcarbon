@@ -413,6 +413,28 @@ function HistoryPage() {
             border: 1px solid rgba(255, 255, 255, 0.3);
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         }
+
+        @keyframes active-spring {
+            0% { transform: scale(1); }
+            40% { transform: scale(1.2); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); }
+        }
+        .active-tab-spring { animation: active-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        
+        @keyframes dot-pop {
+            0% { transform: scale(0) translateY(5px); opacity: 0; }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+        .indicator-dot { animation: dot-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both; }
+
+        .minimalist-glass {
+            background: rgba(255, 255, 255, 0.82);
+            backdrop-filter: blur(25px) saturate(180%);
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08);
+        }
     `}</style>
 
             <main className="flex-1 w-full max-w-7xl mx-auto p-4 lg:p-8 pt-12 pb-32 flex flex-col gap-8">
@@ -839,6 +861,58 @@ function HistoryPage() {
                         </>
                     )}
                 </div>
+            </div>
+
+            {/* ==========================================
+                MOBILE BOTTOM NAVIGATION (Airy Minimalist Dock)
+            ========================================== */}
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[2000] md:hidden w-[85%] max-w-[360px]">
+                <nav className="minimalist-glass flex items-center justify-between px-6 py-4 rounded-[2rem] relative">
+
+                    {/* Home */}
+                    <button
+                        onClick={() => handleNavClick('/')}
+                        className="relative flex flex-col items-center justify-center text-slate-400 active:scale-90 transition-all duration-300"
+                    >
+                        <HomeIcon className="w-5 h-5" />
+                    </button>
+
+                    {/* Map */}
+                    <button
+                        onClick={() => handleNavClick('/map')}
+                        className="relative flex flex-col items-center justify-center text-slate-400 active:scale-90 transition-all duration-300"
+                    >
+                        <MapIcon className="w-5 h-5" />
+                    </button>
+
+                    {/* Personal */}
+                    <button
+                        onClick={() => handleNavClick('/dashboard/personal')}
+                        className="relative flex flex-col items-center justify-center text-slate-400 active:scale-90 transition-all duration-300"
+                    >
+                        <UserIcon className="w-5 h-5" />
+                    </button>
+
+                    {/* Dashboard */}
+                    <button
+                        onClick={() => handleNavClick('/dashboard')}
+                        className="relative flex flex-col items-center justify-center text-slate-400 active:scale-90 transition-all duration-300"
+                    >
+                        <DashboardIcon className="w-5 h-5" />
+                    </button>
+
+                    {/* History (Active) */}
+                    <div className="relative flex flex-col items-center justify-center">
+                        <button
+                            className="relative text-emerald-600 active-tab-spring transition-all duration-500"
+                        >
+                            <HistoryIcon className="w-6 h-6" />
+                        </button>
+                        {/* Minimalist Dot Indicator */}
+                        <div className="absolute -bottom-3 w-1.5 h-1.5 bg-emerald-500 rounded-full indicator-dot"></div>
+                    </div>
+
+                </nav>
             </div>
 
         </div>
