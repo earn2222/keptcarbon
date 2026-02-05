@@ -438,7 +438,7 @@ function PersonalDashboardPage() {
                     </div>
                 </div>
 
-                {/* DETAILED DATA TABLE */}
+                {/* DETAILED DATA TABLE SECTION */}
                 <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-6 lg:p-8 shadow-xl border border-white/50 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none"></div>
 
@@ -448,22 +448,23 @@ function PersonalDashboardPage() {
                                 <LeafIcon className="w-5 h-5" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-slate-800">ข้อมูลรายละเอียดรายแปลง (5 รายการล่าสุด)</h3>
-                                <p className="text-xs text-slate-500 font-medium">ข้อมูลละเอียดจากหน้าแผนที่</p>
+                                <h3 className="text-lg lg:text-xl font-bold text-slate-800">ข้อมูลรายละเอียดรายแปลง</h3>
+                                <p className="text-[10px] lg:text-xs text-slate-500 font-medium tracking-tight">5 รายการล่าสุดจากหน้าแผนที่</p>
                             </div>
                         </div>
                         <button
                             onClick={() => history.push('/dashboard/history')}
-                            className="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 group"
+                            className="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 group whitespace-nowrap"
                         >
-                            ดูทั้งหมด
+                            <span className="hidden sm:inline">ดูทั้งหมด</span>
                             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
                             </svg>
                         </button>
                     </div>
 
-                    <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200">
+                    {/* Desktop Table View (Hidden on Mobile) */}
+                    <div className="hidden md:block overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200">
                         <table className="w-full min-w-[1000px]">
                             <thead>
                                 <tr className="border-b border-slate-100">
@@ -477,7 +478,7 @@ function PersonalDashboardPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                                {plots.slice(0, 5).map((p, idx) => (
+                                {plots.slice(0, 5).map((p) => (
                                     <tr key={p.id} className="group hover:bg-emerald-50/50 transition-all duration-300">
                                         <td className="py-6 pl-4 w-20 align-top">
                                             <button
@@ -489,11 +490,11 @@ function PersonalDashboardPage() {
                                         </td>
                                         <td className="py-6 align-top">
                                             <div className="flex flex-col gap-1">
-                                                <span className="font-bold text-slate-800 text-sm">{p.farmerName}</span>
+                                                <span className="font-bold text-slate-800 text-sm whitespace-nowrap">{p.farmerName}</span>
                                                 <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md w-fit">ID: {p.id}</span>
                                             </div>
                                         </td>
-                                        <td className="py-6 font-bold text-slate-700 text-sm align-top">{formatArea(p.area)}</td>
+                                        <td className="py-6 font-bold text-slate-700 text-sm align-top whitespace-nowrap">{formatArea(p.area)}</td>
                                         <td className="py-6 align-top">
                                             <span className="font-bold text-slate-600 text-sm bg-orange-50 text-orange-600 px-3 py-1 rounded-lg border border-orange-100">
                                                 {p.age} ปี
@@ -526,18 +527,66 @@ function PersonalDashboardPage() {
                                         </td>
                                     </tr>
                                 ))}
-                                {plots.length === 0 && (
-                                    <tr>
-                                        <td colSpan="7" className="py-20 text-center">
-                                            <div className="flex flex-col items-center justify-center opacity-50">
-                                                <LeafIcon className="w-12 h-12 text-slate-300 mb-2" />
-                                                <span className="text-slate-400 font-medium">ไม่พบข้อมูลแปลงยางพาราของคุณ</span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                )}
                             </tbody>
                         </table>
+                    </div>
+
+                    {/* Mobile Card Layout (Visible on Mobile Only) */}
+                    <div className="md:hidden flex flex-col gap-4">
+                        {plots.length > 0 ? (
+                            plots.slice(0, 5).map((p) => (
+                                <div key={p.id} className="bg-slate-50/50 rounded-3xl p-5 border border-slate-100/50 flex flex-col gap-4 group active:scale-[0.98] transition-all duration-200">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <button
+                                                onClick={() => zoomToPlot(p)}
+                                                className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-emerald-500 shadow-sm border border-slate-100 active:bg-emerald-500 active:text-white transition-colors"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                            </button>
+                                            <div>
+                                                <h4 className="font-bold text-slate-800 text-sm leading-tight">{p.farmerName}</h4>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5 tracking-wider">Plot ID: {p.id}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-lg font-black text-emerald-600 block leading-none">{p.carbon.toFixed(2)}</span>
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase">tCO₂e</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="bg-white/80 rounded-2xl p-3 border border-white">
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">พื้นที่</p>
+                                            <p className="text-[11px] font-bold text-slate-700 leading-tight">{formatArea(p.area)}</p>
+                                        </div>
+                                        <div className="bg-white/80 rounded-2xl p-3 border border-white">
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">สถานะ / อายุ</p>
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse"></span>
+                                                <p className="text-[11px] font-bold text-slate-700">{p.age} ปี</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between pt-3 border-t border-slate-100/50">
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">วิธีการ</span>
+                                            <span className="text-[10px] font-bold text-blue-500">{p.methodTitle}</span>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-0.5">
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">พันธุ์ / ปีที่ปลูก</span>
+                                            <span className="text-[10px] font-bold text-slate-700">{p.variety} (พ.ศ. {p.plantingYearBE})</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="py-12 flex flex-col items-center justify-center text-slate-300 gap-3 opacity-50">
+                                <LeafIcon className="w-10 h-10" />
+                                <span className="text-sm font-medium">ไม่พบข้อมูลแปลง</span>
+                            </div>
+                        )}
                     </div>
                 </div>
             </main>
@@ -657,6 +706,57 @@ function PersonalDashboardPage() {
                         </>
                     )}
                 </div>
+            </div>
+
+            {/* ==========================================
+                MOBILE BOTTOM NAVIGATION (Dark Crystal Pill Style)
+            ========================================== */}
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[2000] md:hidden">
+                <nav className="flex items-center gap-1 px-2 py-2 bg-[#1e293b]/90 backdrop-blur-xl rounded-full border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)]">
+
+                    {/* Home */}
+                    <button
+                        onClick={() => handleNavClick('/')}
+                        className="w-10 h-10 flex flex-col items-center justify-center rounded-full text-white/50 hover:text-white transition-colors"
+                    >
+                        <HomeIcon className="w-5 h-5" />
+                    </button>
+
+                    {/* Map */}
+                    <button
+                        onClick={() => handleNavClick('/map')}
+                        className="w-10 h-10 flex flex-col items-center justify-center rounded-full text-white/50 hover:text-white transition-colors"
+                    >
+                        <MapIcon className="w-5 h-5" />
+                    </button>
+
+                    {/* Dashboard (Center - Grid) */}
+                    <button
+                        onClick={() => handleNavClick('/dashboard')}
+                        className="w-10 h-10 flex flex-col items-center justify-center rounded-full text-white/50 hover:text-white transition-colors"
+                    >
+                        <DashboardIcon className="w-5 h-5" />
+                    </button>
+
+                    {/* Personal (User/Profile - Active Highlight) */}
+                    <div className="relative">
+                        <div className="absolute inset-0 bg-blue-500 blur-md opacity-20 rounded-full"></div>
+                        <button
+                            className="relative w-12 h-12 flex flex-col items-center justify-center rounded-full bg-blue-500 text-white shadow-lg shadow-blue-500/40 transform scale-110"
+                        >
+                            <UserIcon className="w-6 h-6" />
+                        </button>
+                    </div>
+
+                    {/* History */}
+                    <button
+                        onClick={() => handleNavClick('/dashboard/history')}
+                        className="w-10 h-10 flex flex-col items-center justify-center rounded-full text-white/50 hover:text-white transition-colors"
+                    >
+                        <HistoryIcon className="w-5 h-5" />
+                    </button>
+
+                </nav>
             </div>
         </div>
     )
