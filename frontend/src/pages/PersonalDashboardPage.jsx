@@ -81,7 +81,7 @@ const getMethodDetails = (method) => {
     if (method === 'ndvi' || method?.includes('NDVI')) {
         return {
             type: 'ดาวเทียม',
-            name: 'ดัชนี NDVI',
+            name: 'ข้อมูลจากดาวเทียม (NDVI)',
             formula: 'AGB = 34.2 × NDVI + 5.8',
             description: 'ใช้ดัชนีพืชพรรณจากดาวเทียม'
         };
@@ -89,26 +89,26 @@ const getMethodDetails = (method) => {
     if (method === 'tcari' || method?.includes('TCARI')) {
         return {
             type: 'ดาวเทียม',
-            name: 'ดัชนี TCARI',
+            name: 'ข้อมูลจากดาวเทียม (TCARI)',
             formula: 'AGB = 13.57 × TCARI + 7.45',
             description: 'ใช้ดัชนีคลอโรฟิลล์จากดาวเทียม'
         };
     }
 
-    // Field methods
-    if (method === 'field2' || method?.includes('สมการที่ 2')) {
+    // Allometric / Equation 2
+    if (method === 'allometric' || method === 'field2' || method?.includes('สมการที่ 2')) {
         return {
             type: 'ภาคสนาม',
-            name: 'สมการที่ 2',
-            formula: 'AGB = 0.062 × DBH^2.23',
+            name: 'ข้อมูลภาคสนาม',
+            formula: method === 'allometric' ? 'W = 0.0336 × (D²H)^0.931' : 'AGB = 0.062 × DBH^2.23',
             description: 'ใช้เส้นรอบวงลำต้น'
         };
     }
 
-    // Default: Field Method 1
+    // Default: Field Method
     return {
         type: 'ภาคสนาม',
-        name: 'สมการที่ 1',
+        name: 'ข้อมูลภาคสนาม',
         formula: 'AGB = 0.118 × DBH^2.53',
         description: 'ใช้เส้นรอบวงลำต้น'
     };
@@ -174,8 +174,8 @@ function PersonalDashboardPage() {
                         age: parseInt(p.tree_age) || 0,
                         plantingYearBE: p.planting_year ? parseInt(p.planting_year) + 543 : '-',
                         variety: p.notes?.includes('พันธุ์:') ? p.notes.split('พันธุ์:')[1]?.trim() : (p.variety || 'RRIM 600'),
-                        methodTitle: p.method === 'allometric' ? 'สมการอัลโลเมตริก' : 'สมการที่ 1 (TGO)',
-                        methodFormula: p.method === 'allometric' ? 'W = 0.0336 × (D²H)^0.931' : 'AGB = 0.118 × DBH^2.53',
+                        methodTitle: getMethodDetails(p.method).name,
+                        methodFormula: getMethodDetails(p.method).formula,
                         date: p.created_at
                     }
                 }).filter(p => p.geometry)
@@ -368,12 +368,31 @@ function PersonalDashboardPage() {
         .nav-pop-v-4 { animation: nav-item-pop-vertical 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.20s forwards; opacity: 0; }
         .nav-pop-v-5 { animation: nav-item-pop-vertical 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s forwards; opacity: 0; }
         
-        .glass-pill-v {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        /* Airy Mobile Dock Animations */
+        @keyframes active-spring {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+            100% { transform: translateY(0); }
+        }
+        .active-tab-spring {
+            animation: active-spring 3s ease-in-out infinite;
+        }
+
+        @keyframes dot-pop {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.5); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .indicator-dot {
+            animation: dot-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .minimalist-glass {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(15px) saturate(180%);
+            -webkit-backdrop-filter: blur(15px) saturate(180%);
+            border: 0.5px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
         }
     `}</style>
 
@@ -471,8 +490,8 @@ function PersonalDashboardPage() {
                                     <th className="py-4 text-left font-bold text-slate-400 uppercase text-[10px] tracking-wider pl-4">Zoom</th>
                                     <th className="py-4 text-left font-bold text-slate-400 uppercase text-[10px] tracking-wider">ชื่อเกษตรกร</th>
                                     <th className="py-4 text-left font-bold text-slate-400 uppercase text-[10px] tracking-wider">เนื้อที่ (ไร่-งาน-ตร.ว.)</th>
-                                    <th className="py-4 text-left font-bold text-slate-400 uppercase text-[10px] tracking-wider">อายุยาง (ปี)</th>
-                                    <th className="py-4 text-left font-bold text-slate-400 uppercase text-[10px] tracking-wider">พันธุ์ยาง / ปีที่ปลูก</th>
+                                    <th className="py-4 text-left font-bold text-slate-400 uppercase text-[10px] tracking-wider">อายุ / ปีที่ปลูก</th>
+                                    <th className="py-4 text-left font-bold text-slate-400 uppercase text-[10px] tracking-wider">สายพันธุ์ยาง</th>
                                     <th className="py-4 text-left font-bold text-slate-400 uppercase text-[10px] tracking-wider">วิธีการคำนวณ</th>
                                     <th className="py-4 text-right font-bold text-slate-400 uppercase text-[10px] tracking-wider pr-4">ปริมาณคาร์บอน</th>
                                 </tr>
@@ -494,21 +513,26 @@ function PersonalDashboardPage() {
                                                 <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md w-fit">ID: {p.id}</span>
                                             </div>
                                         </td>
-                                        <td className="py-6 font-bold text-slate-700 text-sm align-top whitespace-nowrap">{formatArea(p.area)}</td>
-                                        <td className="py-6 align-top">
-                                            <span className="font-bold text-slate-600 text-sm bg-orange-50 text-orange-600 px-3 py-1 rounded-lg border border-orange-100">
-                                                {p.age} ปี
-                                            </span>
+                                        {/* Area Column (Restored) */}
+                                        <td className="py-6 font-bold text-slate-700 text-sm align-top whitespace-nowrap">
+                                            {formatArea(p.area)}
                                         </td>
+                                        {/* Age / Year Column */}
                                         <td className="py-6 align-top">
                                             <div className="flex flex-col gap-1">
-                                                <span className="text-sm font-bold text-slate-700">{p.variety}</span>
-                                                <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                                                    เริ่มปลูก พ.ศ. {p.plantingYearBE}
+                                                <span className="font-bold text-slate-600 text-sm">
+                                                    {p.age} ปี
+                                                </span>
+                                                <span className="text-[11px] text-slate-400">
+                                                    พ.ศ. {p.plantingYearBE}
                                                 </span>
                                             </div>
                                         </td>
+                                        {/* Variety Column */}
+                                        <td className="py-6 align-top">
+                                            <span className="text-sm font-bold text-slate-700">{p.variety}</span>
+                                        </td>
+                                        {/* Method Column */}
                                         <td className="py-6 align-top">
                                             <div className="flex flex-col gap-1.5">
                                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-[11px] font-bold text-blue-600 border border-blue-100 w-fit">
@@ -519,6 +543,7 @@ function PersonalDashboardPage() {
                                                 </span>
                                             </div>
                                         </td>
+                                        {/* Carbon Column */}
                                         <td className="py-6 pr-4 text-right align-top">
                                             <div className="flex flex-col items-end gap-1">
                                                 <span className="font-black text-emerald-600 text-lg leading-none">{p.carbon.toFixed(2)}</span>
@@ -561,11 +586,8 @@ function PersonalDashboardPage() {
                                             <p className="text-[11px] font-bold text-slate-700 leading-tight">{formatArea(p.area)}</p>
                                         </div>
                                         <div className="bg-white/80 rounded-2xl p-3 border border-white">
-                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">สถานะ / อายุ</p>
-                                            <div className="flex items-center gap-2">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse"></span>
-                                                <p className="text-[11px] font-bold text-slate-700">{p.age} ปี</p>
-                                            </div>
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">อายุยาง / ปีที่ปลูก</p>
+                                            <p className="text-[11px] font-bold text-slate-700 leading-tight">{p.age} ปี (พ.ศ. {p.plantingYearBE})</p>
                                         </div>
                                     </div>
 
@@ -575,8 +597,8 @@ function PersonalDashboardPage() {
                                             <span className="text-[10px] font-bold text-blue-500">{p.methodTitle}</span>
                                         </div>
                                         <div className="flex flex-col items-end gap-0.5">
-                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">พันธุ์ / ปีที่ปลูก</span>
-                                            <span className="text-[10px] font-bold text-slate-700">{p.variety} (พ.ศ. {p.plantingYearBE})</span>
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">สายพันธุ์</span>
+                                            <span className="text-[10px] font-bold text-slate-700">{p.variety}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -709,15 +731,15 @@ function PersonalDashboardPage() {
             </div>
 
             {/* ==========================================
-                MOBILE BOTTOM NAVIGATION (Dark Crystal Pill Style)
+                MOBILE BOTTOM NAVIGATION (Airy Minimalist Dock)
             ========================================== */}
-            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[2000] md:hidden">
-                <nav className="flex items-center gap-1 px-2 py-2 bg-[#1e293b]/90 backdrop-blur-xl rounded-full border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)]">
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[2000] md:hidden w-[85%] max-w-[360px]">
+                <nav className="minimalist-glass flex items-center justify-between px-6 py-4 rounded-[2rem] relative">
 
                     {/* Home */}
                     <button
                         onClick={() => handleNavClick('/')}
-                        className="w-10 h-10 flex flex-col items-center justify-center rounded-full text-white/50 hover:text-white transition-colors"
+                        className="relative flex flex-col items-center justify-center text-slate-400 active:scale-90 transition-all duration-300"
                     >
                         <HomeIcon className="w-5 h-5" />
                     </button>
@@ -725,33 +747,34 @@ function PersonalDashboardPage() {
                     {/* Map */}
                     <button
                         onClick={() => handleNavClick('/map')}
-                        className="w-10 h-10 flex flex-col items-center justify-center rounded-full text-white/50 hover:text-white transition-colors"
+                        className="relative flex flex-col items-center justify-center text-slate-400 active:scale-90 transition-all duration-300"
                     >
                         <MapIcon className="w-5 h-5" />
                     </button>
 
-                    {/* Dashboard (Center - Grid) */}
+                    {/* Personal (Active) */}
+                    <div className="relative flex flex-col items-center justify-center">
+                        <button
+                            className="relative text-emerald-600 active-tab-spring transition-all duration-500"
+                        >
+                            <UserIcon className="w-6 h-6" />
+                        </button>
+                        {/* Minimalist Dot Indicator */}
+                        <div className="absolute -bottom-3 w-1.5 h-1.5 bg-emerald-500 rounded-full indicator-dot"></div>
+                    </div>
+
+                    {/* Dashboard */}
                     <button
                         onClick={() => handleNavClick('/dashboard')}
-                        className="w-10 h-10 flex flex-col items-center justify-center rounded-full text-white/50 hover:text-white transition-colors"
+                        className="relative flex flex-col items-center justify-center text-slate-400 active:scale-90 transition-all duration-300"
                     >
                         <DashboardIcon className="w-5 h-5" />
                     </button>
 
-                    {/* Personal (User/Profile - Active Highlight) */}
-                    <div className="relative">
-                        <div className="absolute inset-0 bg-blue-500 blur-md opacity-20 rounded-full"></div>
-                        <button
-                            className="relative w-12 h-12 flex flex-col items-center justify-center rounded-full bg-blue-500 text-white shadow-lg shadow-blue-500/40 transform scale-110"
-                        >
-                            <UserIcon className="w-6 h-6" />
-                        </button>
-                    </div>
-
                     {/* History */}
                     <button
                         onClick={() => handleNavClick('/dashboard/history')}
-                        className="w-10 h-10 flex flex-col items-center justify-center rounded-full text-white/50 hover:text-white transition-colors"
+                        className="relative flex flex-col items-center justify-center text-slate-400 active:scale-90 transition-all duration-300"
                     >
                         <HistoryIcon className="w-5 h-5" />
                     </button>
