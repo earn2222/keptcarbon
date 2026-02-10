@@ -43,6 +43,7 @@ function LandingPage() {
     const [trialArea, setTrialArea] = useState({ rai: 0, ngan: 0, wah: 0, totalSqM: 0 })
     const [marketPrice, setMarketPrice] = useState(150)
     const [calculationModel, setCalculationModel] = useState('field')
+    const [isResultOpen, setIsResultOpen] = useState(false) // Mobile Result Card Visibility
 
     // --- Location Search Logic (Mock Data) ---
     const [selectedProvince, setSelectedProvince] = useState('')
@@ -158,6 +159,7 @@ function LandingPage() {
             map.on('pm:create', (e) => {
                 calculateArea();
                 e.layer.on('pm:edit', calculateArea)
+                setIsResultOpen(true); // Auto-open result on draw
             });
             map.on('pm:remove', calculateArea)
         }, [map, setArea])
@@ -422,7 +424,7 @@ function LandingPage() {
                         <MapContainer
                             center={[13.7563, 100.5018]}
                             zoom={6}
-                            scrollWheelZoom={false}
+                            scrollWheelZoom={true}
                             style={{ height: '100%', width: '100%' }}
                             className="z-0"
                             zoomControl={false}
@@ -434,16 +436,25 @@ function LandingPage() {
                             <GeomanController setArea={setTrialArea} />
                         </MapContainer>
 
-                        {/* Floating Top Left Controls - Search Only - Aligned with Geoman */}
-                        <div className="absolute top-[180px] left-[10px] z-[400] flex flex-col gap-2 group ml-[2px]">
-                            <div className="w-[30px] h-[30px] bg-white rounded-[4px] shadow-md border border-[#ccc] flex items-center justify-center text-black hover:bg-[#f4f4f4] transition-all cursor-pointer">
+                        {/* Floating Controls - Responsive Positioning */}
+
+                        {/* Search Control: Mobile = Top Right, Desktop = Below Geoman (Left) */}
+                        <div className="absolute z-[400] flex flex-col gap-2 group transition-all duration-300
+                            top-4 right-4 
+                            md:top-[180px] md:left-[10px] md:right-auto md:ml-[2px]"
+                        >
+                            <div className="w-[30px] h-[30px] md:w-[30px] md:h-[30px] bg-white rounded-lg md:rounded-[4px] shadow-md border border-[#ccc] flex items-center justify-center text-black hover:bg-[#f4f4f4] transition-all cursor-pointer">
                                 <div className="relative">
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                    <svg className="w-5 h-5 md:w-4 md:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                                 </div>
                             </div>
 
-                            {/* Hover Cascade Menu - Compact Size */}
-                            <div className="absolute top-0 left-12 w-64 bg-white/95 backdrop-blur-md rounded-xl shadow-xl border border-white/50 p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform translate-x-[-10px] group-hover:translate-x-0 origin-top-left z-[500]">
+                            {/* Hover Cascade Menu - Responsive Popup */}
+                            <div className="absolute top-10 right-0 md:top-0 md:left-12 md:right-auto
+                                w-[80vw] md:w-64 
+                                bg-white/95 backdrop-blur-md rounded-xl shadow-xl border border-white/50 p-4 
+                                opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 origin-top-right md:origin-top-left z-[500]"
+                            >
                                 <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-100">
                                     <div className="w-6 h-6 rounded-full bg-[#4c7c44]/10 flex items-center justify-center text-[#4c7c44]">
                                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
@@ -513,8 +524,8 @@ function LandingPage() {
                             </div>
                         </div>
 
-                        {/* Floating Bottom Left Controls - Zoom (Moved Here) */}
-                        <div className="absolute bottom-6 left-6 z-[400] flex flex-col gap-2">
+                        {/* Zoom Controls - Hidden on Mobile */}
+                        <div className="absolute bottom-24 md:bottom-6 left-4 md:left-6 z-[400] hidden md:flex flex-col gap-2">
                             <div className="bg-white rounded-xl shadow-lg flex flex-col border border-gray-200 overflow-hidden w-10">
                                 <button onClick={() => mapRef.current?.zoomIn()} className="h-10 flex items-center justify-center hover:bg-gray-50 border-b border-gray-100 text-gray-600 active:bg-gray-100 transition-colors">
                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
@@ -525,11 +536,26 @@ function LandingPage() {
                             </div>
                         </div>
 
-                        {/* Floating Right Card - Redesigned Grid Layout - Increased Spacing */}
-                        <div className="absolute top-8 right-8 z-[400] w-80 md:w-96 max-h-[calc(100%-64px)] overflow-y-auto custom-scrollbar rounded-[24px]">
-                            <div className="bg-white/95 backdrop-blur-xl rounded-[24px] shadow-2xl border border-white/50 p-5 transition-all duration-300">
+                        {/* Floating Result Card - Collapsible Bottom Sheet on Mobile / Fixed on Desktop */}
+                        <div className={`absolute z-[400] overflow-y-auto custom-scrollbar transition-all duration-500 ease-in-out
+                            bottom-0 left-0 right-0 w-full max-h-[60%] rounded-t-[24px] shadow-[0_-4px_20px_rgba(0,0,0,0.1)]
+                            md:top-8 md:right-8 md:bottom-auto md:left-auto md:w-96 md:max-h-[calc(100%-64px)] md:rounded-[24px] md:shadow-2xl
+                            ${isResultOpen ? 'translate-y-0 opacity-100' : 'translate-y-[120%] opacity-0 md:translate-y-0 md:opacity-100'} 
+                            `}
+                        >
+                            <div className="bg-white/95 backdrop-blur-xl p-5 border border-white/50 h-full relative">
+                                {/* Mobile Pull Handle / Close Button */}
+                                <div className="md:hidden flex flex-col items-center mb-2" onClick={() => setIsResultOpen(false)}>
+                                    <div className="w-12 h-1.5 bg-gray-300 rounded-full mb-2"></div>
+                                </div>
+                                <button
+                                    onClick={() => setIsResultOpen(false)}
+                                    className="absolute top-4 right-4 p-2 bg-gray-100 rounded-full text-gray-400 hover:bg-gray-200 md:hidden z-10"
+                                >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
 
-                                <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center justify-between mb-4 mt-2 md:mt-0">
                                     <h2 className="text-sm font-bold text-gray-700 flex items-center gap-2">
                                         <div className="w-1.5 h-4 bg-[#4c7c44] rounded-full"></div>
                                         ผลการคำนวณเบื้องต้น
@@ -687,12 +713,22 @@ function LandingPage() {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Mobile: Floating Action Button to Show Results manually */}
+                        {!isResultOpen && (
+                            <button
+                                onClick={() => setIsResultOpen(true)}
+                                className="md:hidden absolute bottom-6 right-6 z-[400] bg-white text-[#4c7c44] p-3 rounded-full shadow-lg flex items-center justify-center border border-gray-100 active:scale-95 transition-all"
+                            >
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                            </button>
+                        )}
                     </div>
                 </div>
             </section>
 
             {/* 8. Map Preview Section */}
-            <section className="py-24 bg-white">
+            < section className="py-24 bg-white" >
                 <div className="container-responsive text-center">
                     <h2 className="text-3xl font-bold tracking-tight text-[#2d4a27] mb-3">แผนที่พื้นที่ปลูกยางพาราในประเทศไทย</h2>
                     <p className="text-gray-500 font-medium">ศักยภาพการกักเก็บคาร์บอนในแต่ละภูมิภาค</p>
@@ -743,10 +779,10 @@ function LandingPage() {
                         </div>
                     </div>
                 </div>
-            </section>
+            </section >
 
             {/* 9. Footer */}
-            <footer className="bg-[#f7f5f2] border-t border-gray-100 pt-16 pb-10">
+            < footer className="bg-[#f7f5f2] border-t border-gray-100 pt-16 pb-10" >
                 <div className="container-responsive">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-16">
                         <div className="text-left">
@@ -788,7 +824,7 @@ function LandingPage() {
                         </div>
                     </div>
                 </div>
-            </footer>
+            </footer >
 
             <button
                 onClick={scrollToTop}
