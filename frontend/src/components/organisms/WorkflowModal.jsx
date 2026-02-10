@@ -1102,7 +1102,36 @@ export default function WorkflowModal({
                                     <span className="text-xl font-bold text-emerald-600">{result.carbon} tCO₂e</span>
                                 </div>
 
-                                {/* Action Button */}
+                                {/* Valuation Display - Minimal with Icon */}
+                                <div className="relative mt-3 p-4 bg-gradient-to-br from-teal-50 via-emerald-50 to-green-50 rounded-2xl border border-teal-200/50 overflow-hidden group hover:shadow-lg transition-all duration-300">
+                                    {/* Decorative circles */}
+                                    <div className="absolute -top-4 -right-4 w-16 h-16 bg-teal-300/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
+                                    <div className="absolute -bottom-3 -left-3 w-12 h-12 bg-emerald-300/20 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500"></div>
+
+                                    <div className="relative flex items-center justify-between">
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="w-9 h-9 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-xl flex items-center justify-center text-white shadow-md group-hover:scale-110 group-hover:rotate-12 transition-all duration-300">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                                    <path d="M10.5 2.25a.75.75 0 0 1 .75.75v2.25a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75ZM13.5 2.25a.75.75 0 0 1 .75.75v2.25a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75ZM7.5 4.5a.75.75 0 0 1 .75.75v14.25a.75.75 0 0 1-1.5 0V5.25A.75.75 0 0 1 7.5 4.5ZM16.5 4.5a.75.75 0 0 1 .75.75v14.25a.75.75 0 0 1-1.5 0V5.25a.75.75 0 0 1 .75-.75ZM4.5 9v9.75a3 3 0 0 0 3 3h9a3 3 0 0 0 3-3V9a3 3 0 0 0-3-3h-9a3 3 0 0 0-3 3Z" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-bold text-teal-700/80 uppercase tracking-widest">มูลค่าประเมิน</p>
+                                                <p className="text-[9px] text-teal-600/70 font-medium mt-0.5">@ ฿250/ตัน</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col items-end">
+                                            <div className="text-2xl font-black text-teal-700 tracking-tight leading-none">
+                                                ฿{(parseFloat(result.carbon) * 250).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                            </div>
+                                            <div className="mt-1 px-2 py-0.5 bg-white/60 rounded-md">
+                                                <span className="text-[9px] font-bold text-teal-600 uppercase tracking-wider">ประมาณการ</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Action Buttons */}
                                 <div className="flex gap-2 mt-4">
                                     <button
                                         onClick={() => setCurrentStep(2)}

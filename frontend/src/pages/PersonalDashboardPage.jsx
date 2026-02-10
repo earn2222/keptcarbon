@@ -123,10 +123,12 @@ function PersonalDashboardPage() {
     const map = useRef(null)
     const [mapLoaded, setMapLoaded] = useState(false)
     const [plots, setPlots] = useState([])
+    const [carbonPrice, setCarbonPrice] = useState(250)
     const [stats, setStats] = useState({
         plots: 0,
         area: 0,
-        carbon: 0
+        carbon: 0,
+        totalValue: 0
     })
 
     const [userProfile, setUserProfile] = useState(null)
@@ -209,11 +211,13 @@ function PersonalDashboardPage() {
                 const totalPlots = myPlots.length
                 const totalArea = myPlots.reduce((sum, p) => sum + p.area, 0)
                 const totalCarbon = myPlots.reduce((sum, p) => sum + p.carbon, 0)
+                const totalValue = totalCarbon * carbonPrice
 
                 setStats({
                     plots: totalPlots,
                     area: totalArea,
-                    carbon: totalCarbon
+                    carbon: totalCarbon,
+                    totalValue: totalValue
                 })
 
             } catch (err) {
@@ -313,9 +317,12 @@ function PersonalDashboardPage() {
                 const props = feature.properties;
                 const coordinates = e.lngLat;
 
-                // Create HTML Content for Popup
+                // Calculate estimated value
+                const estimatedValue = (parseFloat(props.carbon) || 0) * carbonPrice;
+
+                // Create HTML Content for Popup with Valuation
                 const htmlContent = `
-                    <div style="font-family: 'Inter', sans-serif; min-width: 220px; padding: 4px;">
+                    <div style="font-family: 'Inter', sans-serif; min-width: 240px; padding: 4px;">
                         <h4 style="font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 2px;">${props.farmerName}</h4>
                         <p style="font-size: 11px; color: #64748b; margin-bottom: 8px;">แปลง ID: ${props.id}</p>
                         
@@ -325,9 +332,21 @@ function PersonalDashboardPage() {
                                 <span style="display: block; font-size: 12px; font-weight: 600; color: #475569;">${props.formattedArea}</span>
                             </div>
                             <div>
-                                <span style="display: block; font-size: 10px; color: #94a3b8;">อายุยาง</span>
-                                <span style="display: block; font-size: 12px; font-weight: 600; color: #f97316;">${props.age} ปี</span>
+                                <span style="display: block; font-size: 10px; color: #94a3b8;">คาร์บอน</span>
+                                <span style="display: block; font-size: 12px; font-weight: 600; color: #10b981;">${props.carbon} tCO₂e</span>
                             </div>
+                        </div>
+
+                        <!-- Valuation Section -->
+                        <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); padding: 12px; border-radius: 12px; margin-bottom: 12px; border: 1px solid #a7f3d0;">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <div style="width: 20px; height: 20px; background: #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px;">฿</div>
+                                    <span style="font-size: 10px; font-weight: 700; color: #047857;">มูลค่าประเมิน</span>
+                                </div>
+                                <span style="font-size: 16px; font-weight: 900; color: #059669; letter-spacing: -0.5px;">฿${estimatedValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                            </div>
+                            <div style="font-size: 9px; color: #059669; text-align: right; margin-top: 4px; opacity: 0.8;">@ ฿${carbonPrice}/ตัน</div>
                         </div>
 
                         <button 
@@ -433,7 +452,7 @@ function PersonalDashboardPage() {
                 </div>
 
                 {/* DESKTOP STATS SECTION (Hidden on Mobile) */}
-                <div className="hidden md:grid grid-cols-3 gap-4 relative z-[100]">
+                <div className="hidden md:grid grid-cols-4 gap-4 relative z-[100]">
                     {/* Plots */}
                     <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-xl transition-all duration-500 hover:-translate-y-1">
                         <div className="absolute right-0 top-0 w-24 h-24 bg-emerald-50 rounded-bl-full -mr-4 -mt-4 transition-transform duration-500 group-hover:scale-110"></div>
@@ -467,6 +486,19 @@ function PersonalDashboardPage() {
                             </div>
                             <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">คาร์บอนรวม</p>
                             <h3 className="text-3xl font-black text-slate-800 mt-1">{stats.carbon.toLocaleString(undefined, { maximumFractionDigits: 0 })} <span className="text-xs font-bold text-slate-400">ตัน</span></h3>
+                        </div>
+                    </div>
+
+                    {/* Total Value */}
+                    <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-3xl p-5 shadow-lg relative overflow-hidden group hover:shadow-2xl transition-all duration-500 hover:-translate-y-1">
+                        <div className="absolute right-0 top-0 w-24 h-24 bg-white/10 rounded-bl-full -mr-4 -mt-4 transition-transform duration-500 group-hover:scale-110"></div>
+                        <div className="relative z-10">
+                            <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center text-white mb-3 shadow-sm group-hover:scale-110 transition-transform duration-300">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M10.5 2.25a.75.75 0 0 1 .75.75v2.25a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75ZM13.5 2.25a.75.75 0 0 1 .75.75v2.25a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75ZM7.5 4.5a.75.75 0 0 1 .75.75v14.25a.75.75 0 0 1-1.5 0V5.25A.75.75 0 0 1 7.5 4.5ZM16.5 4.5a.75.75 0 0 1 .75.75v14.25a.75.75 0 0 1-1.5 0V5.25a.75.75 0 0 1 .75-.75ZM4.5 9v9.75a3 3 0 0 0 3 3h9a3 3 0 0 0 3-3V9a3 3 0 0 0-3-3h-9a3 3 0 0 0-3 3Z" /></svg>
+                            </div>
+                            <p className="text-white/90 text-xs font-bold uppercase tracking-wider">มูลค่าประเมินรวม</p>
+                            <h3 className="text-3xl font-black text-white mt-1">฿{stats.totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</h3>
+                            <p className="text-white/70 text-[10px] mt-1">@ ฿{carbonPrice.toLocaleString()}/ตัน</p>
                         </div>
                     </div>
                 </div>
@@ -569,7 +601,8 @@ function PersonalDashboardPage() {
                                     <th className="py-4 text-left font-bold text-slate-400 uppercase text-[10px] tracking-wider">อายุ / ปีที่ปลูก</th>
                                     <th className="py-4 text-left font-bold text-slate-400 uppercase text-[10px] tracking-wider">สายพันธุ์ยาง</th>
                                     <th className="py-4 text-left font-bold text-slate-400 uppercase text-[10px] tracking-wider">วิธีการคำนวณ</th>
-                                    <th className="py-4 text-right font-bold text-slate-400 uppercase text-[10px] tracking-wider pr-4">ปริมาณคาร์บอน</th>
+                                    <th className="py-4 text-right font-bold text-slate-400 uppercase text-[10px] tracking-wider">ปริมาณคาร์บอน</th>
+                                    <th className="py-4 text-right font-bold text-emerald-600 uppercase text-[10px] tracking-wider pr-4">มูลค่าประเมิน</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -620,10 +653,17 @@ function PersonalDashboardPage() {
                                             </div>
                                         </td>
                                         {/* Carbon Column */}
-                                        <td className="py-6 pr-4 text-right align-top">
+                                        <td className="py-6 text-right align-top">
                                             <div className="flex flex-col items-end gap-1">
                                                 <span className="font-black text-emerald-600 text-lg leading-none">{p.carbon.toFixed(2)}</span>
                                                 <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider bg-slate-100 px-1.5 py-0.5 rounded">tCO₂e</span>
+                                            </div>
+                                        </td>
+                                        {/* Valuation Column */}
+                                        <td className="py-6 pr-4 text-right align-top">
+                                            <div className="inline-flex flex-col items-end gap-1 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-100">
+                                                <span className="font-black text-emerald-600 text-base leading-none">฿{((p.carbon || 0) * carbonPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                                                <span className="text-[8px] text-emerald-500 font-bold uppercase tracking-wider">@ ฿{carbonPrice}/t</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -675,6 +715,22 @@ function PersonalDashboardPage() {
                                         <div className="flex flex-col items-end gap-0.5">
                                             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">สายพันธุ์</span>
                                             <span className="text-[10px] font-bold text-slate-700">{p.variety}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Valuation Section */}
+                                    <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-4">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center text-white text-sm font-bold">฿</div>
+                                                <div>
+                                                    <p className="text-[9px] font-bold text-white/80 uppercase tracking-widest">มูลค่าประเมิน</p>
+                                                    <p className="text-[8px] text-white/70">@ ฿{carbonPrice}/ตัน</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <span className="text-xl font-black text-white block leading-none">฿{((p.carbon || 0) * carbonPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

@@ -245,10 +245,12 @@ function HistoryPage() {
     const history = useHistory()
     const [plots, setPlots] = useState([])
     const [searchTerm, setSearchTerm] = useState('')
+    const [carbonPrice, setCarbonPrice] = useState(250)
     const [userStats, setUserStats] = useState({
         totalPlots: 0,
         totalArea: 0,
         totalCarbon: 0,
+        totalValue: 0,
         thisYearCarbon: 0,
         lastYearCarbon: 0
     })
@@ -310,6 +312,7 @@ function HistoryPage() {
             const currentYear = new Date().getFullYear()
             const totalArea = processed.reduce((sum, p) => sum + p.area, 0)
             const totalCarbon = processed.reduce((sum, p) => sum + p.carbon, 0)
+            const totalValue = totalCarbon * carbonPrice
             const thisYearCarbon = processed.filter(p => p.year === currentYear).reduce((sum, p) => sum + p.carbon, 0)
             const lastYearCarbon = processed.filter(p => p.year === currentYear - 1).reduce((sum, p) => sum + p.carbon, 0)
 
@@ -317,6 +320,7 @@ function HistoryPage() {
                 totalPlots: processed.length,
                 totalArea,
                 totalCarbon,
+                totalValue,
                 thisYearCarbon,
                 lastYearCarbon
             })
@@ -333,6 +337,32 @@ function HistoryPage() {
                 fetchPlots()
             } catch (err) {
                 alert('ลบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง')
+            }
+        }
+    }
+
+    const handleDeleteAll = async () => {
+        if (plots.length === 0) {
+            alert('ไม่มีแปลงให้ลบ')
+            return
+        }
+
+        const confirmMessage = `คุณต้องการลบแปลงทั้งหมด ${plots.length} แปลงใช่หรือไม่?\n\n⚠️ การกระทำนี้ไม่สามารถย้อนกลับได้!`
+
+        if (window.confirm(confirmMessage)) {
+            try {
+                // Delete all plots one by one
+                const deletePromises = plots.map(plot => deletePlot(plot.id))
+                await Promise.all(deletePromises)
+
+                // Refresh the page
+                fetchPlots()
+                alert('ลบแปลงทั้งหมดสำเร็จ')
+            } catch (err) {
+                console.error('Error deleting all plots:', err)
+                alert('เกิดข้อผิดพลาดในการลบบางแปลง กรุณาลองใหม่อีกครั้ง')
+                // Refresh anyway to show current state
+                fetchPlots()
             }
         }
     }
@@ -458,18 +488,25 @@ function HistoryPage() {
                             <h2 className="text-xl lg:text-2xl font-bold text-slate-800">{userProfile?.name || "ผู้ดูแลระบบ"}</h2>
                             <p className="text-slate-400 text-sm font-medium mb-6">{userProfile?.email || "admin@keptcarbon.com"}</p>
 
-                            <div className="grid grid-cols-3 gap-2 sm:gap-6 divide-x divide-slate-100">
+                            <div className="grid grid-cols-2 gap-2 sm:gap-4 divide-x divide-slate-100">
                                 <div className="text-center px-2">
-                                    <p className="text-2xl lg:text-3xl font-black text-slate-800">{userStats.totalPlots}</p>
-                                    <p className="text-[10px] sm:text-xs text-slate-400 font-bold uppercase tracking-wide mt-1">แปลงทั้งหมด</p>
+                                    <p className="text-xl lg:text-2xl font-black text-slate-800">{userStats.totalPlots}</p>
+                                    <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wide mt-1">แปลงทั้งหมด</p>
                                 </div>
                                 <div className="text-center px-2">
-                                    <p className="text-2xl lg:text-3xl font-black text-blue-500">{userStats.totalArea.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
-                                    <p className="text-[10px] sm:text-xs text-slate-400 font-bold uppercase tracking-wide mt-1">ไร่รวม</p>
+                                    <p className="text-xl lg:text-2xl font-black text-blue-500">{userStats.totalArea.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                                    <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wide mt-1">ไร่รวม</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 sm:gap-4 divide-x divide-slate-100 mt-4 pt-4 border-t border-slate-200/50">
+                                <div className="text-center px-2">
+                                    <p className="text-xl lg:text-2xl font-black text-emerald-500">{userStats.totalCarbon.toFixed(0)}</p>
+                                    <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wide mt-1">tCO₂e</p>
                                 </div>
                                 <div className="text-center px-2">
-                                    <p className="text-2xl lg:text-3xl font-black text-emerald-500">{userStats.totalCarbon.toFixed(0)}</p>
-                                    <p className="text-[10px] sm:text-xs text-slate-400 font-bold uppercase tracking-wide mt-1">tCO₂e</p>
+                                    <p className="text-xl lg:text-2xl font-black text-teal-600">฿{userStats.totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                                    <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wide mt-1">มูลค่ารวม</p>
                                 </div>
                             </div>
                         </div>
@@ -538,17 +575,30 @@ function HistoryPage() {
                             </div>
                             ประวัติการประเมิน
                         </h3>
-                        <div className="relative group w-full md:w-auto">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <SearchIcon className="h-4 w-4 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                        <div className="flex items-center gap-3 w-full md:w-auto">
+                            <div className="relative group flex-1 md:flex-none">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <SearchIcon className="h-4 w-4 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder="ค้นหาชื่อแปลง, ID..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl w-full md:w-72 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all placeholder:text-slate-400"
+                                />
                             </div>
-                            <input
-                                type="text"
-                                placeholder="ค้นหาชื่อแปลง, ID..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl w-full md:w-72 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all placeholder:text-slate-400"
-                            />
+                            {plots.length > 0 && (
+                                <button
+                                    onClick={handleDeleteAll}
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-sm font-bold transition-all border border-rose-200 hover:border-rose-300 active:scale-95 whitespace-nowrap group"
+                                    title="ลบแปลงทั้งหมด"
+                                >
+                                    <TrashIcon className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                                    <span className="hidden sm:inline">ลบทั้งหมด</span>
+                                    <span className="inline sm:hidden">ลบ</span>
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -620,11 +670,18 @@ function HistoryPage() {
                                         </div>
                                     </div>
 
-                                    {/* Carbon Result */}
-                                    <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl p-4 text-center">
-                                        <div className="text-[10px] font-semibold text-white/80 uppercase tracking-wider mb-1">คาร์บอนสะสม</div>
-                                        <div className="text-2xl font-black text-white">{p.carbon.toFixed(2)}</div>
-                                        <div className="text-xs font-medium text-white/90">tCO₂e</div>
+                                    {/* Carbon & Value Result */}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-3 text-center">
+                                            <div className="text-[9px] font-semibold text-white/80 uppercase tracking-wider mb-1">คาร์บอนสะสม</div>
+                                            <div className="text-xl font-black text-white">{p.carbon.toFixed(2)}</div>
+                                            <div className="text-[10px] font-medium text-white/90">tCO₂e</div>
+                                        </div>
+                                        <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl p-3 text-center">
+                                            <div className="text-[9px] font-semibold text-white/80 uppercase tracking-wider mb-1">มูลค่าประเมิน</div>
+                                            <div className="text-xl font-black text-white">฿{((p.carbon || 0) * carbonPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                                            <div className="text-[10px] font-medium text-white/90">@ ฿{carbonPrice}/t</div>
+                                        </div>
                                     </div>
                                 </div>
                             ))
@@ -647,6 +704,7 @@ function HistoryPage() {
                                     <th className="py-4 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">ขนาดพื้นที่</th>
                                     <th className="py-4 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">วิธีคำนวณ</th>
                                     <th className="py-4 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">คาร์บอน</th>
+                                    <th className="py-4 px-4 text-xs font-bold text-emerald-600 uppercase tracking-wider text-right">มูลค่าประเมิน</th>
                                     <th className="py-4 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">จัดการ</th>
                                 </tr>
                             </thead>
@@ -712,6 +770,12 @@ function HistoryPage() {
                                                 <div className="inline-flex flex-col items-end">
                                                     <span className="text-lg font-black text-emerald-600 tabular-nums">{p.carbon.toFixed(2)}</span>
                                                     <span className="text-[10px] text-slate-400 font-medium">tCO₂e</span>
+                                                </div>
+                                            </td>
+                                            <td className="py-4 px-4 text-right">
+                                                <div className="inline-flex flex-col items-end gap-1 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-100">
+                                                    <span className="text-base font-black text-emerald-600 tabular-nums">฿{((p.carbon || 0) * carbonPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                                                    <span className="text-[8px] text-emerald-500 font-bold uppercase">@ ฿{carbonPrice}/t</span>
                                                 </div>
                                             </td>
                                             <td className="py-4 px-4">

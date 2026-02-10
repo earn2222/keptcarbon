@@ -471,91 +471,133 @@ function MapPage() {
         // Click handler for plots
         map.current.on('click', 'saved-plots-layer', (e) => {
             if (!e.features.length) return;
-            const feature = e.features[0];
-            const plotData = JSON.parse(feature.properties.allData);
-            const coordinates = e.lngLat;
 
-            // Remove existing popup
-            if (popupRef.current) popupRef.current.remove();
+            try {
+                const feature = e.features[0];
+                let plotData = {};
 
-            // Create new popup - Compact Minimal Design
-            // Create new popup - Compact Minimal Design
-            const popup = new maplibregl.Popup({
-                closeButton: false,
-                maxWidth: '300px', // Increased width
-                anchor: 'bottom',
-                offset: [0, -10],
-                className: 'minimal-popup'
-            })
-                .setLngLat(coordinates)
-                .setHTML(`
-                <div class="m-card">
-                    <!-- Header -->
-                    <div class="m-header">
-                        <div class="m-badge">
-                            <span class="m-dot"></span>
-                            ข้อมูลรายแปลง
-                        </div>
-                        <button id="open-edit-btn-${plotData.id}" class="m-edit-btn" title="แก้ไขข้อมูล">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
-                        </button>
-                    </div>
-                    
-                    <!-- Name -->
-                    <h2 class="m-name">${plotData.farmerName}</h2>
-                    
-                    <!-- Info Row -->
-                    <div class="m-info">
-                        <div class="m-col">
-                            <span class="m-label">ปีที่ปลูก / อายุ</span>
-                            <span class="m-val">พ.ศ. ${plotData.plantingYearBE || '-'} (${plotData.age || '-'} ปี)</span>
-                        </div>
-                        <div class="m-col m-right" style="padding-left: 12px;">
-                            <span class="m-label">พันธุ์ยาง</span>
-                            <span class="m-val">${plotData.variety || 'RRIM 600'}</span>
-                        </div>
-                    </div>
-                    
-                    <!-- Carbon -->
-                    <div class="m-carbon">
-                        <span class="m-carbon-label">ปริมาณคาร์บอนสุทธิ</span>
-                        <div class="m-carbon-row">
-                            <span class="m-carbon-num">${plotData.carbon || '0.00'}</span>
-                            <span class="m-carbon-unit">TCO<sub>2</sub>E</span>
-                        </div>
-                        <span class="m-method">${plotData.method || 'สมการที่ 1 (0.118 × DBH^2.53)'}</span>
-                    </div>
-                </div>
-            `)
-                .addTo(map.current);
-
-            popupRef.current = popup;
-
-            // Handle button click in popup
-            setTimeout(() => {
-                const btn = document.getElementById(`open-edit-btn-${plotData.id}`);
-                if (btn) {
-                    btn.onclick = (event) => {
-                        event.stopPropagation();
-                        setWorkflowModal({
-                            isOpen: true,
-                            mode: 'draw',
-                            initialData: plotData,
-                            isEditing: true
-                        });
-                        popup.remove();
-                    };
+                // Safe Parsing
+                try {
+                    plotData = typeof feature.properties.allData === 'string'
+                        ? JSON.parse(feature.properties.allData)
+                        : feature.properties.allData;
+                } catch (parseErr) {
+                    console.error('Error parsing plot data:', parseErr);
+                    return; // Stop if data is invalid
                 }
-            }, 50);
 
-            // Zoom to plot
-            if (feature.geometry) {
-                const bbox = turf.bbox(feature);
-                map.current.fitBounds(bbox, {
-                    padding: { top: 120, bottom: 250, left: 120, right: window.innerWidth > 640 ? 450 : 120 },
-                    maxZoom: 18,
-                    duration: 1000
-                });
+                if (!plotData) return;
+
+                const coordinates = e.lngLat;
+
+                // Remove existing popup
+                if (popupRef.current) popupRef.current.remove();
+
+                // Create content HTML string clearly - Compact Minimal Version
+                const popupContent = `
+                    <div class="m-card" style="padding: 14px; font-family: 'Inter', sans-serif;">
+                        <!-- Header -->
+                        <div class="m-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                            <div class="m-badge" style="background: #ecfdf5; color: #059669; padding: 3px 8px; border-radius: 12px; display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700;">
+                                <div style="width: 5px; height: 5px; background: #10b981; border-radius: 50%;"></div>
+                                ข้อมูลรายแปลง
+                            </div>
+                            <button id="open-edit-btn-${plotData.id}" class="m-edit-btn" style="width: 24px; height: 24px; border-radius: 50%; background: #f1f5f9; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #64748b; transition: all 0.2s; flex-shrink: 0;" title="แก้ไขข้อมูล">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                            </button>
+                        </div>
+                        
+                        <!-- Name -->
+                        <h2 class="m-name" style="font-size: 16px; font-weight: 800; color: #0f172a; margin: 0 0 10px 0; letter-spacing: -0.3px; line-height: 1.2;">
+                            ${plotData.farmerName || 'ไม่ระบุชื่อ'}
+                        </h2>
+                        
+                        <!-- Info Row -->
+                        <div class="m-info" style="display: flex; gap: 12px; margin-bottom: 12px; padding-bottom: 0;">
+                            <div class="m-col" style="flex: 1;">
+                                <span style="display: block; font-size: 9px; font-weight: 600; color: #94a3b8; margin-bottom: 2px;">ปีที่ปลูก / อายุ</span>
+                                <span style="display: block; font-size: 12px; font-weight: 700; color: #334155;">พ.ศ. ${plotData.plantingYearBE || '-'} (${plotData.age || '-'} ปี)</span>
+                            </div>
+                            <div class="m-col m-right" style="flex: 1; text-align: right;">
+                                <span style="display: block; font-size: 9px; font-weight: 600; color: #94a3b8; margin-bottom: 2px;">พันธุ์ยาง</span>
+                                <span style="display: block; font-size: 12px; font-weight: 700; color: #334155;">${plotData.variety || 'RRIM 600'}</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Carbon Section (Green) - Compact -->
+                        <div style="padding: 14px 10px; background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-radius: 16px; text-align: center; position: relative; overflow: hidden; margin-bottom: 8px; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.05);">
+                            <div style="font-size: 10px; font-weight: 700; color: #059669; margin-bottom: 4px; text-transform: uppercase;">ปริมาณคาร์บอนสุทธิ</div>
+                            <div style="display: flex; align-items: baseline; justify-content: center; gap: 3px; margin-bottom: 8px;">
+                                <span style="font-size: 30px; font-weight: 800; color: #047857; letter-spacing: -1px; line-height: 1;">${plotData.carbon || '0.00'}</span>
+                                <span style="font-size: 11px; font-weight: 700; color: #059669;">tCO<sub>2</sub>e</span>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.9); border-radius: 8px; padding: 4px 10px; display: inline-block;">
+                                <span style="font-size: 9px; font-weight: 600; color: #059669;">${plotData.method || 'สมการที่ 1 (0.118 × DBH^2.53)'}</span>
+                            </div>
+                        </div>
+
+                        <!-- Valuation Section (Yellow) - Compact -->
+                        <div style="padding: 10px 12px; background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border-radius: 16px; display: flex; align-items: center; gap: 10px; box-shadow: 0 2px 4px rgba(245, 158, 11, 0.05);">
+                            <!-- Coin Icon (Fixed: Clear Baht Symbol) -->
+                            <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(245, 158, 11, 0.25); flex-shrink: 0; color: white;">
+                                <span style="font-family: 'Sarabun', sans-serif; font-weight: 700; font-size: 20px; line-height: 1; margin-top: -2px;">฿</span>
+                            </div>
+                            
+                            <!-- Text -->
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="display: flex; align-items: baseline; gap: 4px;">
+                                    <span style="font-size: 18px; font-weight: 800; color: #b45309; line-height: 1; letter-spacing: -0.5px;">${((parseFloat(plotData.carbon) || 0) * 250).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</span>
+                                    <span style="font-size: 10px; font-weight: 700; color: #d97706;">บาท</span>
+                                </div>
+                                <div style="font-size: 9px; font-weight: 600; color: #f59e0b; margin-top: 2px;">ราคาตลาด ฿250/ตัน</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Create new popup
+                const popup = new maplibregl.Popup({
+                    closeButton: false,
+                    maxWidth: '260px', // Reduced width for minimal look
+                    anchor: 'bottom',
+                    offset: [0, -10],
+                    className: 'minimal-popup'
+                })
+                    .setLngLat(coordinates)
+                    .setHTML(popupContent)
+                    .addTo(map.current);
+
+                popupRef.current = popup;
+
+                // Handle button click in popup
+                setTimeout(() => {
+                    const btn = document.getElementById(`open-edit-btn-${plotData.id}`);
+                    if (btn) {
+                        btn.onclick = (event) => {
+                            event.stopPropagation();
+                            setWorkflowModal({
+                                isOpen: true,
+                                mode: 'draw',
+                                initialData: plotData,
+                                isEditing: true
+                            });
+                            popup.remove();
+                        };
+                    }
+                }, 50);
+
+                // Zoom to plot
+                if (feature.geometry) {
+                    const bbox = turf.bbox(feature);
+                    map.current.fitBounds(bbox, {
+                        padding: { top: 120, bottom: 250, left: 120, right: window.innerWidth > 640 ? 450 : 120 },
+                        maxZoom: 18,
+                        duration: 1000
+                    });
+                }
+
+            } catch (err) {
+                console.error('Error showing popup:', err);
             }
         });
 
