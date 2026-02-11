@@ -44,6 +44,15 @@ function LandingPage() {
     const [marketPrice, setMarketPrice] = useState(150)
     const [calculationModel, setCalculationModel] = useState('field')
     const [isResultOpen, setIsResultOpen] = useState(false) // Mobile Result Card Visibility
+    const [plantingYear, setPlantingYear] = useState(2559) // ปี พ.ศ. ที่ปลูก (ค่าเริ่มต้น 2559 = อายุ 10 ปี)
+
+    // คำนวณอายุจากปีที่ปลูก (ปีปัจจุบัน พ.ศ. 2569)
+    const currentYear = 2569; // 2026 ค.ศ. = 2569 พ.ศ.
+    const calculateAge = (year) => {
+        if (!year || year > currentYear) return 0;
+        return currentYear - year;
+    }
+    const treeAge = calculateAge(plantingYear);
 
     // --- Location Search Logic (Mock Data) ---
     const [selectedProvince, setSelectedProvince] = useState('')
@@ -91,17 +100,28 @@ function LandingPage() {
         satellite: 1.2
     }
 
-    const calculateCarbon = (sqM, model) => {
+    const calculateCarbon = (sqM, model, age) => {
         const totalRai = sqM / 1600;
+
+        // Age multiplier: อายุต้นยางพารามีผลต่อการกักเก็บคาร์บอน
+        // ยางอายุ 5-20 ปี มีประสิทธิภาพสูงสุด (100%)
+        // น้อยกว่า 5 ปี ลดลงตามอายุ (50-100%)
+        // มากกว่า 20 ปี ลดลงเบาๆ (60-100%)
+        let ageMultiplier = 1.0;
+        if (age < 5) {
+            ageMultiplier = 0.5 + (age / 5) * 0.5; // 0.5 to 1.0
+        } else if (age > 20) {
+            ageMultiplier = Math.max(0.6, 1.0 - ((age - 20) / 30) * 0.4); // 1.0 to 0.6 (over 30 years)
+        }
 
         if (model === 'all') {
             const sum = Object.values(MODEL_FACTORS).reduce((a, b) => a + b, 0);
             const avg = sum / 4;
-            return totalRai * avg;
+            return totalRai * avg * ageMultiplier;
         }
 
         const factor = MODEL_FACTORS[model] || 1.2;
-        return totalRai * factor;
+        return totalRai * factor * ageMultiplier;
     }
 
     const formatNumber = (num) => {
@@ -627,7 +647,7 @@ function LandingPage() {
                                     <div className="space-y-4">
                                         <div className="text-center">
                                             <div className="text-5xl font-black text-[#2d4a27] tracking-tight leading-none mb-1 animate-fade-in">
-                                                {formatNumber(calculateCarbon(trialArea.totalSqM, calculationModel))}
+                                                {formatNumber(calculateCarbon(trialArea.totalSqM, calculationModel, treeAge))}
                                             </div>
                                             <div className="text-xs font-bold text-[#4c7c44] uppercase tracking-wider">ตันคาร์บอน (tCO₂e)</div>
                                         </div>
@@ -641,7 +661,7 @@ function LandingPage() {
                                                 </div>
                                             </div>
                                             <div className="text-2xl font-black text-[#c2410c]">
-                                                {formatNumber(calculateCarbon(trialArea.totalSqM, calculationModel) * marketPrice)}
+                                                {formatNumber(calculateCarbon(trialArea.totalSqM, calculationModel, treeAge) * marketPrice)}
                                             </div>
                                         </div>
                                     </div>
@@ -654,7 +674,7 @@ function LandingPage() {
                                                 { id: 'young', name: 'ยางเล็ก', icon: '🌱', color: 'text-[#854d0e]', bg: 'bg-[#fefce8]' },
                                                 { id: 'satellite', name: 'ดาวเทียม', icon: '🛰️', color: 'text-[#6b21a8]', bg: 'bg-[#faf5ff]' }
                                             ].map((m) => {
-                                                const val = calculateCarbon(trialArea.totalSqM, m.id);
+                                                const val = calculateCarbon(trialArea.totalSqM, m.id, treeAge);
                                                 return (
                                                     <div key={m.id} className={`${m.bg} p-3 rounded-xl border border-transparent`}>
                                                         <div className="flex items-center gap-1.5 mb-1">
@@ -669,7 +689,7 @@ function LandingPage() {
                                         </div>
                                         <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 flex justify-between items-center mt-2">
                                             <span className="text-xs font-bold text-gray-500">ค่าเฉลี่ยทุกโมเดล</span>
-                                            <span className="text-sm font-black text-gray-800">{formatNumber(calculateCarbon(trialArea.totalSqM, 'all'))} <span className="text-[10px] font-normal text-gray-400">tCO₂e</span></span>
+                                            <span className="text-sm font-black text-gray-800">{formatNumber(calculateCarbon(trialArea.totalSqM, 'all', treeAge))} <span className="text-[10px] font-normal text-gray-400">tCO₂e</span></span>
                                         </div>
                                     </div>
                                 )}
@@ -692,6 +712,37 @@ function LandingPage() {
                                         </div>
                                     </div>
 
+                                    {/* Planting Year Dropdown */}
+                                    <div>
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-xs font-bold text-gray-400 flex items-center gap-1">
+                                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                </svg>
+                                                ปีที่ปลูก (พ.ศ.)
+                                            </span>
+                                            <span className="bg-[#ecfdf5] text-[#059669] px-2 py-0.5 rounded-md text-[10px] font-bold border border-[#059669]/10 shadow-sm">
+                                                อายุ {treeAge} ปี
+                                            </span>
+                                        </div>
+
+
+                                        <select
+                                            value={plantingYear}
+                                            onChange={(e) => setPlantingYear(Number(e.target.value))}
+                                            className="w-full bg-white border-2 border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-2 focus:ring-[#059669] focus:border-[#059669] block p-2.5 outline-none transition-all"
+                                        >
+                                            <option value="">เลือกปีที่ปลูก</option>
+                                            {Array.from({ length: currentYear - 2500 + 1 }, (_, i) => currentYear - i).map(year => (
+                                                <option key={year} value={year}>
+                                                    พ.ศ. {year} (อายุ {currentYear - year} ปี)
+                                                </option>
+                                            ))}
+                                        </select>
+
+                                    </div>
+
+                                    {/* Market Price Slider */}
                                     <div>
                                         <div className="flex justify-between items-center mb-2">
                                             <span className="text-xs font-bold text-gray-400 flex items-center gap-1">
@@ -724,8 +775,8 @@ function LandingPage() {
                             </button>
                         )}
                     </div>
-                </div>
-            </section>
+                </div >
+            </section >
 
             {/* 8. Map Preview Section */}
             < section className="py-24 bg-white" >

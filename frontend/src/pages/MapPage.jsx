@@ -1971,7 +1971,7 @@ function MapPage() {
                     animation: m-pop-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
                 }
             `}</style>
-        </div >
+        </div>
     )
 }
 
