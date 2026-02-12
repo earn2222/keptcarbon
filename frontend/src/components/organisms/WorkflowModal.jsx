@@ -5,7 +5,7 @@ import {
     Loader2, Trash2, Edit3, Leaf, Zap,
     Calculator, Upload, X, ChevronRight, ArrowLeft,
     CheckCircle2, Map, TreeDeciduous, List, Repeat, Eye,
-    Search
+    Search, Calendar, Coins, Scaling, Ruler
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 
@@ -1257,29 +1257,61 @@ export default function WorkflowModal({
                                             </div>
 
                                             {/* Data Grid */}
-                                            <div className="grid grid-cols-2 gap-2 relative z-10">
+                                            {/* Top Row: Basic Info */}
+                                            <div className="flex gap-2 mb-2">
                                                 {/* Age */}
-                                                <div className="bg-orange-50 rounded-xl p-2.5 flex flex-col items-center justify-center border border-orange-100/50">
-                                                    <span className="text-[9px] text-orange-400 font-bold uppercase tracking-wider mb-0.5">อายุยาง</span>
-                                                    <span className="text-sm font-bold text-gray-700">{plot.age || 0} <span className="text-[9px] font-normal text-gray-400">ปี</span></span>
+                                                <div className="flex-1 bg-orange-50/80 rounded-xl p-2 flex items-center justify-between border border-orange-100/50">
+                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                        <div className="w-5 h-5 rounded-full bg-orange-100 flex items-center justify-center shrink-0 text-orange-500">
+                                                            <Calendar size={10} strokeWidth={2.5} />
+                                                        </div>
+                                                        <span className="text-[10px] text-orange-800 font-bold truncate">อายุยาง</span>
+                                                    </div>
+                                                    <span className="text-xs font-bold text-orange-700">{plot.age || 0} <span className="text-[9px] font-normal opacity-70">ปี</span></span>
                                                 </div>
 
                                                 {/* Area */}
-                                                <div className="bg-blue-50 rounded-xl p-2.5 flex flex-col items-center justify-center border border-blue-100/50">
-                                                    <span className="text-[9px] text-blue-400 font-bold uppercase tracking-wider mb-0.5">พื้นที่</span>
-                                                    <span className="text-sm font-bold text-gray-700 whitespace-nowrap">{areaLabel} <span className="text-[9px] font-normal text-gray-400">ไร่</span></span>
+                                                <div className="flex-1 bg-blue-50/80 rounded-xl p-2 flex items-center justify-between border border-blue-100/50">
+                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                        <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center shrink-0 text-blue-500">
+                                                            <Scaling size={10} strokeWidth={2.5} />
+                                                        </div>
+                                                        <span className="text-[10px] text-blue-800 font-bold truncate">พื้นที่</span>
+                                                    </div>
+                                                    <span className="text-xs font-bold text-blue-700 truncate ml-1">{areaLabel}</span>
                                                 </div>
+                                            </div>
 
+                                            {/* Bottom Row: Results (Premium Look) */}
+                                            <div className="grid grid-cols-2 gap-2">
                                                 {/* Carbon Credit */}
-                                                <div className="bg-emerald-50 rounded-xl p-2.5 flex flex-col items-center justify-center border border-emerald-100/50 col-span-1">
-                                                    <span className="text-[9px] text-emerald-500 font-bold uppercase tracking-wider mb-0.5">คาร์บอนเครดิต</span>
-                                                    <span className="text-sm font-bold text-emerald-700">{plot.carbon} <span className="text-[9px] font-normal text-emerald-500">tCO₂e</span></span>
+                                                <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 rounded-xl p-2.5 flex flex-col items-center justify-center border border-emerald-100 relative overflow-hidden group-hover:border-emerald-200 transition-colors">
+                                                    <div className="absolute top-0 right-0 p-1 opacity-10 transform translate-x-1 -translate-y-1">
+                                                        <Leaf size={24} />
+                                                    </div>
+                                                    <div className="flex items-center gap-1 mb-1 text-emerald-600">
+                                                        <Leaf size={10} strokeWidth={2.5} />
+                                                        <span className="text-[9px] font-bold uppercase tracking-wider">คาร์บอนเครดิต</span>
+                                                    </div>
+                                                    <div className="flex items-baseline gap-1">
+                                                        <span className="text-lg font-extrabold text-emerald-700 tracking-tight leading-none">{plot.carbon}</span>
+                                                        <span className="text-[9px] font-bold text-emerald-600">tCO₂e</span>
+                                                    </div>
                                                 </div>
 
                                                 {/* Price */}
-                                                <div className="bg-amber-50 rounded-xl p-2.5 flex flex-col items-center justify-center border border-amber-100/50 col-span-1">
-                                                    <span className="text-[9px] text-amber-500 font-bold uppercase tracking-wider mb-0.5">มูลค่าประเมิน</span>
-                                                    <span className="text-sm font-bold text-amber-700">฿{price}</span>
+                                                <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 rounded-xl p-2.5 flex flex-col items-center justify-center border border-amber-100 relative overflow-hidden group-hover:border-amber-200 transition-colors">
+                                                    <div className="absolute top-0 right-0 p-1 opacity-10 transform translate-x-1 -translate-y-1">
+                                                        <Coins size={24} />
+                                                    </div>
+                                                    <div className="flex items-center gap-1 mb-1 text-amber-600">
+                                                        <Coins size={10} strokeWidth={2.5} />
+                                                        <span className="text-[9px] font-bold uppercase tracking-wider">มูลค่าประเมิน</span>
+                                                    </div>
+                                                    <div className="flex items-baseline gap-0.5">
+                                                        <span className="text-xs font-bold text-amber-600 mt-[1px]">฿</span>
+                                                        <span className="text-lg font-extrabold text-amber-700 tracking-tight leading-none">{price}</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
