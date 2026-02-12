@@ -300,35 +300,12 @@ function MapPage() {
 
         loadInitialPlots();
 
-        // Enable 3D Globe projection
+        // Map Load Event
         map.current.on('load', () => {
-            // Set globe projection (MapLibre GL v4+)
-            try {
-                map.current.setProjection({ type: 'globe' })
-                console.log('Globe projection enabled');
-            } catch (e) {
-                console.log('Globe projection not available, using mercator')
-            }
+            // Note: Globe projection and Fog are not supported in MapLibre GL JS.
+            // Skipping these features to prevent console errors.
+            console.log('Map loaded successfully (mercator projection)');
 
-            // Add atmosphere effect (optional - only if supported)
-            try {
-                if (map.current.setFog) {
-                    map.current.setFog({
-                        color: 'rgb(186, 210, 235)',
-                        'high-color': 'rgb(36, 92, 223)',
-                        'horizon-blend': 0.02,
-                        'space-color': 'rgb(11, 11, 25)',
-                        'star-intensity': 0.6
-                    })
-                    console.log('Fog effect enabled');
-                } else {
-                    console.log('Fog effect not supported in this MapLibre version');
-                }
-            } catch (e) {
-                console.log('Failed to set fog, continuing without it:', e.message)
-            }
-
-            setMapLoaded(true)
             setMapLoaded(true)
             startIntroAnimation()
 
@@ -493,54 +470,69 @@ function MapPage() {
                 // Remove existing popup
                 if (popupRef.current) popupRef.current.remove();
 
-                // Create content HTML string clearly - Compact Minimal Version
+                // Create content HTML string - Enhanced with Icons
                 const popupContent = `
-                    <div class="m-card" style="padding: 14px; font-family: 'Inter', sans-serif;">
+                    <div class="m-card" style="padding: 16px; font-family: 'Prompt', 'Inter', system-ui, sans-serif;">
                         <!-- Header -->
-                        <div class="m-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
-                            <div class="m-badge" style="background: #ecfdf5; color: #059669; padding: 3px 8px; border-radius: 12px; display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700;">
-                                <div style="width: 5px; height: 5px; background: #10b981; border-radius: 50%;"></div>
+                        <div class="m-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                            <div class="m-badge" style="background: #ecfdf5; color: #059669; padding: 4px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
                                 ข้อมูลรายแปลง
                             </div>
-                            <button id="open-edit-btn-${plotData.id}" class="m-edit-btn" style="width: 24px; height: 24px; border-radius: 50%; background: #f1f5f9; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #64748b; transition: all 0.2s; flex-shrink: 0;" title="แก้ไขข้อมูล">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                            <button id="open-edit-btn-${plotData.id}" class="m-edit-btn" style="width: 28px; height: 28px; border-radius: 50%; background: #f1f5f9; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #64748b; transition: all 0.2s; flex-shrink: 0;" title="แก้ไขข้อมูล">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
                             </button>
                         </div>
                         
-                        <!-- Name -->
-                        <h2 class="m-name" style="font-size: 16px; font-weight: 800; color: #0f172a; margin: 0 0 10px 0; letter-spacing: -0.3px; line-height: 1.2;">
-                            ${plotData.farmerName || 'ไม่ระบุชื่อ'}
-                        </h2>
+                        <!-- Farmer Name with Icon -->
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                            <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                            </div>
+                            <h2 class="m-name" style="font-size: 16px; font-weight: 800; color: #0f172a; margin: 0; letter-spacing: -0.3px; line-height: 1.2;">
+                                ${plotData.farmerName || 'ไม่ระบุชื่อ'}
+                            </h2>
+                        </div>
                         
-                        <!-- Info Row -->
-                        <div class="m-info" style="display: flex; gap: 12px; margin-bottom: 12px; padding-bottom: 0;">
-                            <div class="m-col" style="flex: 1;">
-                                <span style="display: block; font-size: 9px; font-weight: 600; color: #94a3b8; margin-bottom: 2px;">ปีที่ปลูก / อายุ</span>
+                        <!-- Info Row with Icons -->
+                        <div class="m-info" style="display: flex; gap: 8px; margin-bottom: 12px; padding-bottom: 0;">
+                            <div style="flex: 1; background: #f8fafc; border-radius: 12px; padding: 8px 10px; border: 1px solid #f1f5f9;">
+                                <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 3px;">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                    <span style="font-size: 9px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">ปีที่ปลูก / อายุ</span>
+                                </div>
                                 <span style="display: block; font-size: 12px; font-weight: 700; color: #334155;">พ.ศ. ${plotData.plantingYearBE || '-'} (${plotData.age || '-'} ปี)</span>
                             </div>
-                            <div class="m-col m-right" style="flex: 1; text-align: right;">
-                                <span style="display: block; font-size: 9px; font-weight: 600; color: #94a3b8; margin-bottom: 2px;">พันธุ์ยาง</span>
+                            <div style="flex: 1; background: #f8fafc; border-radius: 12px; padding: 8px 10px; border: 1px solid #f1f5f9; text-align: right;">
+                                <div style="display: flex; align-items: center; gap: 4px; justify-content: flex-end; margin-bottom: 3px;">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.77 10-10 10Z"></path><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path></svg>
+                                    <span style="font-size: 9px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">พันธุ์ยาง</span>
+                                </div>
                                 <span style="display: block; font-size: 12px; font-weight: 700; color: #334155;">${plotData.variety || 'RRIM 600'}</span>
                             </div>
                         </div>
                         
-                        <!-- Carbon Section (Green) - Compact -->
-                        <div style="padding: 14px 10px; background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-radius: 16px; text-align: center; position: relative; overflow: hidden; margin-bottom: 8px; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.05);">
-                            <div style="font-size: 10px; font-weight: 700; color: #059669; margin-bottom: 4px; text-transform: uppercase;">ปริมาณคาร์บอนสุทธิ</div>
+                        <!-- Carbon Section (Green) with Leaf Icon -->
+                        <div style="padding: 14px 12px; background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-radius: 16px; text-align: center; position: relative; overflow: hidden; margin-bottom: 8px; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.05);">
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 5px; margin-bottom: 6px;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66.95-2.3c.48.17.98.3 1.34.35C19 21 22 15 22 9c0-5-4-4-4-4-2 0-5 2-11 5"></path><path d="M15.54 8.46a5 5 0 0 0-7.08 0"></path></svg>
+                                <span style="font-size: 10px; font-weight: 700; color: #059669; text-transform: uppercase; letter-spacing: 0.5px;">ปริมาณคาร์บอนสุทธิ</span>
+                            </div>
                             <div style="display: flex; align-items: baseline; justify-content: center; gap: 3px; margin-bottom: 8px;">
                                 <span style="font-size: 30px; font-weight: 800; color: #047857; letter-spacing: -1px; line-height: 1;">${plotData.carbon || '0.00'}</span>
                                 <span style="font-size: 11px; font-weight: 700; color: #059669;">tCO<sub>2</sub>e</span>
                             </div>
-                            <div style="background: rgba(255,255,255,0.9); border-radius: 8px; padding: 4px 10px; display: inline-block;">
+                            <div style="background: rgba(255,255,255,0.9); border-radius: 8px; padding: 4px 10px; display: inline-flex; align-items: center; gap: 4px;">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
                                 <span style="font-size: 9px; font-weight: 600; color: #059669;">${plotData.method || 'สมการที่ 1 (0.118 × DBH^2.53)'}</span>
                             </div>
                         </div>
 
-                        <!-- Valuation Section (Yellow) - Compact -->
+                        <!-- Valuation Section (Yellow) with Coin Icon -->
                         <div style="padding: 10px 12px; background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border-radius: 16px; display: flex; align-items: center; gap: 10px; box-shadow: 0 2px 4px rgba(245, 158, 11, 0.05);">
-                            <!-- Coin Icon (Fixed: Clear Baht Symbol) -->
-                            <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(245, 158, 11, 0.25); flex-shrink: 0; color: white;">
-                                <span style="font-family: 'Sarabun', sans-serif; font-weight: 700; font-size: 20px; line-height: 1; margin-top: -2px;">฿</span>
+                            <!-- Coin Icon with Trend Arrow -->
+                            <div style="width: 38px; height: 38px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3); flex-shrink: 0; color: white;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
                             </div>
                             
                             <!-- Text -->
@@ -549,7 +541,10 @@ function MapPage() {
                                     <span style="font-size: 18px; font-weight: 800; color: #b45309; line-height: 1; letter-spacing: -0.5px;">${((parseFloat(plotData.carbon) || 0) * 250).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</span>
                                     <span style="font-size: 10px; font-weight: 700; color: #d97706;">บาท</span>
                                 </div>
-                                <div style="font-size: 9px; font-weight: 600; color: #f59e0b; margin-top: 2px;">ราคาตลาด ฿250/ตัน</div>
+                                <div style="display: flex; align-items: center; gap: 3px; margin-top: 2px;">
+                                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+                                    <span style="font-size: 9px; font-weight: 600; color: #f59e0b;">ราคาตลาด ฿250/ตัน</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -821,19 +816,7 @@ function MapPage() {
         }
     };
 
-    const handleUpdateBasicInfo = (info) => {
-        setCurrentSessionInfo(info);
-        // Auto Recalculate all plots if needed
-        if (pendingPlots.length > 0) {
-            const updatedPlots = pendingPlots.map(plot => {
-                // Mock recalculation logic
-                const age = new Date().getFullYear() - parseInt(info.plantingYear);
-                const newCarbon = (parseFloat(plot.areaSqm) * 0.05 * (age / 10)).toFixed(2);
-                return { ...plot, ...info, age, carbon: newCarbon };
-            });
-            setPendingPlots(updatedPlots);
-        }
-    };
+
 
     const finalizeAllPending = async () => {
         if (pendingPlots.length === 0) return;
@@ -1785,6 +1768,12 @@ function MapPage() {
                 /* ==========================================
                    MINIMAL POPUP - Rounded & Soft
                    ========================================== */
+                /* ==========================================
+                   MINIMAL POPUP - Glassmorphism & Soft
+                   ========================================== */
+                .minimal-popup {
+                    z-index: 50;
+                }
                 .minimal-popup .maplibregl-popup-content {
                     padding: 0;
                     border-radius: 24px;
@@ -1792,17 +1781,28 @@ function MapPage() {
                     box-shadow: none;
                 }
                 .minimal-popup .maplibregl-popup-tip {
-                    border-top-color: #ffffff;
+                    border-top-color: rgba(255, 255, 255, 0.95);
+                    margin-top: -1px; /* seamless tip */
+                }
+                .minimal-popup .maplibregl-popup-close-button {
+                    display: none;
                 }
 
                 /* Card Container */
                 .m-card {
                     font-family: 'Prompt', 'Inter', system-ui, sans-serif;
-                    background: #ffffff;
+                    background: rgba(255, 255, 255, 0.95);
+                    backdrop-filter: blur(12px);
+                    -webkit-backdrop-filter: blur(12px); /* Safari support */
                     border-radius: 24px;
                     overflow: hidden;
-                    box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.12), 0 12px 16px -8px rgba(0, 0, 0, 0.04);
-                    border: 1px solid rgba(0,0,0,0.02);
+                    box-shadow: 
+                        0 20px 40px -8px rgba(0, 0, 0, 0.12), 
+                        0 12px 16px -8px rgba(0, 0, 0, 0.04),
+                        0 0 0 1px rgba(255,255,255,0.6) inset; /* Inner glow */
+                    border: 1px solid rgba(0,0,0,0.05);
+                    transform-origin: bottom center;
+                    animation: m-pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
                 }
 
                 /* Header */
@@ -1810,165 +1810,40 @@ function MapPage() {
                     display: flex;
                     align-items: center;
                     justify-content: space-between;
-                    padding: 16px 20px 4px 20px;
-                    background: #ffffff;
+                    padding-bottom: 4px;
                 }
                 
                 /* Status Badge */
                 .m-badge {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 6px;
-                    font-size: 10px;
-                    font-weight: 700;
-                    color: #059669; /* Emerald 600 */
-                    background: #ecfdf5; /* Emerald 50 */
-                    padding: 4px 10px;
-                    border-radius: 99px;
-                    letter-spacing: 0.3px;
-                }
-                .m-dot {
-                    width: 6px;
-                    height: 6px;
-                    background: #10b981; /* Emerald 500 */
-                    border-radius: 50%;
-                    box-shadow: 0 0 0 2px #ecfdf5;
+                    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.15);
                 }
 
                 /* Edit Button */
-                .m-edit-btn {
-                    width: 32px;
-                    height: 32px;
-                    background: #f8fafc;
-                    border: none;
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: #94a3b8;
-                    cursor: pointer;
-                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-                }
                 .m-edit-btn:hover {
-                    background: #ecfdf5;
-                    color: #059669;
-                    transform: rotate(15deg);
+                    background: #ecfdf5 !important;
+                    color: #059669 !important;
+                    transform: rotate(15deg) scale(1.1);
+                    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+                }
+                .m-edit-btn:active {
+                    transform: scale(0.95);
                 }
 
                 /* Body Content */
                 .m-name {
-                    font-size: 18px;
-                    font-weight: 700;
-                    color: #1e293b; /* Slate 800 */
-                    margin: 8px 20px 16px 20px;
-                    line-height: 1.3;
-                    letter-spacing: -0.3px;
-                }
-
-                /* Info Grid */
-                .m-info {
-                    display: flex;
-                    justify-content: space-between;
-                    padding: 0 20px;
-                    margin-bottom: 20px;
-                    position: relative;
-                }
-                /* Vertical divider line */
-                .m-info::after {
-                    content: '';
-                    position: absolute;
-                    left: 50%;
-                    top: 50%;
-                    transform: translate(-50%, -50%);
-                    width: 1px;
-                    height: 70%;
-                    background: #f1f5f9;
-                }
-                
-                .m-col {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 4px;
-                }
-                .m-right {
-                    text-align: right;
-                }
-                .m-label {
-                    font-size: 9px;
-                    font-weight: 600;
-                    color: #94a3b8; /* Slate 400 */
-                    text-transform: uppercase;
-                    letter-spacing: 0.8px;
-                }
-                .m-val {
-                    font-size: 14px;
-                    font-weight: 600;
-                    color: #334155; /* Slate 700 */
-                    font-variant-numeric: tabular-nums;
-                }
-
-                /* Carbon Card (Inner) */
-                .m-carbon {
-                    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-                    margin: 0 8px 8px 8px;
-                    padding: 16px;
-                    border-radius: 20px;
-                    text-align: center;
-                    border: 1px solid #ffffff;
-                    box-shadow: inset 0 2px 4px rgba(255,255,255,0.8);
-                }
-                .m-carbon-label {
-                    font-size: 10px;
-                    font-weight: 600;
-                    color: #16a34a;
-                    display: block;
-                    margin-bottom: 6px;
-                    letter-spacing: 0.5px;
-                    opacity: 0.9;
-                }
-                .m-carbon-row {
-                    display: flex;
-                    align-items: baseline;
-                    justify-content: center;
-                    gap: 3px;
-                    margin-bottom: 8px;
-                }
-                .m-carbon-num {
-                    font-size: 32px;
-                    font-weight: 800;
-                    color: #15803d; /* Emerald 700 */
-                    line-height: 1;
-                    letter-spacing: -1px;
-                    font-feature-settings: "tnum";
-                    
-                    /* Text Gradient */
-                    background: linear-gradient(135deg, #15803d 0%, #16a34a 100%);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                }
-                .m-carbon-unit {
-                    font-size: 12px;
-                    font-weight: 700;
-                    color: #16a34a; /* Emerald 600 */
-                }
-                .m-method {
-                    display: inline-block;
-                    font-size: 9px;
-                    font-weight: 500;
-                    color: #16a34a;
-                    background: rgba(255, 255, 255, 0.6);
-                    padding: 4px 10px;
-                    border-radius: 12px;
-                    backdrop-filter: blur(4px);
+                    font-feature-settings: "kern";
                 }
 
                 /* Animation */
                 @keyframes m-pop-in {
-                    0% { opacity: 0; transform: translateY(12px) scale(0.9); }
-                    100% { opacity: 1; transform: translateY(0) scale(1); }
-                }
-                .m-card {
-                    animation: m-pop-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+                    0% { 
+                        opacity: 0; 
+                        transform: translateY(20px) scale(0.9) perspective(500px) rotateX(10deg); 
+                    }
+                    100% { 
+                        opacity: 1; 
+                        transform: translateY(0) scale(1) perspective(500px) rotateX(0deg); 
+                    }
                 }
             `}</style>
         </div>
