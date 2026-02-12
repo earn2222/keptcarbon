@@ -87,12 +87,22 @@ export default function WorkflowModal({
         // MODE 2: Processing (Step 1+) - Show CURRENT active plot + OTHERS from SHP list as context
         else if (currentStep > 0 && formData.geometry) {
             // 1. Add current actively processed plot (High emphasis)
-            plotsToSend.push({
-                ...formData,
-                id: formData.id || 'current-processing',
-                isPreview: true,
-                isActive: true
-            });
+            // But ONLY if we are NOT in the final list view (Step 4), as it is already saved in accumulatedPlots
+            if (currentStep !== 4) {
+                const isResultStep = currentStep === 3;
+
+                plotsToSend.push({
+                    ...formData,
+                    // Merge Result Data if available (for Step 3)
+                    ...(result || {}),
+                    id: formData.id || 'current-processing',
+                    // Step 3 (Result) -> Green (Saved style) | Step 1-2 -> Red (Active/Processing)
+                    isPreview: !isResultStep,
+                    isActive: !isResultStep,
+                    // Explicitly pass carbon for Map Page to pick up
+                    carbon: result ? result.carbon : (formData.carbon || 0)
+                });
+            }
 
             // 2. Add other SHP plots that were selected but not currently processing (Context)
             // This prevents them from "disappearing" which was requested by user
@@ -109,7 +119,7 @@ export default function WorkflowModal({
 
         onPreviewPlots(plotsToSend);
 
-    }, [shpPlotsJson, activePlotJson, currentStep, onPreviewPlots, isEditing, selectedShpPlotIds]);
+    }, [shpPlotsJson, activePlotJson, currentStep, onPreviewPlots, isEditing, selectedShpPlotIds, result]);
 
     // Ensure we clear previews when truly done (unmount or close)
     useEffect(() => {
