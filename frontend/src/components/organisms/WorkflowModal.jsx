@@ -25,11 +25,14 @@ export default function WorkflowModal({
     onStartDrawing,
     onZoomToPlot,
     onPreviewPlots,
-    isEditing = false
+    isEditing = false,
+    carbonPrice = 250
 }) {
     const [currentStep, setCurrentStep] = useState(1);
-    const [calcGroup, setCalcGroup] = useState(1);
+    const [selectedMethods, setSelectedMethods] = useState(['eq1']);
     const [loading, setLoading] = useState(false);
+    const [loadingSat, setLoadingSat] = useState(false);
+    const [satData, setSatData] = useState({ ndvi: 0, tcari: 0 });
 
     const [formData, setFormData] = useState({
         farmerName: '',
@@ -49,7 +52,7 @@ export default function WorkflowModal({
         geometry: null
     });
 
-    const [result, setResult] = useState(null);
+    const [result, setResult] = useState(null); // { methods: [{id, name, formula, carbon}], bestCarbon, avgCarbon }
     const [shpPlots, setShpPlots] = useState([]);
     const [selectedShpPlotIds, setSelectedShpPlotIds] = useState([]);
     const [processingQueue, setProcessingQueue] = useState([]);
@@ -119,6 +122,23 @@ export default function WorkflowModal({
     // ==========================================
     // INITIALIZATION
     // ==========================================
+    const generateSvgPath = (geometry) => {
+        try {
+            const feature = turf.feature(geometry);
+            const bbox = turf.bbox(feature);
+            const scale = Math.max(bbox[2] - bbox[0], bbox[3] - bbox[1]) || 0.0001;
+            const coords = geometry.type === 'Polygon' ? geometry.coordinates[0] : geometry.coordinates[0][0];
+
+            if (coords) {
+                return coords.map(c => {
+                    const x = ((c[0] - bbox[0]) / scale) * 80 + 10;
+                    const y = (1 - ((c[1] - bbox[1]) / scale)) * 80 + 10;
+                    return `${x},${y}`;
+                }).join(' ');
+            }
+        } catch (e) { console.error("SVG Error:", e); }
+        return '';
+    };
     // ==========================================
     // INITIALIZATION
     // ==========================================
@@ -171,6 +191,24 @@ export default function WorkflowModal({
                 svgPath: initialData.svgPath || (initialData.geometry ? generateSvgPath(initialData.geometry) : '')
             }));
 
+            // Restore Selected Methods
+            if (initialData.selectedMethods && Array.isArray(initialData.selectedMethods)) {
+                setSelectedMethods(initialData.selectedMethods);
+            } else if (initialData.methods && Array.isArray(initialData.methods)) {
+                setSelectedMethods(initialData.methods.map(m => m.id));
+            } else {
+                // Fallback for older data
+                const methods = [];
+                if (initialData.methodManual) methods.push(initialData.methodManual);
+                if (initialData.methodSat) methods.push(initialData.methodSat);
+                setSelectedMethods(methods.length > 0 ? methods : ['eq1']);
+            }
+
+            // Restore Satellite Data
+            if (initialData.satData) {
+                setSatData(initialData.satData);
+            }
+
             // If editing, we start at step 1 usually
             if (mode !== 'list' && mode !== 'import') {
                 setCurrentStep(1);
@@ -186,39 +224,20 @@ export default function WorkflowModal({
         }
     }, [formData.plantingYearBE]);
 
-    const generateSvgPath = (geometry) => {
-        try {
-            const feature = turf.feature(geometry);
-            const bbox = turf.bbox(feature);
-            const scale = Math.max(bbox[2] - bbox[0], bbox[3] - bbox[1]) || 0.0001;
-            const coords = geometry.type === 'Polygon' ? geometry.coordinates[0] : geometry.coordinates[0][0];
-
-            if (coords) {
-                return coords.map(c => {
-                    const x = ((c[0] - bbox[0]) / scale) * 80 + 10;
-                    const y = (1 - ((c[1] - bbox[1]) / scale)) * 80 + 10;
-                    return `${x},${y}`;
-                }).join(' ');
-            }
-        } catch (e) { console.error("SVG Error:", e); }
-        return '';
-    };
-
     // ==========================================
     // SATELLITE DATA
     // ==========================================
-    const [loadingSat, setLoadingSat] = useState(false);
-    const [satData, setSatData] = useState({ ndvi: 0, tcari: 0 });
 
     useEffect(() => {
-        if (calcGroup === 2 && satData.ndvi === 0) {
+        const hasSatMethod = selectedMethods.includes('ndvi') || selectedMethods.includes('tcari');
+        if (hasSatMethod && satData.ndvi === 0) {
             setLoadingSat(true);
             setTimeout(() => {
                 setSatData({ ndvi: 0.72, tcari: 0.45 });
                 setLoadingSat(false);
             }, 1500);
         }
-    }, [calcGroup, satData.ndvi]);
+    }, [selectedMethods, satData.ndvi]);
 
     // ==========================================
     // AUTO-ADVANCE (Only when creating new plot)
@@ -395,36 +414,29 @@ export default function WorkflowModal({
     const calculateCarbon = () => {
         if (!formData.farmerName) return alert('กรุณาระบุชื่อเกษตรกร');
         if (!formData.variety) return alert('กรุณาเลือกพันธุ์ยาง');
+        if (selectedMethods.length === 0) return alert('กรุณาเลือกวิธีคำนวณอย่างน้อย 1 วิธี');
 
-        // ตรวจสอบภาคสนาม
-        if (calcGroup === 1) {
-            if (!formData.dbh || !formData.height) {
-                setLoading(false);
-                return alert('กรุณาระบุขนาดเส้นผ่านศูนย์กลางและความสูงให้ครบถ้วน');
-            }
+        const hasFieldMethod = selectedMethods.includes('eq1') || selectedMethods.includes('eq2');
+        const hasSatMethod = selectedMethods.includes('ndvi') || selectedMethods.includes('tcari');
+
+        if (hasFieldMethod && (!formData.dbh || !formData.height)) {
+            return alert('กรุณาระบุขนาดเส้นผ่านศูนย์กลางและความสูงให้ครบถ้วน');
         }
 
-        // ตรวจสอบดาวเทียม
-        if (calcGroup === 2) {
-            // ถ้าเป็นดาวเทียม ต้องมีค่า satData
-            if (!satData || (satData.ndvi === 0 && satData.tcari === 0)) {
-                setLoadingSat(true);
-                // พยายามโหลดใหม่อีกครั้งถ้ายังไม่มีค่า
-                setTimeout(() => {
-                    setSatData({ ndvi: 0.72, tcari: 0.45 });
-                    setLoadingSat(false);
-                    // เรียกตัวเองใหม่อีกครั้งหลังจากโหลดเสร็จ
-                    calculateCarbon();
-                }, 1000);
-                return; // ออกไปก่อน รอโหลดเสร็จ
-            }
+        if (hasSatMethod && (!satData || (satData.ndvi === 0 && satData.tcari === 0))) {
+            setLoadingSat(true);
+            setTimeout(() => {
+                setSatData({ ndvi: 0.72, tcari: 0.45 });
+                setLoadingSat(false);
+                calculateCarbon();
+            }, 1000);
+            return;
         }
 
         setLoading(true);
         setTimeout(() => {
             try {
                 const dbh = parseFloat(formData.dbh) || 0;
-                const height = parseFloat(formData.height) || 0;
                 const areaSqm = parseFloat(formData.areaSqm) || 0;
                 const areaRaiTotal = areaSqm / 1600;
 
@@ -434,50 +446,46 @@ export default function WorkflowModal({
                 }
 
                 const totalTrees = areaRaiTotal * 70;
+                const currentSatData = satData || { ndvi: 0, tcari: 0 };
 
-                let carbonPerTree = 0;
-                let resultMethod = '';
+                const METHOD_DEFS = {
+                    eq1: { name: 'สมการที่ 1 (ภาคสนาม)', formula: 'AGB = 0.118 × DBH^2.53', icon: '🌿', color: '#10b981', calc: () => 0.118 * Math.pow(dbh, 2.53) },
+                    eq2: { name: 'สมการที่ 2 (ภาคสนาม)', formula: 'AGB = 0.062 × DBH^2.23', icon: '🌱', color: '#059669', calc: () => 0.062 * Math.pow(dbh, 2.23) },
+                    ndvi: { name: 'ดัชนี NDVI (ดาวเทียม)', formula: `AGB = 34.2 × ${currentSatData.ndvi} + 5.8`, icon: '🛰️', color: '#3b82f6', calc: () => 34.2 * (currentSatData.ndvi || 0) + 5.8 },
+                    tcari: { name: 'ดัชนี TCARI (ดาวเทียม)', formula: `AGB = 13.57 × ${currentSatData.tcari || 0.45} + 7.45`, icon: '📡', color: '#8b5cf6', calc: () => 13.57 * (currentSatData.tcari || 0.45) + 7.45 }
+                };
 
-                if (calcGroup === 1) {
-                    if (formData.methodManual === 'eq1') {
-                        carbonPerTree = 0.118 * Math.pow(dbh, 2.53);
-                        resultMethod = 'สมการที่ 1 (0.118 × DBH^2.53)';
-                    } else {
-                        // แก้ไข: ใช้ logic สมการที่ 2 ให้ถูกต้อง
-                        carbonPerTree = 0.062 * Math.pow(dbh, 2.23);
-                        resultMethod = 'สมการที่ 2 (0.062 × DBH^2.23)';
-                    }
-                } else {
-                    // ป้องกัน error: satData is null (ใช้ default object)
-                    const currentSatData = satData || { ndvi: 0, tcari: 0 };
-
-                    if (formData.methodSat === 'ndvi') {
-                        carbonPerTree = 34.2 * (currentSatData.ndvi || 0) + 5.8;
-                        resultMethod = 'ดาวเทียม (34.2 × NDVI + 5.8)';
-                    } else {
-                        // ตรวจสอบว่ามีค่า TCARI จริงๆ
-                        const validTcari = currentSatData.tcari || 0.45; // Fallback ถ้าค่าเป็น 0
-                        carbonPerTree = 13.57 * validTcari + 7.45;
-                        resultMethod = 'ดาวเทียม (13.57 × TCARI + 7.45)';
-                    }
-                }
-
-                const totalCarbonTons = ((carbonPerTree * totalTrees) / 1000) * 0.47;
-
-                console.log("Calculation Result:", {
-                    formula: resultMethod,
-                    agbTree: carbonPerTree,
-                    totalTons: totalCarbonTons,
-                    areaRai: areaRaiTotal
+                const methodResults = selectedMethods.map(methodId => {
+                    const def = METHOD_DEFS[methodId];
+                    const carbonPerTree = def.calc();
+                    const totalCarbonTons = ((carbonPerTree * totalTrees) / 1000) * 0.47;
+                    return {
+                        id: methodId,
+                        name: def.name,
+                        formula: def.formula,
+                        icon: def.icon,
+                        color: def.color,
+                        carbon: totalCarbonTons.toFixed(2),
+                        carbonPerTree: carbonPerTree.toFixed(4)
+                    };
                 });
 
-                if (isNaN(totalCarbonTons)) {
+                const carbonValues = methodResults.map(m => parseFloat(m.carbon));
+                const avgCarbon = (carbonValues.reduce((a, b) => a + b, 0) / carbonValues.length).toFixed(2);
+                const bestCarbon = Math.max(...carbonValues).toFixed(2);
+                const minCarbon = Math.min(...carbonValues).toFixed(2);
+
+                if (methodResults.some(m => isNaN(parseFloat(m.carbon)))) {
                     throw new Error("ผลลัพธ์การคำนวณไม่ถูกต้อง (NaN)");
                 }
 
                 setResult({
-                    carbon: totalCarbonTons.toFixed(2),
-                    method: resultMethod
+                    methods: methodResults,
+                    avgCarbon,
+                    bestCarbon,
+                    minCarbon,
+                    carbon: avgCarbon,
+                    method: methodResults.map(m => m.name).join(' + ')
                 });
                 setLoading(false);
                 setCurrentStep(3);
@@ -497,6 +505,12 @@ export default function WorkflowModal({
             id: formData.id || Date.now(),
             carbon: result.carbon,
             method: result.method,
+            methods: result.methods || [],
+            selectedMethods: selectedMethods,
+            satData: satData,
+            avgCarbon: result.avgCarbon,
+            bestCarbon: result.bestCarbon,
+            minCarbon: result.minCarbon,
             savedAt: new Date().toISOString()
         };
 
@@ -876,7 +890,7 @@ export default function WorkflowModal({
                         </div>
                     )}
 
-                    {/* STEP 2: CALCULATION METHOD */}
+                    {/* STEP 2: CALCULATION METHOD - MULTI SELECT */}
                     {currentStep === 2 && (
                         <div className="space-y-5 pt-4">
                             <div className="text-center">
@@ -884,30 +898,91 @@ export default function WorkflowModal({
                                     <Calculator size={32} className="text-white animate-bounce" />
                                 </div>
                                 <h2 className="text-xl font-semibold text-gray-800">เลือกวิธีคำนวณ</h2>
-                                <p className="text-sm text-gray-500 mt-1">เลือกวิธีการประเมินคาร์บอน</p>
+                                <p className="text-sm text-gray-500 mt-1">เลือกได้มากกว่า 1 วิธี เพื่อเปรียบเทียบผลลัพธ์</p>
                             </div>
 
-                            {/* Method Toggle */}
-                            <div className="flex p-1 bg-gray-50 rounded-xl border border-gray-100">
-                                {['ภาคสนาม', 'ดาวเทียม'].map((t, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={() => setCalcGroup(i + 1)}
-                                        className={cn(
-                                            "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
-                                            calcGroup === i + 1
-                                                ? "bg-white text-emerald-600 shadow-sm border border-gray-100"
-                                                : "text-gray-400"
-                                        )}
-                                    >
-                                        {t}
-                                    </button>
-                                ))}
+                            {/* Quick Actions */}
+                            <div className="flex items-center justify-between px-1">
+                                <span className="text-[10px] font-bold text-slate-400 tracking-wider">
+                                    เลือกแล้ว {selectedMethods.length}/4 วิธี
+                                </span>
+                                <button
+                                    onClick={() => setSelectedMethods(selectedMethods.length === 4 ? [] : ['eq1', 'eq2', 'ndvi', 'tcari'])}
+                                    className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider hover:opacity-70 transition-opacity"
+                                >
+                                    {selectedMethods.length === 4 ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด 4 วิธี'}
+                                </button>
                             </div>
 
-                            {/* Method Content */}
-                            {calcGroup === 1 ? (
-                                <div className="space-y-4">
+                            {/* Method Cards */}
+                            {(() => {
+                                const allMethods = [
+                                    { id: 'eq1', name: 'สมการที่ 1', formula: 'AGB = 0.118 × DBH²·⁵³', icon: '🌿', color: '#10b981', group: 'field', desc: 'ภาคสนาม' },
+                                    { id: 'eq2', name: 'สมการที่ 2', formula: 'AGB = 0.062 × DBH²·²³', icon: '🌱', color: '#059669', group: 'field', desc: 'ภาคสนาม' },
+                                    { id: 'ndvi', name: 'ดัชนี NDVI', formula: 'AGB = 34.2 × NDVI + 5.8', icon: '🛰️', color: '#3b82f6', group: 'sat', desc: 'ดาวเทียม' },
+                                    { id: 'tcari', name: 'ดัชนี TCARI', formula: 'AGB = 13.57 × TCARI + 7.45', icon: '📡', color: '#8b5cf6', group: 'sat', desc: 'ดาวเทียม' }
+                                ];
+                                const toggleMethod = (id) => {
+                                    setSelectedMethods(prev => prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]);
+                                };
+                                return (
+                                    <div className="grid grid-cols-2 gap-2.5">
+                                        {allMethods.map(m => {
+                                            const isSelected = selectedMethods.includes(m.id);
+                                            return (
+                                                <button
+                                                    key={m.id}
+                                                    onClick={() => toggleMethod(m.id)}
+                                                    className={cn(
+                                                        "relative p-3.5 rounded-2xl text-left transition-all duration-300 border-2 active:scale-[0.97] overflow-hidden",
+                                                        isSelected
+                                                            ? "border-current shadow-lg"
+                                                            : "border-gray-100 bg-white hover:border-gray-200"
+                                                    )}
+                                                    style={isSelected ? { borderColor: m.color, backgroundColor: `${m.color}08` } : {}}
+                                                >
+                                                    {/* Glow effect */}
+                                                    {isSelected && (
+                                                        <div className="absolute -top-6 -right-6 w-16 h-16 rounded-full blur-2xl opacity-30"
+                                                            style={{ backgroundColor: m.color }} />
+                                                    )}
+                                                    <div className="relative">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <span className="text-xl">{m.icon}</span>
+                                                            <div className={cn(
+                                                                "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                                                                isSelected ? "border-current" : "border-gray-300"
+                                                            )}
+                                                                style={isSelected ? { borderColor: m.color, backgroundColor: m.color } : {}}
+                                                            >
+                                                                {isSelected && (
+                                                                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                                    </svg>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        <p className="text-xs font-bold text-gray-800 leading-tight">{m.name}</p>
+                                                        <p className="text-[9px] font-medium mt-0.5 px-1.5 py-0.5 rounded-md inline-block"
+                                                            style={isSelected ? { color: m.color, backgroundColor: `${m.color}15` } : { color: '#9ca3af' }}
+                                                        >
+                                                            {m.desc}
+                                                        </p>
+                                                        <p className="text-[9px] text-gray-400 font-mono mt-1.5 leading-tight">{m.formula}</p>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                );
+                            })()}
+
+                            {/* Field Data Inputs - Show if any field method selected */}
+                            {(selectedMethods.includes('eq1') || selectedMethods.includes('eq2')) && (
+                                <div className="p-4 bg-gradient-to-br from-emerald-50/80 to-green-50/80 rounded-2xl border border-emerald-100 space-y-3 animate-fadeIn">
+                                    <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest flex items-center gap-1.5">
+                                        <span>🌿</span> ข้อมูลภาคสนาม
+                                    </p>
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
                                             <label className="block text-[11px] font-bold text-gray-500 mb-1.5 ml-1">DBH (ซม.)</label>
@@ -916,7 +991,7 @@ export default function WorkflowModal({
                                                 placeholder="0.00"
                                                 value={formData.dbh}
                                                 onChange={e => setFormData({ ...formData, dbh: e.target.value })}
-                                                className="w-full h-10 bg-gray-50 rounded-xl px-4 text-sm border border-gray-100 focus:border-emerald-400 focus:bg-white transition-all outline-none"
+                                                className="w-full h-10 bg-white rounded-xl px-4 text-sm border border-emerald-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all outline-none"
                                             />
                                         </div>
                                         <div>
@@ -926,87 +1001,36 @@ export default function WorkflowModal({
                                                 placeholder="0.00"
                                                 value={formData.height}
                                                 onChange={e => setFormData({ ...formData, height: e.target.value })}
-                                                className="w-full h-10 bg-gray-50 rounded-xl px-4 text-sm border border-gray-100 focus:border-emerald-400 focus:bg-white transition-all outline-none"
+                                                className="w-full h-10 bg-white rounded-xl px-4 text-sm border border-emerald-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all outline-none"
                                             />
                                         </div>
                                     </div>
-
-                                    <div className="space-y-1.5">
-                                        {[
-                                            { id: 'eq1', name: 'สมการที่ 1', formula: 'AGB = 0.118 × DBH^2.53' },
-                                            { id: 'eq2', name: 'สมการที่ 2', formula: 'AGB = 0.062 × DBH^2.23' }
-                                        ].map((eq) => (
-                                            <label
-                                                key={eq.id}
-                                                className={cn(
-                                                    "flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all border",
-                                                    formData.methodManual === eq.id
-                                                        ? "bg-emerald-50 border-emerald-300"
-                                                        : "bg-white border-gray-100 hover:border-gray-200"
-                                                )}
-                                            >
-                                                <input
-                                                    type="radio"
-                                                    name="manualEq"
-                                                    checked={formData.methodManual === eq.id}
-                                                    onChange={() => setFormData({ ...formData, methodManual: eq.id })}
-                                                    className="w-4 h-4 accent-emerald-500"
-                                                />
-                                                <div className="flex-1">
-                                                    <p className="text-xs font-bold text-gray-800">{eq.name}</p>
-                                                    <p className="text-[10px] text-gray-400 font-medium">{eq.formula}</p>
-                                                </div>
-                                            </label>
-                                        ))}
-                                    </div>
                                 </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    <div className="p-4 bg-gray-900 rounded-xl">
-                                        {loadingSat ? (
-                                            <div className="flex items-center justify-center gap-2 text-emerald-400 py-2">
-                                                <Loader2 size={18} className="animate-spin" />
-                                                <span className="text-sm font-medium">กำลังดึงข้อมูล...</span>
-                                            </div>
-                                        ) : (
-                                            <div className="flex items-center gap-3 text-white">
-                                                <Leaf size={24} className="text-emerald-400" />
-                                                <div className="flex-1 text-base">
-                                                    <span>NDVI: <span className="text-emerald-300 font-semibold">{satData.ndvi}</span></span>
-                                                    <span className="ml-4">TCARI: <span className="text-emerald-300 font-semibold">{satData.tcari}</span></span>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
+                            )}
 
-                                    <div className="space-y-2">
-                                        {[
-                                            { id: 'ndvi', name: 'ดัชนี NDVI', formula: 'AGB = 34.2 × NDVI + 5.8' },
-                                            { id: 'tcari', name: 'ดัชนี TCARI', formula: 'AGB = 13.57 × TCARI + 7.45' }
-                                        ].map((method) => (
-                                            <label
-                                                key={method.id}
-                                                className={cn(
-                                                    "flex items-center gap-3 p-4 rounded-xl cursor-pointer transition-all border-2",
-                                                    formData.methodSat === method.id
-                                                        ? "bg-emerald-50 border-emerald-400"
-                                                        : "bg-gray-50 border-transparent active:bg-gray-100"
-                                                )}
-                                            >
-                                                <input
-                                                    type="radio"
-                                                    name="satEq"
-                                                    checked={formData.methodSat === method.id}
-                                                    onChange={() => setFormData({ ...formData, methodSat: method.id })}
-                                                    className="w-5 h-5 accent-emerald-500"
-                                                />
-                                                <div className="flex-1">
-                                                    <p className="text-base font-semibold text-gray-800">{method.name}</p>
-                                                    <p className="text-sm text-gray-500 mt-0.5">{method.formula}</p>
-                                                </div>
-                                            </label>
-                                        ))}
-                                    </div>
+                            {/* Satellite Data - Show if any sat method selected */}
+                            {(selectedMethods.includes('ndvi') || selectedMethods.includes('tcari')) && (
+                                <div className="p-4 bg-gradient-to-br from-blue-50/80 to-indigo-50/80 rounded-2xl border border-blue-100 animate-fadeIn">
+                                    <p className="text-[10px] font-bold text-blue-700 uppercase tracking-widest flex items-center gap-1.5 mb-2.5">
+                                        <span>🛰️</span> ข้อมูลดาวเทียม
+                                    </p>
+                                    {loadingSat ? (
+                                        <div className="flex items-center justify-center gap-2 text-blue-500 py-2">
+                                            <Loader2 size={18} className="animate-spin" />
+                                            <span className="text-xs font-medium">กำลังดึงข้อมูลดาวเทียม...</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-4">
+                                            <div className="flex-1 bg-white rounded-xl px-3 py-2.5 border border-blue-100">
+                                                <p className="text-[9px] text-blue-500 font-bold uppercase tracking-widest">NDVI</p>
+                                                <p className="text-lg font-bold text-gray-800">{satData.ndvi}</p>
+                                            </div>
+                                            <div className="flex-1 bg-white rounded-xl px-3 py-2.5 border border-purple-100">
+                                                <p className="text-[9px] text-purple-500 font-bold uppercase tracking-widest">TCARI</p>
+                                                <p className="text-lg font-bold text-gray-800">{satData.tcari}</p>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -1021,132 +1045,140 @@ export default function WorkflowModal({
                                 </button>
                                 <button
                                     onClick={calculateCarbon}
-                                    disabled={loading}
+                                    disabled={loading || selectedMethods.length === 0}
                                     className="flex-1 h-11 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-bold disabled:bg-gray-100 disabled:text-gray-400 transition-all shadow-lg shadow-emerald-200/50"
                                 >
                                     {loading ? (
                                         <span className="flex items-center justify-center gap-2">
                                             <Loader2 size={16} className="animate-spin" />
-                                            กำลังคำนวณ...
+                                            กำลังคำนวณ {selectedMethods.length} วิธี...
                                         </span>
                                     ) : (
-                                        'คำนวณคาร์บอน'
+                                        `คำนวณ ${selectedMethods.length} วิธี`
                                     )}
                                 </button>
                             </div>
                         </div>
                     )}
 
-                    {/* STEP 3: RESULT - Minimal Card Style */}
+                    {/* STEP 3: RESULT - Multi-Method Comparison */}
                     {currentStep === 3 && result && (
-                        <div className="space-y-0 pt-2">
-                            {/* Compact Info Card */}
+                        <div className="space-y-4 pt-2">
+                            {/* Header Card */}
                             <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-5 relative">
-                                {/* Tooltip Arrow */}
                                 <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-6 h-6 bg-white border-b border-r border-gray-100 rotate-45"></div>
-
-                                {/* Header with Icon */}
                                 <div className="flex items-start gap-3 mb-4">
                                     <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center shrink-0">
                                         <TreeDeciduous size={24} className="text-white" />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <h3 className="text-lg font-bold text-gray-800 truncate">{formData.farmerName}</h3>
-                                        <p className="text-sm text-gray-500">{formData.variety}</p>
+                                        <p className="text-sm text-gray-500">{formData.variety} • {formData.age} ปี</p>
                                     </div>
                                 </div>
+                                <div className="grid grid-cols-3 gap-2 text-center">
+                                    <div className="bg-gray-50 rounded-xl p-2">
+                                        <p className="text-[9px] text-gray-400 font-bold">พื้นที่</p>
+                                        <p className="text-xs font-bold text-gray-700">{formData.areaRai}-{formData.areaNgan}-{parseFloat(formData.areaSqWah).toFixed(0)}</p>
+                                    </div>
+                                    <div className="bg-gray-50 rounded-xl p-2">
+                                        <p className="text-[9px] text-gray-400 font-bold">ปีปลูก</p>
+                                        <p className="text-xs font-bold text-gray-700">{formData.plantingYearBE}</p>
+                                    </div>
+                                    <div className="bg-gray-50 rounded-xl p-2">
+                                        <p className="text-[9px] text-gray-400 font-bold">จำนวนวิธี</p>
+                                        <p className="text-xs font-bold text-emerald-600">{result.methods?.length || 1}</p>
+                                    </div>
+                                </div>
+                            </div>
 
-                                {/* Plot Shape Preview */}
-                                {formData.svgPath && (
-                                    <div className="mb-4 flex justify-center">
-                                        <div className="w-full flex items-center justify-center py-2 bg-emerald-50/50 rounded-xl border border-emerald-100">
-                                            <div className="w-32 h-24">
-                                                <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-sm">
-                                                    <polygon
-                                                        points={formData.svgPath}
-                                                        fill="rgba(16,185,129,0.3)"
-                                                        stroke="#10b981"
-                                                        strokeWidth="2"
-                                                    />
-                                                </svg>
+                            {/* Multi-Method Results - Individual Cards */}
+                            <div className="space-y-3">
+                                {result.methods && result.methods.length > 0 ? (
+                                    result.methods.map((m, i) => {
+                                        const carbonVal = parseFloat(m.carbon || 0);
+                                        const currentPrice = carbonPrice || 250;
+                                        const priceVal = carbonVal * currentPrice;
+
+                                        return (
+                                            <div key={m.id}
+                                                className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-lg transition-all duration-300 relative overflow-hidden group"
+                                                style={{ animationDelay: `${i * 100}ms` }}
+                                            >
+                                                {/* Decorative background blob */}
+                                                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-gray-50 to-emerald-50/50 rounded-full blur-2xl -mr-10 -mt-10 opacity-60"></div>
+
+                                                <div className="relative">
+                                                    {/* Header: Icon + Name */}
+                                                    <div className="flex items-start justify-between mb-3">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-sm" style={{ backgroundColor: `${m.color}15` }}>
+                                                                {m.icon}
+                                                            </div>
+                                                            <div>
+                                                                <h4 className="font-bold text-gray-800 text-sm">{m.name}</h4>
+                                                                <p className="text-[10px] text-gray-400 font-mono mt-0.5">{m.formula}</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <span className="block text-2xl font-black text-emerald-600 tracking-tight leading-none">
+                                                                {m.carbon}
+                                                            </span>
+                                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">tCO₂e</span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Divider with dash */}
+                                                    <div className="h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent my-3 border-t border-dashed border-gray-200"></div>
+
+                                                    {/* Footer: Valuation */}
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <div className="p-1 bg-amber-50 rounded-md">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                                                            </div>
+                                                            <span className="text-[10px] text-gray-500 font-medium">มูลค่าประเมิน (@฿{currentPrice})</span>
+                                                        </div>
+                                                        <div className="text-amber-600 font-bold text-lg">
+                                                            ฿{priceVal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
+                                        );
+                                    })
+                                ) : (
+                                    /* Fallback for single result (legacy structure) */
+                                    <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-sm font-bold text-gray-700">ผลลัพธ์การคำนวณ</span>
+                                            <span className="text-xl font-black text-emerald-600">{result.carbon} tCO₂e</span>
+                                        </div>
+                                        <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+                                            <span className="text-xs text-gray-500">มูลค่าประเมิน</span>
+                                            <span className="text-base font-bold text-amber-600">
+                                                ฿{((parseFloat(result.carbon || 0)) * (carbonPrice || 250)).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                            </span>
                                         </div>
                                     </div>
                                 )}
+                            </div>
 
-                                {/* Info Grid */}
-                                <div className="space-y-2.5 mb-4">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-sm text-gray-500">พื้นที่</span>
-                                        <span className="text-sm font-semibold text-gray-800">
-                                            {formData.areaRai}-{formData.areaNgan}-{parseFloat(formData.areaSqWah).toFixed(1)} ไร่
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-sm text-gray-500">ปีที่ปลูก (พ.ศ.)</span>
-                                        <span className="text-sm font-semibold text-gray-800">{formData.plantingYearBE}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-sm text-gray-500">อายุยาง</span>
-                                        <span className="text-sm font-semibold text-gray-800">{formData.age} ปี</span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-sm text-gray-500">วิธีคำนวณ</span>
-                                        <span className="text-xs font-medium text-gray-600">{result.method}</span>
-                                    </div>
-                                </div>
-
-                                {/* Carbon Display - Prominent */}
-                                <div className="flex justify-between items-center py-3 px-4 bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl border border-emerald-200">
-                                    <span className="text-sm font-medium text-gray-700">คาร์บอนดูดซับ</span>
-                                    <span className="text-xl font-bold text-emerald-600">{result.carbon} tCO₂e</span>
-                                </div>
-
-                                {/* Valuation Display - Minimal with Icon */}
-                                <div className="relative mt-3 p-4 bg-gradient-to-br from-teal-50 via-emerald-50 to-green-50 rounded-2xl border border-teal-200/50 overflow-hidden group hover:shadow-lg transition-all duration-300">
-                                    {/* Decorative circles */}
-                                    <div className="absolute -top-4 -right-4 w-16 h-16 bg-teal-300/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
-                                    <div className="absolute -bottom-3 -left-3 w-12 h-12 bg-emerald-300/20 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500"></div>
-
-                                    <div className="relative flex items-center justify-between">
-                                        <div className="flex items-center gap-2.5">
-                                            <div className="w-9 h-9 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-xl flex items-center justify-center text-white shadow-md group-hover:scale-110 group-hover:rotate-12 transition-all duration-300">
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                                    <path d="M10.5 2.25a.75.75 0 0 1 .75.75v2.25a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75ZM13.5 2.25a.75.75 0 0 1 .75.75v2.25a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75ZM7.5 4.5a.75.75 0 0 1 .75.75v14.25a.75.75 0 0 1-1.5 0V5.25A.75.75 0 0 1 7.5 4.5ZM16.5 4.5a.75.75 0 0 1 .75.75v14.25a.75.75 0 0 1-1.5 0V5.25a.75.75 0 0 1 .75-.75ZM4.5 9v9.75a3 3 0 0 0 3 3h9a3 3 0 0 0 3-3V9a3 3 0 0 0-3-3h-9a3 3 0 0 0-3 3Z" />
-                                                </svg>
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] font-bold text-teal-700/80 uppercase tracking-widest">มูลค่าประเมิน</p>
-                                                <p className="text-[9px] text-teal-600/70 font-medium mt-0.5">@ ฿250/ตัน</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col items-end">
-                                            <div className="text-2xl font-black text-teal-700 tracking-tight leading-none">
-                                                ฿{(parseFloat(result.carbon) * 250).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                                            </div>
-                                            <div className="mt-1 px-2 py-0.5 bg-white/60 rounded-md">
-                                                <span className="text-[9px] font-bold text-teal-600 uppercase tracking-wider">ประมาณการ</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Action Buttons */}
-                                <div className="flex gap-2 mt-4">
-                                    <button
-                                        onClick={() => setCurrentStep(2)}
-                                        className="w-12 h-12 bg-gray-100 active:bg-gray-200 rounded-xl flex items-center justify-center transition-colors"
-                                        title="แก้ไข"
-                                    >
-                                        <Edit3 size={18} className="text-gray-600" />
-                                    </button>
-                                    <button
-                                        onClick={handleSaveToList}
-                                        className="flex-1 h-12 bg-gray-900 hover:bg-gray-800 active:bg-black text-white rounded-xl text-base font-medium transition-all shadow-sm active:scale-[0.98]"
-                                    >
-                                        บันทึกข้อมูล
-                                    </button>
-                                </div>
+                            {/* Action Buttons */}
+                            <div className="flex gap-2 mt-2">
+                                <button
+                                    onClick={() => setCurrentStep(2)}
+                                    className="w-12 h-12 bg-gray-100 active:bg-gray-200 rounded-xl flex items-center justify-center transition-colors"
+                                    title="แก้ไข"
+                                >
+                                    <Edit3 size={18} className="text-gray-600" />
+                                </button>
+                                <button
+                                    onClick={handleSaveToList}
+                                    className="flex-1 h-12 bg-gray-900 hover:bg-gray-800 active:bg-black text-white rounded-xl text-base font-medium transition-all shadow-sm active:scale-[0.98]"
+                                >
+                                    บันทึกข้อมูล
+                                </button>
                             </div>
                         </div>
                     )}
@@ -1166,44 +1198,83 @@ export default function WorkflowModal({
                             </div>
 
                             {/* Cards List */}
-                            <div className="space-y-2 max-h-[35vh] overflow-y-auto pr-1 scrollbar-thin">
-                                {accumulatedPlots.map((plot, idx) => (
-                                    <div key={plot.id} className="p-3 bg-white rounded-2xl flex items-center gap-3 border border-gray-100 hover:border-emerald-200 transition-all group">
-                                        <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center font-black text-xs shrink-0">
-                                            {idx + 1}
+                            <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-thin pb-4">
+                                {accumulatedPlots.map((plot, idx) => {
+                                    const price = (parseFloat(plot.carbon || 0) * (carbonPrice || 250)).toLocaleString(undefined, { maximumFractionDigits: 0 });
+                                    const areaLabel = `${plot.areaRai}-${plot.areaNgan}-${parseInt(plot.areaSqWah || 0)}`;
+
+                                    return (
+                                        <div key={plot.id} className="relative bg-white rounded-2xl border border-gray-100 shadow-sm p-4 overflow-hidden hover:shadow-md transition-all group">
+                                            {/* Decorative Background */}
+                                            <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-emerald-50 to-transparent rounded-bl-full opacity-50 pointer-events-none" />
+
+                                            {/* Header */}
+                                            <div className="flex justify-between items-start mb-3 relative z-10">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 bg-gray-900 text-white rounded-full flex items-center justify-center font-bold text-xs shadow-md shrink-0">
+                                                        {idx + 1}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <h4 className="font-bold text-gray-800 text-sm truncate">{plot.farmerName || 'ไม่ระบุชื่อ'}</h4>
+                                                        <p className="text-[10px] text-gray-400 font-medium truncate">พันธุ์ {plot.variety || '-'} • ปี {plot.plantingYearBE || '-'}</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex gap-1 shrink-0">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setFormData({ ...plot });
+                                                            setResult({ carbon: plot.carbon, method: plot.method });
+                                                            setCurrentStep(1);
+                                                        }}
+                                                        className="w-7 h-7 rounded-lg bg-gray-50 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors flex items-center justify-center"
+                                                    >
+                                                        <Edit3 size={14} />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            if (window.confirm("ยืนยันการลบรายการนี้?")) {
+                                                                onDeletePlot(plot.id);
+                                                            }
+                                                        }}
+                                                        className="w-7 h-7 rounded-lg bg-gray-50 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors flex items-center justify-center"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Data Grid */}
+                                            <div className="grid grid-cols-2 gap-2 relative z-10">
+                                                {/* Age */}
+                                                <div className="bg-orange-50 rounded-xl p-2.5 flex flex-col items-center justify-center border border-orange-100/50">
+                                                    <span className="text-[9px] text-orange-400 font-bold uppercase tracking-wider mb-0.5">อายุยาง</span>
+                                                    <span className="text-sm font-bold text-gray-700">{plot.age || 0} <span className="text-[9px] font-normal text-gray-400">ปี</span></span>
+                                                </div>
+
+                                                {/* Area */}
+                                                <div className="bg-blue-50 rounded-xl p-2.5 flex flex-col items-center justify-center border border-blue-100/50">
+                                                    <span className="text-[9px] text-blue-400 font-bold uppercase tracking-wider mb-0.5">พื้นที่</span>
+                                                    <span className="text-sm font-bold text-gray-700 whitespace-nowrap">{areaLabel} <span className="text-[9px] font-normal text-gray-400">ไร่</span></span>
+                                                </div>
+
+                                                {/* Carbon Credit */}
+                                                <div className="bg-emerald-50 rounded-xl p-2.5 flex flex-col items-center justify-center border border-emerald-100/50 col-span-1">
+                                                    <span className="text-[9px] text-emerald-500 font-bold uppercase tracking-wider mb-0.5">คาร์บอนเครดิต</span>
+                                                    <span className="text-sm font-bold text-emerald-700">{plot.carbon} <span className="text-[9px] font-normal text-emerald-500">tCO₂e</span></span>
+                                                </div>
+
+                                                {/* Price */}
+                                                <div className="bg-amber-50 rounded-xl p-2.5 flex flex-col items-center justify-center border border-amber-100/50 col-span-1">
+                                                    <span className="text-[9px] text-amber-500 font-bold uppercase tracking-wider mb-0.5">มูลค่าประเมิน</span>
+                                                    <span className="text-sm font-bold text-amber-700">฿{price}</span>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-bold text-gray-800 truncate">{plot.farmerName}</p>
-                                            <p className="text-[10px] text-gray-400 font-bold tracking-tight">
-                                                {plot.carbon} tCO₂e • {plot.areaRai}-{plot.areaNgan}-{parseInt(plot.areaSqWah || 0)} ไร่
-                                            </p>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setFormData({ ...plot });
-                                                    setResult({ carbon: plot.carbon, method: plot.method });
-                                                    setCurrentStep(1);
-                                                }}
-                                                className="w-8 h-8 rounded-lg hover:bg-emerald-50 text-gray-300 hover:text-emerald-500 flex items-center justify-center transition-colors"
-                                            >
-                                                <Edit3 size={16} />
-                                            </button>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    if (window.confirm("ยืนยันการลบรายการนี้?")) {
-                                                        onDeletePlot(plot.id);
-                                                    }
-                                                }}
-                                                className="w-8 h-8 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500 flex items-center justify-center transition-colors"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
 
                             {/* Footer Buttons */}

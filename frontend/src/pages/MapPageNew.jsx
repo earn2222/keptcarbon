@@ -572,21 +572,21 @@ function MapPageNew() {
                     }
                 });
 
-                // Add a text label layer
+                // Add a text label layer (Carbon Amount)
                 map.current.addLayer({
                     id: 'saved-plots-label',
                     type: 'symbol',
                     source: sourceId,
                     layout: {
-                        'text-field': ['get', 'farmerName'],
-                        'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
-                        'text-offset': [0, 1.5],
-                        'text-anchor': 'top',
-                        'text-size': 12
+                        'text-field': ['concat', ['get', 'carbon'], ' tCO₂e'],
+                        'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+                        'text-size': 14,
+                        'text-offset': [0, 0],
+                        'text-anchor': 'center'
                     },
                     paint: {
                         'text-color': '#ffffff',
-                        'text-halo-color': '#000000',
+                        'text-halo-color': '#059669', // Emerald 600
                         'text-halo-width': 2
                     }
                 });
@@ -646,6 +646,11 @@ function MapPageNew() {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2
                 });
+                // Generate method badges HTML
+                const methodBadges = plotData.methods && Array.isArray(plotData.methods)
+                    ? plotData.methods.map(m => `<span style="display:inline-flex;align-items:center;gap:3px;background:${m.color}15;color:${m.color};font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;border:1px solid ${m.color}30">${m.icon || '●'} ${m.name?.split('(')[0]?.trim() || m.id}</span>`).join(' ')
+                    : '<span style="font-size:9px;color:#9ca3af">ยังไม่ได้คำนวณ</span>';
+                const methodCount = plotData.methods?.length || 0;
 
                 popupContent.innerHTML = `
                     <div class="p-4 min-w-[220px]">
@@ -655,13 +660,20 @@ function MapPageNew() {
                             </div>
                             <div>
                                 <h3 class="font-bold text-gray-800 text-base leading-tight">${plotData.farmerName}</h3>
-                                <p class="text-xs text-gray-500">${plotData.areaRai}-${plotData.areaNgan}-${parseInt(plotData.areaSqWah || 0)} ไร่</p>
+                                <p class="text-xs text-gray-500">${plotData.areaRai}-${plotData.areaNgan}-${parseInt(plotData.areaSqWah || 0)} ไร่ • อายุ ${plotData.age || 0} ปี</p>
                             </div>
                         </div>
                         
+                        ${methodCount > 0 ? `
+                        <div style="margin-bottom:8px">
+                            <p style="font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">วิธีที่ใช้ (${methodCount})</p>
+                            <div style="display:flex;flex-wrap:wrap;gap:4px">${methodBadges}</div>
+                        </div>
+                        ` : ''}
+
                         <div class="space-y-2 mb-3">
                             <div class="bg-emerald-50 rounded-lg p-3 border border-emerald-100">
-                                <p class="text-xs text-gray-500 mb-0.5">คาร์บอนเครดิต</p>
+                                <p class="text-xs text-gray-500 mb-0.5">${methodCount > 1 ? 'ค่าเฉลี่ยคาร์บอน' : 'คาร์บอนเครดิต'}</p>
                                 <p class="text-xl font-bold text-emerald-600">${plotData.carbon} <span class="text-xs font-normal text-gray-500">tCO₂e</span></p>
                             </div>
                             
@@ -1290,63 +1302,7 @@ function MapPageNew() {
                         </div>
                     </div>
 
-                    {/* Vertical Toolbar (Matches User Screenshot) */}
-                    <div className="fixed top-24 left-6 z-[999] flex flex-col items-center bg-white rounded-2xl shadow-2xl border border-slate-200 p-2 gap-1.5" style={{ zIndex: 9999 }}>
-                        {/* Draw Polygon */}
-                        <button
-                            onClick={() => {
-                                console.log('Draw polygon clicked');
-                                if (draw.current) draw.current.changeMode('draw_polygon');
-                            }}
-                            className="w-14 h-14 flex items-center justify-center rounded-xl text-slate-600 hover:text-emerald-500 hover:bg-emerald-50 transition-all border border-transparent hover:border-emerald-200 active:scale-95"
-                            title="วาดรูปแปลง"
-                        >
-                            <DrawPolygonIcon />
-                        </button>
 
-                        {/* Direct Select (Edit Nodes) */}
-                        <button
-                            onClick={() => {
-                                console.log('Direct select clicked');
-                                if (draw.current) {
-                                    const features = draw.current.getAll().features;
-                                    if (features.length > 0) {
-                                        draw.current.changeMode('direct_select', { featureId: features[0].id });
-                                    }
-                                }
-                            }}
-                            className="w-14 h-14 flex items-center justify-center rounded-xl text-slate-600 hover:text-emerald-500 hover:bg-emerald-50 transition-all active:scale-95"
-                            title="แก้ไขจุด"
-                        >
-                            <PointerIcon />
-                        </button>
-
-                        {/* Simple Select (Move) */}
-                        <button
-                            onClick={() => {
-                                console.log('Simple select clicked');
-                                if (draw.current) draw.current.changeMode('simple_select');
-                            }}
-                            className="w-14 h-14 flex items-center justify-center rounded-xl text-slate-600 hover:text-emerald-500 hover:bg-emerald-50 transition-all active:scale-95"
-                            title="เครื่องมือเลือก"
-                        >
-                            <MoveIcon />
-                        </button>
-
-                        <div className="w-10 h-[1px] bg-slate-200 my-1"></div>
-
-                        {/* Delete */}
-                        <button
-                            onClick={() => {
-                                console.log('Trash clicked');
-                                if (draw.current) draw.current.trash();
-                            }}
-                            className="w-14 h-14 flex items-center justify-center rounded-xl text-red-500 hover:text-red-600 hover:bg-red-50 transition-all active:scale-95"
-                            title="ลบส่วนที่เลือก"
-                        >
-                            <TrashIconSmall />
-                        </button>
-                    </div>
 
                     <div className="flex gap-2">
                         <button
@@ -1372,6 +1328,7 @@ function MapPageNew() {
                 initialData={workflowModal.initialData}
                 accumulatedPlots={accumulatedPlots}
                 isEditing={workflowModal.isEditing}
+                carbonPrice={100}
                 onClose={() => setWorkflowModal({ isOpen: false, mode: null })}
                 onStartDrawing={() => {
                     setWorkflowModal({ ...workflowModal, isOpen: false });
@@ -1385,13 +1342,17 @@ function MapPageNew() {
                         return [...prev, { ...plotData, id: plotData.id || Date.now() }];
                     });
 
-                    // console.log("Added plot to list. Keeping modal open for summary.");
+                    // Remove from Draw (Red/Orange) so the Saved Layer (Green) becomes visible
+                    if (draw.current) {
+                        draw.current.deleteAll();
+                    }
                 }}
                 onUpdatePlot={(id, updatedData) => {
                     setAccumulatedPlots(prev => prev.map(p => p.id === id ? { ...p, ...updatedData } : p));
                 }}
                 onDeletePlot={(id) => {
                     setAccumulatedPlots(prev => prev.filter(p => p.id !== id));
+                    if (draw.current) draw.current.deleteAll();
                 }}
                 onZoomToPlot={(geometry) => {
                     if (map.current && geometry) {
