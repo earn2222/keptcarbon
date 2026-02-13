@@ -225,6 +225,49 @@ function MapPage() {
     // INITIALIZE MAP
     // ==========================================
     useEffect(() => {
+        // Initialize global cache for plot methods
+        window.plotMethodsCache = {};
+
+        // Global handler for popup navigation
+        window.handlePopupNav = (plotId, direction) => {
+            const plotMethods = window.plotMethodsCache[plotId];
+            if (!plotMethods || plotMethods.length <= 1) return;
+
+            const container = document.getElementById(`popup-nav-${plotId}`);
+            if (!container) return;
+
+            let currentIndex = parseInt(container.getAttribute('data-index') || '0');
+            let newIndex = currentIndex + direction;
+
+            // Loop navigation
+            if (newIndex < 0) newIndex = plotMethods.length - 1;
+            if (newIndex >= plotMethods.length) newIndex = 0;
+
+            // Update Index
+            container.setAttribute('data-index', newIndex);
+
+            // Update Display Content
+            const method = plotMethods[newIndex];
+            const currentPrice = 250; // Use fixed or get from state if possible
+            const priceVal = (parseFloat(method.carbon) * currentPrice).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+            // Elements to update
+            const elCarbon = document.getElementById(`popup-carbon-${plotId}`);
+            const elMethod = document.getElementById(`popup-method-${plotId}`);
+            const elPrice = document.getElementById(`popup-price-${plotId}`);
+            const elIndex = document.getElementById(`popup-count-${plotId}`);
+
+            // Animate changes (fade quick)
+            if (elCarbon) {
+                elCarbon.style.opacity = '0.5';
+                elCarbon.textContent = method.carbon;
+                setTimeout(() => elCarbon.style.opacity = '1', 150);
+            }
+            if (elMethod) elMethod.textContent = method.name || method.formula;
+            if (elPrice) elPrice.textContent = priceVal;
+            if (elIndex) elIndex.textContent = `${newIndex + 1}/${plotMethods.length}`;
+        };
+
         if (map.current) return
 
         // Create map with Globe projection
@@ -470,7 +513,31 @@ function MapPage() {
                 // Remove existing popup
                 if (popupRef.current) popupRef.current.remove();
 
-                // Create content HTML string - Enhanced with Icons
+                // Setup methods data
+                const methods = plotData.methods && plotData.methods.length > 0
+                    ? plotData.methods
+                    : [{
+                        carbon: plotData.carbon,
+                        method: plotData.method || 'สมการที่ 1 (0.118 × DBH^2.53)',
+                        name: 'สมการมาตรฐาน'
+                    }];
+
+                // Cache methods for navigation
+                window.plotMethodsCache[plotData.id] = methods;
+
+                // Navigation UI logic
+                const hasMultiple = methods.length > 1;
+                const navArrows = hasMultiple ? `
+                    <button onclick="window.handlePopupNav('${plotData.id}', -1)" style="background:none; border:none; color:#10b981; cursor:pointer; padding:0 4px; display:flex; align-items:center;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                    </button>
+                    <span id="popup-count-${plotData.id}" style="font-size:9px; font-weight:700; color:#10b981; min-width:20px; text-align:center;">1/${methods.length}</span>
+                    <button onclick="window.handlePopupNav('${plotData.id}', 1)" style="background:none; border:none; color:#10b981; cursor:pointer; padding:0 4px; display:flex; align-items:center;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                ` : '';
+
+                // Create content HTML string - Enhanced with Multi-Method Support
                 const popupContent = `
                     <div class="m-card" style="padding: 16px; font-family: 'Prompt', 'Inter', system-ui, sans-serif;">
                         <!-- Header -->
@@ -512,23 +579,32 @@ function MapPage() {
                             </div>
                         </div>
                         
-                        <!-- Carbon Section (Green) with Leaf Icon -->
-                        <div style="padding: 14px 12px; background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-radius: 16px; text-align: center; position: relative; overflow: hidden; margin-bottom: 8px; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.05);">
+                        <!-- Carbon Section (Green) with Navigation -->
+                        <div id="popup-nav-${plotData.id}" data-index="0" style="padding: 14px 12px; background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-radius: 16px; text-align: center; position: relative; overflow: hidden; margin-bottom: 8px; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.05);">
                             <div style="display: flex; align-items: center; justify-content: center; gap: 5px; margin-bottom: 6px;">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66.95-2.3c.48.17.98.3 1.34.35C19 21 22 15 22 9c0-5-4-4-4-4-2 0-5 2-11 5"></path><path d="M15.54 8.46a5 5 0 0 0-7.08 0"></path></svg>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66.95-2.3c.48.17.98.3 1.34.35C19 21 22 15 22 9c0-5-4-4-4-4-4 0-5 2-11 5"></path><path d="M15.54 8.46a5 5 0 0 0-7.08 0"></path></svg>
                                 <span style="font-size: 10px; font-weight: 700; color: #059669; text-transform: uppercase; letter-spacing: 0.5px;">ปริมาณคาร์บอนสุทธิ</span>
                             </div>
                             <div style="display: flex; align-items: baseline; justify-content: center; gap: 3px; margin-bottom: 8px;">
-                                <span style="font-size: 30px; font-weight: 800; color: #047857; letter-spacing: -1px; line-height: 1;">${plotData.carbon || '0.00'}</span>
+                                <span id="popup-carbon-${plotData.id}" style="font-size: 30px; font-weight: 800; color: #047857; letter-spacing: -1px; line-height: 1; transition: opacity 0.15s;">${methods[0].carbon || '0.00'}</span>
                                 <span style="font-size: 11px; font-weight: 700; color: #059669;">tCO<sub>2</sub>e</span>
                             </div>
-                            <div style="background: rgba(255,255,255,0.9); border-radius: 8px; padding: 4px 10px; display: inline-flex; align-items: center; gap: 4px;">
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
-                                <span style="font-size: 9px; font-weight: 600; color: #059669;">${plotData.method || 'สมการที่ 1 (0.118 × DBH^2.53)'}</span>
+                            <div style="background: rgba(255,255,255,0.9); border-radius: 8px; padding: 4px 6px; display: inline-flex; align-items: center; gap: 4px; min-width: 140px; justify-content: space-between;">
+                                ${hasMultiple ? `
+                                    <button onclick="window.handlePopupNav('${plotData.id}', -1)" style="border:none; background:none; cursor:pointer; color:#059669; padding:0;">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                                    </button>
+                                ` : ''}
+                                <span id="popup-method-${plotData.id}" style="font-size: 9px; font-weight: 600; color: #059669; flex:1; text-align:center;">${methods[0].name || methods[0].method || 'สมการมาตรฐาน'}</span>
+                                ${hasMultiple ? `
+                                    <button onclick="window.handlePopupNav('${plotData.id}', 1)" style="border:none; background:none; cursor:pointer; color:#059669; padding:0;">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                                    </button>
+                                ` : ''}
                             </div>
                         </div>
 
-                        <!-- Valuation Section (Yellow) with Coin Icon -->
+                        <!-- Valuation Section (Green-Gold) -->
                         <div style="padding: 10px 12px; background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border-radius: 16px; display: flex; align-items: center; gap: 10px; box-shadow: 0 2px 4px rgba(245, 158, 11, 0.05);">
                             <!-- Coin Icon with Trend Arrow -->
                             <div style="width: 38px; height: 38px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3); flex-shrink: 0; color: white;">
@@ -538,7 +614,7 @@ function MapPage() {
                             <!-- Text -->
                             <div style="flex: 1; min-width: 0;">
                                 <div style="display: flex; align-items: baseline; gap: 4px;">
-                                    <span style="font-size: 18px; font-weight: 800; color: #b45309; line-height: 1; letter-spacing: -0.5px;">${((parseFloat(plotData.carbon) || 0) * 250).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</span>
+                                    <span id="popup-price-${plotData.id}" style="font-size: 18px; font-weight: 800; color: #b45309; line-height: 1; letter-spacing: -0.5px;">${((parseFloat(methods[0].carbon) || 0) * 250).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</span>
                                     <span style="font-size: 10px; font-weight: 700; color: #d97706;">บาท</span>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 3px; margin-top: 2px;">
@@ -547,6 +623,12 @@ function MapPage() {
                                 </div>
                             </div>
                         </div>
+                        
+                        ${hasMultiple ? `
+                        <div style="text-align: center; margin-top: 6px;">
+                            <span id="popup-count-${plotData.id}" style="font-size: 9px; font-weight: 700; color: #9ca3af; background: #f3f4f6; padding: 2px 8px; border-radius: 10px;">1 / ${methods.length} วิธี</span>
+                        </div>
+                        ` : ''}
                     </div>
                 `;
 
@@ -1170,6 +1252,120 @@ function MapPage() {
     }
 
     // ==========================================
+    // CORE WORKFLOW HANDLERS (New Implementation)
+    // ==========================================
+    const handleCoreSave = async (plotData, isBatchSave = false) => {
+        try {
+            console.log('Core Save Triggered:', { plotData, isBatchSave });
+
+            // 1. Batch Save (Save All)
+            if (isBatchSave || !plotData) {
+                if (pendingPlots.length === 0) {
+                    alert('ไม่พบข้อมูลแปลงที่ต้องการบันทึก');
+                    return;
+                }
+
+                // Batch Persist
+                try {
+                    const promises = pendingPlots.map(plot => createPlot(plot));
+                    await Promise.all(promises);
+                } catch (e) {
+                    console.error("Batch save error (continuing local):", e);
+                }
+
+                // Add all pending to saved
+                setSavedPlots(prev => {
+                    const newPlots = pendingPlots.filter(p => !prev.some(existing => existing.id === p.id));
+                    return [...prev, ...newPlots];
+                });
+
+                setPendingPlots([]);
+                setWorkflowModal(prev => ({ ...prev, isOpen: false }));
+                setDigitizeMode(false);
+
+                if (draw.current) {
+                    draw.current.deleteAll();
+                    draw.current.changeMode('simple_select');
+                }
+                return;
+            }
+
+            // 2. Single Plot Save
+            if (!plotData.geometry) {
+                // Fallback: Try to get from draw current if active
+                if (draw.current) {
+                    const all = draw.current.getAll();
+                    if (all.features.length > 0) {
+                        plotData.geometry = all.features[0].geometry;
+                    }
+                }
+
+                if (!plotData.geometry) {
+                    console.error('Missing Geometry:', plotData);
+                    alert('ไม่พบข้อมูลพิกัดแปลง (Geometry Missing)');
+                    return;
+                }
+            }
+
+            // Generate ID & Data
+            const plotId = plotData.id || `temp_${Date.now()}`;
+            const finalPlot = {
+                ...plotData,
+                id: plotId,
+                // Ensure methods are saved if available
+                methods: plotData.methods || (window.plotMethodsCache && window.plotMethodsCache[plotId]) || []
+            };
+
+            // Persist Single
+            await createPlot(finalPlot);
+
+            // Update State
+            setSavedPlots(prev => {
+                const existing = prev.find(p => p.id === plotId);
+                if (existing) {
+                    return prev.map(p => p.id === plotId ? finalPlot : p);
+                }
+                return [...prev, finalPlot];
+            });
+
+            // Remove from Pending
+            setPendingPlots(prev => prev.filter(p => p.id !== plotId));
+
+            // Close Modal (only if single save meant closing, but usually single save keeps modal open until 'Save All' or explicitly close)
+            // But for 'Save' button in list, we might want to just update state
+            // If saving from Form (Step 3), we might want to close if it's the only one
+
+            if (pendingPlots.length <= 1) {
+                setWorkflowModal(prev => ({ ...prev, isOpen: false }));
+                setDigitizeMode(false);
+                if (draw.current) {
+                    draw.current.deleteAll();
+                    draw.current.changeMode('simple_select');
+                }
+            }
+
+            console.log('Saved Plot:', finalPlot);
+
+        } catch (err) {
+            console.error('Core Save Error:', err);
+            alert('เกิดข้อผิดพลาด: ' + err.message);
+        }
+    };
+
+    const handleCoreAddAnother = (plotData) => {
+        // Just Update Pending State - Do NOT close modal, Do NOT restart digitizing
+        setPendingPlots(prev => {
+            const plotId = plotData.id;
+            const existing = prev.find(p => p.id === plotId);
+            if (existing) {
+                return prev.map(p => p.id === plotId ? plotData : p);
+            }
+            return [...prev, plotData];
+        });
+    };
+
+
+    // ==========================================
     // DRAWING TOOLBAR TOOL MANAGEMENT
     // ==========================================
     const switchTool = (tool) => {
@@ -1494,7 +1690,7 @@ function MapPage() {
                     <button
                         onClick={() => {
                             setShowFABMenu(false);
-                            startDigitizing();
+                            setWorkflowModal({ isOpen: true, mode: 'draw_instruction' });
                         }}
                         className="group flex items-center justify-end gap-4"
                     >
@@ -1512,7 +1708,7 @@ function MapPage() {
                     <button
                         onClick={() => {
                             setShowFABMenu(false);
-                            setWorkflowModal({ isOpen: true, mode: 'import' });
+                            setWorkflowModal({ isOpen: true, mode: 'import_instruction' });
                         }}
                         className="group flex items-center justify-end gap-4"
                     >
@@ -1678,8 +1874,8 @@ function MapPage() {
                 initialData={workflowModal.initialData}
                 accumulatedPlots={pendingPlots}
                 onClose={() => setWorkflowModal({ isOpen: false, mode: null })}
-                onSave={handleSavePlot}
-                onAddAnother={handleAddAnother}
+                onSave={handleCoreSave}
+                onAddAnother={handleCoreAddAnother}
                 onDeletePlot={(id) => {
                     setPendingPlots(prev => prev.filter(p => p.id !== id));
                     setSavedPlots(prev => prev.filter(p => p.id !== id));
@@ -1697,6 +1893,13 @@ function MapPage() {
             />
 
             <style>{`
+                @keyframes bounce-subtle {
+                    0%, 100% { transform: translateY(0); }
+                    50% { transform: translateY(-4px); }
+                }
+                .animate-bounce-subtle {
+                    animation: bounce-subtle 2s ease-in-out infinite;
+                }
                 .user-marker {
                     position: relative;
                     width: 24px;

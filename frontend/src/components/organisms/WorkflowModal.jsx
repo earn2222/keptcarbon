@@ -5,9 +5,42 @@ import {
     Loader2, Trash2, Edit3, Leaf, Zap,
     Calculator, Upload, X, ChevronRight, ArrowLeft,
     CheckCircle2, Map, TreeDeciduous, List, Repeat, Eye,
-    Search, Calendar, Coins, Scaling, Ruler
+    Search, Calendar, Coins, Scaling, Ruler, FileText, Globe,
+    LayoutDashboard, Clock
 } from "lucide-react";
 import { cn } from "../../lib/utils";
+
+// ==========================================
+// INTERNAL ICON COMPONENTS
+// ==========================================
+const PencilIcon = ({ size = 20, className = "" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className={className} style={{ width: size, height: size }}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+    </svg>
+)
+
+const UploadIcon = ({ size = 20, className = "" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className={className} style={{ width: size, height: size }}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+    </svg>
+)
+
+const TargetIcon = ({ size = 20, className = "" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className} style={{ width: size, height: size }}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v2" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 20v2" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M22 12h-2" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 12H2" />
+    </svg>
+)
+
+const DrawPolygonIcon = ({ size = 20, className = "" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className} style={{ width: size, height: size }}>
+        <path d="M21 7.374l-2 2V12.5a.5.5 0 01-.5.5h-2a.5.5 0 01-.5-.5v-1a1 1 0 00-1-1h-1a1 1 0 00-1 1v1h-1v-2a2 2 0 012-2h1a3 3 0 10-2-5.732 2 2 0 01-2 2h-1v-1a1 1 0 00-1-1h-1a1 1 0 00-1 1v1a1 1 0 001 1h1v1h-1a2 2 0 01-2-2V5.5a3 3 0 10-2 0V7a3 3 0 102 5.732 2 2 0 012-2h1v1a1 1 0 001 1h1a1 1 0 001-1v-1h1v1.5a1.5 1.5 0 001.5 1.5h2a1.5 1.5 0 001.5-1.5v-3.126l2-2v4.252a1 1 0 002 0v-6.378a1 1 0 00-2 0v4.252z" />
+    </svg>
+)
 
 // ==========================================
 // MOBILE-FIRST MINIMAL MODAL
@@ -28,7 +61,7 @@ export default function WorkflowModal({
     isEditing = false,
     carbonPrice = 250
 }) {
-    const [currentStep, setCurrentStep] = useState(1);
+    const [currentStep, setCurrentStep] = useState(-1);
     const [selectedMethods, setSelectedMethods] = useState(['eq1']);
     const [loading, setLoading] = useState(false);
     const [loadingSat, setLoadingSat] = useState(false);
@@ -160,7 +193,11 @@ export default function WorkflowModal({
             // We use a ref or check current state to avoid resetting if we are just updating data.
 
             // For now, simple logic:
-            if (mode === 'import' && processingQueue.length === 0 && shpPlots.length === 0) {
+            if (mode === 'draw_instruction') {
+                setCurrentStep(-1);
+            } else if (mode === 'import_instruction') {
+                setCurrentStep(-2);
+            } else if (mode === 'import' && processingQueue.length === 0 && shpPlots.length === 0) {
                 // Fresh import start
                 setCurrentStep(0);
             } else if (mode === 'list') {
@@ -607,6 +644,103 @@ export default function WorkflowModal({
                 {/* Content */}
                 <div ref={containerRef} className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin">
 
+                    {/* STEP -1: DRAW INSTRUCTION */}
+                    {currentStep === -1 && (
+                        <div className="space-y-6 pt-2">
+                            <div className="text-center pb-2">
+                                <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-emerald-100/50">
+                                    <PencilIcon size={28} />
+                                </div>
+                                <h2 className="text-xl font-bold text-slate-800 tracking-tight">ขั้นตอนการวาดเเปลง</h2>
+                                <p className="text-xs text-slate-400 font-medium uppercase tracking-widest mt-1">Digitizing Guide</p>
+                            </div>
+
+                            <div className="relative space-y-8 pl-4">
+                                {/* Connecting Line */}
+                                <div className="absolute left-7 top-2 bottom-2 w-0.5 bg-gradient-to-b from-emerald-500/20 via-emerald-500/10 to-transparent" />
+
+                                {[
+                                    { title: 'เริ่มวาด', desc: 'คลิกจุดเริ่มบนแผนที่เพื่อสร้างพิกัดแรกของแปลง', icon: <TargetIcon size={14} /> },
+                                    { title: 'กำหนดรูปทรง', desc: 'คลิกจุดต่อๆ ไปตามแนวเขตแปลงที่ต้องการ', icon: <DrawPolygonIcon size={16} /> },
+                                    { title: 'กรอกข้อมูลสวน', desc: 'ระบุชื่อเกษตรกรและปีที่ปลูกในแบบฟอร์ม', icon: <Edit3 size={14} /> },
+                                    { title: 'คำนวณคาร์บอน', desc: 'ระบบจะประเมินค่าคาร์บอนและมูลค่าเบื้องต้น', icon: <Calculator size={14} /> },
+                                    { title: 'บันทึก & สรุปผล', desc: 'จัดเก็บข้อมูลลงระบบเพื่อดูภาพรวมใน Dashboard', icon: <LayoutDashboard size={14} /> }
+                                ].map((step, idx) => (
+                                    <div key={idx} className="relative flex gap-6 group">
+                                        <div className="relative z-10 w-6 h-6 rounded-full bg-white border-2 border-emerald-500 flex items-center justify-center text-[10px] font-black text-emerald-600 shadow-sm transition-transform group-hover:scale-110">
+                                            {idx + 1}
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <div className="text-emerald-500">{step.icon}</div>
+                                                <h3 className="text-sm font-bold text-slate-700 leading-none">{step.title}</h3>
+                                            </div>
+                                            <p className="text-[11px] text-slate-500 leading-relaxed">{step.desc}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <button
+                                onClick={() => {
+                                    onClose();
+                                    onStartDrawing();
+                                }}
+                                className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold transition-all shadow-lg shadow-emerald-200/50 flex items-center justify-center gap-2 group"
+                            >
+                                <span>เริ่มวาดแปลงทันที</span>
+                                <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                            </button>
+                        </div>
+                    )}
+
+                    {/* STEP -2: IMPORT INSTRUCTION */}
+                    {currentStep === -2 && (
+                        <div className="space-y-6 pt-2">
+                            <div className="text-center pb-2">
+                                <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-blue-100/50">
+                                    <UploadIcon size={28} />
+                                </div>
+                                <h2 className="text-xl font-bold text-slate-800 tracking-tight">ขั้นตอนนำเข้า SHP</h2>
+                                <p className="text-xs text-slate-400 font-medium uppercase tracking-widest mt-1">Import Guide</p>
+                            </div>
+
+                            <div className="relative space-y-8 pl-4">
+                                {/* Connecting Line */}
+                                <div className="absolute left-7 top-2 bottom-2 w-0.5 bg-gradient-to-b from-blue-500/20 via-blue-500/10 to-transparent" />
+
+                                {[
+                                    { title: 'เตรียมไฟล์ .zip', desc: 'รวมไฟล์ .shp .shx .dbf .prj เข้าด้วยกัน', icon: <FileText size={14} /> },
+                                    { title: 'อัปโหลดนำเข้า', desc: 'เลือกไฟล์ .zip เพื่อนำข้อมูลแปลงเข้าสู่ระบบ', icon: <UploadIcon size={14} /> },
+                                    { title: 'กรอกข้อมูลสวน', desc: 'ระบุชื่อเกษตรกรและปีที่ปลูกในแบบฟอร์ม', icon: <Edit3 size={14} /> },
+                                    { title: 'คำนวณคาร์บอน', desc: 'ระบบจะประเมินค่าคาร์บอนและมูลค่าเบื้องต้น', icon: <Calculator size={14} /> },
+                                    { title: 'บันทึก & สรุปผล', desc: 'จัดเก็บข้อมูลลงระบบเพื่อดูภาพรวมใน Dashboard', icon: <LayoutDashboard size={14} /> }
+                                ].map((step, idx) => (
+                                    <div key={idx} className="relative flex gap-6 group">
+                                        <div className="relative z-10 w-6 h-6 rounded-full bg-white border-2 border-blue-500 flex items-center justify-center text-[10px] font-black text-blue-600 shadow-sm transition-transform group-hover:scale-110">
+                                            {idx + 1}
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <div className="text-blue-500">{step.icon}</div>
+                                                <h3 className="text-sm font-bold text-slate-700 leading-none">{step.title}</h3>
+                                            </div>
+                                            <p className="text-[11px] text-slate-500 leading-relaxed">{step.desc}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <button
+                                onClick={() => setCurrentStep(0)}
+                                className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-bold transition-all shadow-lg shadow-blue-200/50 flex items-center justify-center gap-2 group"
+                            >
+                                <span>ไปที่หน้าอัปโหลด</span>
+                                <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                            </button>
+                        </div>
+                    )}
+
                     {/* STEP 0: SHP IMPORT */}
                     {currentStep === 0 && (
                         <div className="space-y-4 pt-2">
@@ -633,6 +767,36 @@ export default function WorkflowModal({
                                 <p className="text-xs font-medium text-slate-400">
                                     {isUploading ? 'กำลังอ่านข้อมูล...' : 'คลิกเพื่ออัพโหลดไฟล์ .zip'}
                                 </p>
+                            </div>
+
+                            {/* SHP Requirements Warning */}
+                            <div className="p-4 bg-amber-50/60 border border-amber-200/50 rounded-2xl space-y-3 shadow-sm">
+                                <div className="flex items-center gap-2 text-amber-700">
+                                    <div className="w-6 h-6 rounded-lg bg-amber-100 flex items-center justify-center border border-amber-200">
+                                        <Zap size={14} className="fill-amber-500 text-amber-500" />
+                                    </div>
+                                    <span className="text-[11px] font-black uppercase tracking-widest">ข้อมูลที่จำเป็นต้องมี</span>
+                                </div>
+                                <div className="grid grid-cols-1 gap-2.5">
+                                    <div className="bg-white/80 p-3 rounded-xl border border-amber-200/40 flex items-start gap-3">
+                                        <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
+                                            <FileText size={16} />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] text-emerald-800 font-bold uppercase mb-0.5">ส่วนประกอบไฟล์ .zip</p>
+                                            <p className="text-[10px] text-slate-500 font-medium leading-relaxed">ต้องประกอบด้วย .shp, .shx, .dbf และ .prj</p>
+                                        </div>
+                                    </div>
+                                    <div className="bg-white/80 p-3 rounded-xl border border-amber-200/40 flex items-start gap-3">
+                                        <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
+                                            <Globe size={16} />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] text-blue-800 font-bold uppercase mb-0.5">ระบบพิกัดที่รองรับ</p>
+                                            <p className="text-[10px] text-slate-500 font-medium leading-relaxed">UTM Zone 47N และ 48N (WGS84)</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             {shpError && (
@@ -1193,7 +1357,7 @@ export default function WorkflowModal({
                         </div>
                     )}
 
-                    {/* STEP 4: SUCCESS SUMMARY */}
+                    {/* STEP 4: SUCCESS SUMMARY & FINAL DECISION */}
                     {currentStep === 4 && (
                         <div className="space-y-6 pt-2">
                             <div className="text-center">
@@ -1201,14 +1365,39 @@ export default function WorkflowModal({
                                     <CheckCircle2 size={32} />
                                     <div className="absolute inset-0 bg-emerald-400 rounded-[24px] animate-ping opacity-20" />
                                 </div>
-                                <h3 className="text-xl font-bold text-gray-800">บันทึกสำเร็จ</h3>
-                                <p className="text-xs text-gray-400 font-bold tracking-widest mt-1">
-                                    รวมทั้งหมด <span className="text-emerald-500">{accumulatedPlots.length} แปลง</span> แล้ว
-                                </p>
+                                <h3 className="text-xl font-bold text-gray-800">คำนวณเรียบร้อยแล้ว</h3>
+                                <p className="text-xs text-gray-500 font-medium mt-1">นี่คือสรุปผลลัพธ์ทั้งหมดที่คุณทำรายการ</p>
+                            </div>
+
+                            {/* Summary Cards */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-4 text-center border border-emerald-100 flex flex-col justify-center">
+                                    <p className="text-[10px] uppercase font-bold text-emerald-600 tracking-wider mb-1">คาร์บอนเครดิตรวม</p>
+                                    <div className="flex items-baseline justify-center gap-1">
+                                        <span className="text-2xl font-black text-emerald-700 tracking-tight">
+                                            {accumulatedPlots.reduce((sum, p) => sum + parseFloat(p.carbon || 0), 0).toFixed(2)}
+                                        </span>
+                                        <span className="text-[10px] font-bold text-emerald-600">tCO₂e</span>
+                                    </div>
+                                </div>
+                                <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-4 text-center border border-amber-100 flex flex-col justify-center">
+                                    <p className="text-[10px] uppercase font-bold text-amber-600 tracking-wider mb-1">มูลค่าประเมินรวม</p>
+                                    <div className="flex items-baseline justify-center gap-1">
+                                        <span className="text-xs font-bold text-amber-600">฿</span>
+                                        <span className="text-2xl font-black text-amber-700 tracking-tight">
+                                            {(accumulatedPlots.reduce((sum, p) => sum + parseFloat(p.carbon || 0), 0) * (carbonPrice || 250)).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-1 flex justify-between items-center">
+                                <span>รายการแปลง ({accumulatedPlots.length})</span>
+                                <span className="text-emerald-500 cursor-pointer hover:underline" onClick={() => onSave(null, true)}>บันทึกทั้งหมด</span>
                             </div>
 
                             {/* Cards List */}
-                            <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-thin pb-4">
+                            <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-1 scrollbar-thin pb-2">
                                 {accumulatedPlots.map((plot, idx) => {
                                     const price = (parseFloat(plot.carbon || 0) * (carbonPrice || 250)).toLocaleString(undefined, { maximumFractionDigits: 0 });
                                     const areaLabel = `${plot.areaRai}-${plot.areaNgan}-${parseInt(plot.areaSqWah || 0)}`;
@@ -1234,20 +1423,7 @@ export default function WorkflowModal({
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            setFormData({ ...plot });
-                                                            setResult({ carbon: plot.carbon, method: plot.method });
-                                                            setCurrentStep(1);
-                                                        }}
-                                                        className="w-7 h-7 rounded-lg bg-gray-50 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors flex items-center justify-center"
-                                                    >
-                                                        <Edit3 size={14} />
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            if (window.confirm("ยืนยันการลบรายการนี้?")) {
-                                                                onDeletePlot(plot.id);
-                                                            }
+                                                            onDeletePlot(plot.id);
                                                         }}
                                                         className="w-7 h-7 rounded-lg bg-gray-50 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors flex items-center justify-center"
                                                     >
@@ -1286,12 +1462,9 @@ export default function WorkflowModal({
                                             <div className="grid grid-cols-2 gap-2">
                                                 {/* Carbon Credit */}
                                                 <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 rounded-xl p-2.5 flex flex-col items-center justify-center border border-emerald-100 relative overflow-hidden group-hover:border-emerald-200 transition-colors">
-                                                    <div className="absolute top-0 right-0 p-1 opacity-10 transform translate-x-1 -translate-y-1">
-                                                        <Leaf size={24} />
-                                                    </div>
                                                     <div className="flex items-center gap-1 mb-1 text-emerald-600">
                                                         <Leaf size={10} strokeWidth={2.5} />
-                                                        <span className="text-[9px] font-bold uppercase tracking-wider">คาร์บอนเครดิต</span>
+                                                        <span className="text-[9px] font-bold uppercase tracking-wider">คาร์บอน</span>
                                                     </div>
                                                     <div className="flex items-baseline gap-1">
                                                         <span className="text-lg font-extrabold text-emerald-700 tracking-tight leading-none">{plot.carbon}</span>
@@ -1301,12 +1474,9 @@ export default function WorkflowModal({
 
                                                 {/* Price */}
                                                 <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 rounded-xl p-2.5 flex flex-col items-center justify-center border border-amber-100 relative overflow-hidden group-hover:border-amber-200 transition-colors">
-                                                    <div className="absolute top-0 right-0 p-1 opacity-10 transform translate-x-1 -translate-y-1">
-                                                        <Coins size={24} />
-                                                    </div>
                                                     <div className="flex items-center gap-1 mb-1 text-amber-600">
                                                         <Coins size={10} strokeWidth={2.5} />
-                                                        <span className="text-[9px] font-bold uppercase tracking-wider">มูลค่าประเมิน</span>
+                                                        <span className="text-[9px] font-bold uppercase tracking-wider">มูลค่า</span>
                                                     </div>
                                                     <div className="flex items-baseline gap-0.5">
                                                         <span className="text-xs font-bold text-amber-600 mt-[1px]">฿</span>
@@ -1319,23 +1489,30 @@ export default function WorkflowModal({
                                 })}
                             </div>
 
-                            {/* Footer Buttons */}
-                            <div className="space-y-2 pt-2">
-                                <button
-                                    onClick={onStartDrawing ? onStartDrawing : handleDigitizeMore}
-                                    className="w-full h-11 bg-white border border-emerald-500 text-emerald-600 rounded-2xl text-xs font-bold hover:bg-emerald-50 transition-all flex items-center justify-center gap-2"
-                                >
-                                    <Map size={16} />
-                                    เพิ่มแปลงถัดไป
-                                </button>
-                                <button
-                                    onClick={() => onSave(null, true)}
-                                    disabled={accumulatedPlots.length === 0}
-                                    className="w-full h-11 bg-gray-900 hover:bg-black text-white rounded-2xl text-xs font-bold disabled:bg-gray-100 disabled:text-gray-400 transition-all shadow-lg flex items-center justify-center gap-2 tracking-widest"
-                                >
-                                    <CheckCircle2 size={16} />
-                                    บันทึกข้อมูลทั้งหมด
-                                </button>
+                            {/* Footer Buttons - Decisions */}
+                            <div className="pt-4 border-t border-gray-100 mt-2">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        onClick={handleDigitizeMore}
+                                        className="h-12 bg-white hover:bg-emerald-50 border-2 border-emerald-100 hover:border-emerald-200 text-emerald-600 rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-sm group"
+                                    >
+                                        <div className="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
+                                            <Map size={14} strokeWidth={2.5} />
+                                        </div>
+                                        เพิ่มแปลงใหม่
+                                    </button>
+
+                                    <button
+                                        onClick={() => onSave(null, true)}
+                                        disabled={accumulatedPlots.length === 0}
+                                        className="h-12 bg-gray-900 hover:bg-black text-white rounded-2xl text-sm font-bold disabled:bg-gray-100 disabled:text-gray-400 transition-all shadow-lg hover:shadow-xl shadow-gray-200 flex items-center justify-center gap-2 group"
+                                    >
+                                        <span className="group-hover:-translate-y-0.5 transition-transform">ยืนยันการบันทึก</span>
+                                        <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
+                                            <CheckCircle2 size={14} strokeWidth={2.5} />
+                                        </div>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}
