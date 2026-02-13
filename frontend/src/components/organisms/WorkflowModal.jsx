@@ -95,6 +95,8 @@ export default function WorkflowModal({
     const [searchTerm, setSearchTerm] = useState('');
 
     const containerRef = useRef(null);
+    const fileInputRef = useRef(null);
+    const [showShpInfo, setShowShpInfo] = useState(false);
 
     // ==========================================
     // SYNC PREVIEW PLOTS TO MAP
@@ -214,6 +216,7 @@ export default function WorkflowModal({
                 setShpPlots([]);
                 setSelectedShpPlotIds([]);
             }
+            setShowShpInfo(false);
         }
     }, [isOpen, mode]);
 
@@ -317,11 +320,17 @@ export default function WorkflowModal({
                 const ngan = Math.floor((raiTotal - rai) * 4);
                 const sqWah = parseFloat(((raiTotal - rai - ngan / 4) * 400).toFixed(1));
 
-                console.log(`Plot ${i + 1} area calculation:`, { area, raiTotal, rai, ngan, sqWah });
+                // Extract properties with fallbacks
+                const props = f.properties || {};
+                const farmer = props.FARMER || props.NAME || props.farmer || props.name || `แปลงที่ ${i + 1}`;
+                const variety = props.VARIETY || props.variety || '';
+                const plantYear = props.PLANT_YEAR || props.plant_year || props.YEAR || props.year || '';
 
                 return {
                     id: Date.now() + i,
-                    farmerName: f.properties?.FARMER || f.properties?.NAME || f.properties?.farmer || f.properties?.name || `แปลงที่ ${i + 1}`,
+                    farmerName: farmer,
+                    variety: variety,
+                    plantingYearBE: plantYear,
                     areaSqm: parseFloat(area.toFixed(2)),
                     areaRai: rai,
                     areaNgan: ngan,
@@ -331,8 +340,6 @@ export default function WorkflowModal({
                 };
             });
 
-            console.log("Parsed SHP Plots with areas:", plots);
-            console.log("Parsed SHP Plots with areas:", plots);
             setShpPlots(plots);
             setSelectedShpPlotIds([]);
             setSearchTerm('');
@@ -417,18 +424,18 @@ export default function WorkflowModal({
         console.log("Loading plot for processing:", plot);
         setFormData(prev => ({
             ...prev,
-            id: plot.id, // CRITICAL: Keep ID reference for preview logic and map filtering
-            farmerName: '', // Reset name to allow fresh entry
-            originalShpName: plot.farmerName, // Keep original name reference if needed
+            id: plot.id,
+            farmerName: plot.farmerName || '',
+            originalShpName: plot.farmerName,
             areaRai: plot.areaRai,
             areaNgan: plot.areaNgan,
             areaSqWah: plot.areaSqWah,
             areaSqm: plot.areaSqm,
             geometry: plot.geometry,
             svgPath: plot.svgPath,
-            plantingYearBE: '',
+            plantingYearBE: plot.plantingYearBE || '',
+            variety: plot.variety || '',
             age: 0,
-            variety: '',
             dbh: '',
             height: '',
             methodManual: 'eq1',
@@ -436,9 +443,7 @@ export default function WorkflowModal({
         }));
         setResult(null);
 
-        // Zoom to this specific plot when loading for processing
         if (onZoomToPlot && plot.geometry) {
-            console.log("Zooming to loaded plot geometry...");
             onZoomToPlot(plot.geometry);
         }
     };
@@ -636,9 +641,9 @@ export default function WorkflowModal({
                 {/* Close Button */}
                 <button
                     onClick={onClose}
-                    className="absolute top-5 right-5 z-50 w-8 h-8 rounded-full bg-gray-50 text-gray-400 hover:text-gray-600 hover:bg-gray-100 flex items-center justify-center transition-all active:scale-95"
+                    className="absolute top-4 right-4 z-[60] w-10 h-10 rounded-full bg-gray-100/50 hover:bg-gray-200/50 text-gray-500 flex items-center justify-center transition-all backdrop-blur-sm active:scale-90"
                 >
-                    <X size={18} />
+                    <X size={20} strokeWidth={2.5} />
                 </button>
 
                 {/* Content */}
@@ -744,60 +749,124 @@ export default function WorkflowModal({
                     {/* STEP 0: SHP IMPORT */}
                     {currentStep === 0 && (
                         <div className="space-y-4 pt-2">
-                            <div className="text-center pb-2">
-                                <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-sm border border-emerald-100/50">
-                                    <Upload size={24} />
-                                </div>
-                                <h2 className="text-lg font-semibold text-slate-800 tracking-tight">นำเข้า Shapefile</h2>
-                                <p className="text-[11px] text-slate-400 font-medium uppercase tracking-widest mt-0.5 whitespace-nowrap">เลือกไฟล์ .zip เพื่อเริ่มต้น</p>
-                            </div>
+                            {/* Sub-step 1: Requirement Info (Shown when clicking to upload) */}
+                            {showShpInfo && shpPlots.length === 0 ? (
+                                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                    <div className="text-center pb-2">
+                                        <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-amber-100/50">
+                                            <Zap size={32} strokeWidth={1.5} className="fill-amber-400" />
+                                        </div>
+                                        <h2 className="text-xl font-bold text-amber-600 tracking-tight">ข้อมูลที่จำเป็นต้องมี</h2>
+                                        <p className="text-sm font-medium text-slate-400 mt-1">กรุณาตรวจสอบความพร้อมของไฟล์</p>
+                                    </div>
 
-                            <div className="relative p-8 border-2 border-dashed border-gray-100 rounded-2xl text-center hover:border-emerald-300 hover:bg-emerald-50/30 transition-all cursor-pointer group">
-                                <input
-                                    type="file"
-                                    accept=".zip"
-                                    onChange={handleShpUpload}
-                                    className="absolute inset-0 opacity-0 cursor-pointer"
-                                />
-                                {isUploading ? (
-                                    <Loader2 className="w-8 h-8 mx-auto mb-2 text-emerald-500 animate-spin" />
-                                ) : (
-                                    <Upload className="w-8 h-8 mx-auto mb-2 text-gray-300 group-hover:text-emerald-500 transition-colors" />
-                                )}
-                                <p className="text-xs font-medium text-slate-400">
-                                    {isUploading ? 'กำลังอ่านข้อมูล...' : 'คลิกเพื่ออัพโหลดไฟล์ .zip'}
-                                </p>
-                            </div>
+                                    <div className="space-y-3">
+                                        {/* Component Files Card */}
+                                        <div className="bg-white p-5 rounded-[24px] border border-gray-100 shadow-sm flex items-start gap-4 hover:border-emerald-100 transition-colors">
+                                            <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
+                                                <FileText size={24} />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-[15px] font-bold text-slate-800 mb-1">ส่วนประกอบไฟล์ .zip</p>
+                                                <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                                                    ต้องประกอบด้วย <span className="text-slate-800 font-bold">.shp, .shx, .dbf</span> และ <span className="text-slate-800 font-bold">.prj</span>
+                                                </p>
+                                            </div>
+                                        </div>
 
-                            {/* SHP Requirements Warning */}
-                            <div className="p-4 bg-amber-50/60 border border-amber-200/50 rounded-2xl space-y-3 shadow-sm">
-                                <div className="flex items-center gap-2 text-amber-700">
-                                    <div className="w-6 h-6 rounded-lg bg-amber-100 flex items-center justify-center border border-amber-200">
-                                        <Zap size={14} className="fill-amber-500 text-amber-500" />
+                                        {/* Column Info Card */}
+                                        <div className="bg-white p-5 rounded-[24px] border border-gray-100 shadow-sm flex items-start gap-4 hover:border-orange-100 transition-colors">
+                                            <div className="w-12 h-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center shrink-0 border border-orange-100">
+                                                <List size={24} />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-[15px] font-bold text-slate-800 mb-1">ตารางคอลัมน์ที่รองรับใน .dbf</p>
+                                                <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                                                    <span className="text-slate-800 font-bold">FARMER</span> (ชื่อ),
+                                                    <span className="text-slate-800 font-bold ml-1">VARIETY</span> (พันธุ์),
+                                                    <span className="text-slate-800 font-bold ml-1">YEAR</span> (ปี)
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* CRS Info Card */}
+                                        <div className="bg-white p-5 rounded-[24px] border border-gray-100 shadow-sm flex items-start gap-4 hover:border-blue-100 transition-colors">
+                                            <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
+                                                <Globe size={24} />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-[15px] font-bold text-slate-800 mb-1">ระบบพิกัดที่รองรับ</p>
+                                                <p className="text-xs text-slate-500 font-medium leading-relaxed uppercase">
+                                                    <span className="text-slate-800 font-bold">UTM Zone 47N</span> และ <span className="text-slate-800 font-bold">48N (WGS84)</span>
+                                                </p>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <span className="text-[11px] font-black uppercase tracking-widest">ข้อมูลที่จำเป็นต้องมี</span>
+
+                                    <div className="flex flex-col gap-3 pt-4">
+                                        <button
+                                            onClick={() => fileInputRef.current.click()}
+                                            className="w-full h-14 bg-gray-900 hover:bg-black text-white rounded-2xl text-base font-bold transition-all shadow-lg flex items-center justify-center gap-3 active:scale-[0.98]"
+                                        >
+                                            <UploadIcon size={20} />
+                                            เลือกไฟล์ .zip ทันที
+                                        </button>
+                                        <button
+                                            onClick={() => setShowShpInfo(false)}
+                                            className="w-full h-12 bg-white text-slate-400 hover:text-slate-600 rounded-xl text-sm font-bold transition-all flex items-center justify-center"
+                                        >
+                                            ย้อนกลับ
+                                        </button>
+                                    </div>
+
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        accept=".zip"
+                                        onChange={(e) => {
+                                            handleShpUpload(e);
+                                            setShowShpInfo(false);
+                                        }}
+                                        className="hidden"
+                                    />
                                 </div>
-                                <div className="grid grid-cols-1 gap-2.5">
-                                    <div className="bg-white/80 p-3 rounded-xl border border-amber-200/40 flex items-start gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
-                                            <FileText size={16} />
+                            ) : shpPlots.length === 0 ? (
+                                /* Sub-step 0: Initial Import Screen */
+                                <>
+                                    <div className="text-center pb-2">
+                                        <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-100/50">
+                                            <Upload size={32} strokeWidth={1.5} />
                                         </div>
-                                        <div>
-                                            <p className="text-[10px] text-emerald-800 font-bold uppercase mb-0.5">ส่วนประกอบไฟล์ .zip</p>
-                                            <p className="text-[10px] text-slate-500 font-medium leading-relaxed">ต้องประกอบด้วย .shp, .shx, .dbf และ .prj</p>
-                                        </div>
+                                        <h2 className="text-xl font-bold text-slate-800 tracking-tight">นำเข้า Shapefile</h2>
+                                        <p className="text-sm font-medium text-slate-400 mt-1">เลือกไฟล์ .zip เพื่อเริ่มต้น</p>
                                     </div>
-                                    <div className="bg-white/80 p-3 rounded-xl border border-amber-200/40 flex items-start gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
-                                            <Globe size={16} />
+
+                                    <div
+                                        onClick={() => setShowShpInfo(true)}
+                                        className="relative p-10 border-2 border-dashed border-gray-100 rounded-3xl text-center hover:border-emerald-300 hover:bg-emerald-50/20 transition-all cursor-pointer group"
+                                    >
+                                        <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-3 text-gray-300 group-hover:text-emerald-500 transition-colors">
+                                            <UploadIcon size={28} />
                                         </div>
-                                        <div>
-                                            <p className="text-[10px] text-blue-800 font-bold uppercase mb-0.5">ระบบพิกัดที่รองรับ</p>
-                                            <p className="text-[10px] text-slate-500 font-medium leading-relaxed">UTM Zone 47N และ 48N (WGS84)</p>
-                                        </div>
+                                        <p className="text-sm font-semibold text-slate-400">
+                                            {isUploading ? 'กำลังอ่านข้อมูล...' : 'คลิกเพื่อเริ่มนำเข้าไฟล์ .zip'}
+                                        </p>
                                     </div>
-                                </div>
-                            </div>
+                                </>
+                            ) : null}
+
+                            {/* Sub-step 2: Plot List (Only shown if plots are loaded) */}
+                            {shpPlots.length > 0 && (
+                                <>
+                                    <div className="text-center pb-2">
+                                        <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-100/50">
+                                            <List size={32} strokeWidth={1.5} />
+                                        </div>
+                                        <h2 className="text-xl font-bold text-slate-800 tracking-tight">รายการแปลงที่พบ</h2>
+                                        <p className="text-sm font-medium text-slate-400 mt-1">ตรวจสอบและเลือกแปลงที่ต้องการคำนวณ</p>
+                                    </div>
+                                </>
+                            )}
 
                             {shpError && (
                                 <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-xs text-red-600">
@@ -806,38 +875,40 @@ export default function WorkflowModal({
                             )}
 
                             {/* Search and Filter */}
-                            <div className="space-y-3">
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-                                    <input
-                                        type="text"
-                                        placeholder="ค้นหาชื่อแปลง..."
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-full h-10 bg-gray-50 border border-gray-100 rounded-xl pl-9 pr-4 text-sm focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-500/10 transition-all outline-none"
-                                    />
-                                </div>
+                            {shpPlots.length > 0 && (
+                                <div className="space-y-4 pt-2">
+                                    <div className="relative group">
+                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-emerald-500 transition-colors" size={18} />
+                                        <input
+                                            type="text"
+                                            placeholder="ค้นหาชื่อแปลง..."
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            className="w-full h-12 bg-gray-50 border border-gray-100 rounded-2xl pl-11 pr-4 text-sm focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-500/10 transition-all outline-none"
+                                        />
+                                    </div>
 
-                                <div className="flex justify-between items-center px-1">
-                                    <span className="text-[10px] font-bold text-slate-400 tracking-wider">พบ {shpPlots.filter(p => p.farmerName.toLowerCase().includes(searchTerm.toLowerCase())).length} แปลง</span>
-                                    <div className="flex gap-4">
-                                        <button
-                                            onClick={handleSelectAllPlots}
-                                            className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider hover:opacity-70 transition-opacity"
-                                        >
-                                            {selectedShpPlotIds.length > 0 && selectedShpPlotIds.length === shpPlots.filter(p => p.farmerName.toLowerCase().includes(searchTerm.toLowerCase())).length ? 'ยกเลิก' : 'เลือกทั้งหมด'}
-                                        </button>
-                                        {shpPlots.length > 0 && (
+                                    <div className="flex justify-between items-center px-2">
+                                        <span className="text-xs font-bold text-slate-400 tracking-wider">พบ {shpPlots.filter(p => p.farmerName.toLowerCase().includes(searchTerm.toLowerCase())).length} แปลง</span>
+                                        <div className="flex gap-4">
                                             <button
-                                                onClick={handleClearAllShpPlots}
-                                                className="text-[10px] text-rose-500 font-bold uppercase tracking-wider hover:opacity-70 transition-opacity"
+                                                onClick={handleSelectAllPlots}
+                                                className="text-xs text-emerald-600 font-bold uppercase tracking-wider hover:opacity-70 transition-opacity"
                                             >
-                                                ลบทั้งหมด
+                                                {selectedShpPlotIds.length > 0 && selectedShpPlotIds.length === shpPlots.filter(p => p.farmerName.toLowerCase().includes(searchTerm.toLowerCase())).length ? 'ยกเลิก' : 'เลือกทั้งหมด'}
                                             </button>
-                                        )}
+                                            {shpPlots.length > 0 && (
+                                                <button
+                                                    onClick={handleClearAllShpPlots}
+                                                    className="text-[10px] text-rose-500 font-bold uppercase tracking-wider hover:opacity-70 transition-opacity"
+                                                >
+                                                    ลบทั้งหมด
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
 
                             {shpPlots.length > 0 && (
                                 <div className="space-y-2">
