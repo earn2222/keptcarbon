@@ -124,15 +124,72 @@ export const getCarbonSummary = async () => {
 };
 
 export const createPlot = async (plotData) => {
-    // Normalization: ensure the keys are consistent for storage
+    // ==========================================
+    // FULL NORMALIZATION: Map Page → Standard Format
+    // This ensures data is correctly readable by
+    // Dashboard, PersonalDashboard, and History pages
+    // ==========================================
+
+    // Calculate tree age from planting year if available
+    const currentYearBE = new Date().getFullYear() + 543;
+    const plantingYearBE = plotData.plantingYearBE || plotData.planting_year_be;
+    const plantingYearCE = plotData.planting_year || (plantingYearBE ? parseInt(plantingYearBE) - 543 : null);
+    const treeAge = plotData.tree_age || plotData.age || (plantingYearBE ? currentYearBE - parseInt(plantingYearBE) : 0);
+
+    // Extract carbon value - handle both direct value and methods array
+    let carbonTons = parseFloat(plotData.carbon_tons || plotData.carbon || 0);
+    const methods = plotData.methods || [];
+
+    // If carbon is 0 but methods have results, calculate from methods
+    if (carbonTons === 0 && methods.length > 0) {
+        const methodCarbons = methods.map(m => parseFloat(m.carbon || 0)).filter(c => c > 0);
+        if (methodCarbons.length > 0) {
+            carbonTons = methodCarbons.reduce((sum, c) => sum + c, 0) / methodCarbons.length;
+        }
+    }
+
+    // Extract area - handle Thai area format (rai, ngan, sqWah)
+    let areaRai = parseFloat(plotData.area_rai || plotData.areaRai || 0);
+    if (areaRai === 0 && plotData.areaSqm) {
+        areaRai = parseFloat(plotData.areaSqm) / 1600;
+    }
+
+    // Extract variety from notes or direct field
+    const variety = plotData.variety || 'RRIM 600';
+
+    // Determine primary method name
+    const primaryMethod = methods.length > 0 ? methods[0].method : (plotData.method || 'standard');
+
+    // Build normalized notes with all metadata
+    const noteParts = [`พันธุ์: ${variety}`];
+    if (plotData.dbh) noteParts.push(`DBH: ${plotData.dbh} ซม.`);
+    if (plotData.height) noteParts.push(`ความสูง: ${plotData.height} ม.`);
+    if (plotData.notes) noteParts.push(plotData.notes);
+    const normalizedNotes = noteParts.join(' | ');
+
     const normalizedPlot = {
         ...plotData,
         id: plotData.id || `local-${Date.now()}`,
-        farmer_name: plotData.farmer_name || plotData.farmerName || 'ไม่ระบุชื่อ',
-        carbon_tons: plotData.carbon_tons || plotData.carbon || 0,
-        area_rai: plotData.area_rai || plotData.areaRai || 0,
-        tree_age: plotData.tree_age || plotData.age || 0,
-        created_at: plotData.created_at || new Date().toISOString()
+        // Standard field names for Dashboard/History
+        name: plotData.name || plotData.farmer_name || plotData.farmerName || 'ไม่ระบุชื่อ',
+        farmer_name: plotData.farmer_name || plotData.farmerName || plotData.name || 'ไม่ระบุชื่อ',
+        farmerName: plotData.farmerName || plotData.farmer_name || plotData.name || 'ไม่ระบุชื่อ',
+        carbon_tons: carbonTons,
+        carbon: carbonTons,
+        area_rai: areaRai,
+        areaRai: areaRai,
+        tree_age: treeAge,
+        age: treeAge,
+        planting_year: plantingYearCE || new Date().getFullYear(),
+        plantingYearBE: plantingYearBE || (plantingYearCE ? plantingYearCE + 543 : currentYearBE),
+        variety: variety,
+        method: primaryMethod,
+        methods: methods,
+        notes: normalizedNotes,
+        geometry: plotData.geometry,
+        created_at: plotData.created_at || new Date().toISOString(),
+        // Additional fields for History page
+        areaSqm: plotData.areaSqm || (areaRai * 1600),
     };
 
     try {
@@ -144,12 +201,15 @@ export const createPlot = async (plotData) => {
 
         if (!response.ok) throw new Error('API creation failed');
         const savedPlot = await response.json();
-        return saveLocalPlot(savedPlot);
+        // Merge normalized data with API response
+        const mergedPlot = { ...normalizedPlot, ...savedPlot };
+        return saveLocalPlot(mergedPlot);
     } catch (error) {
         console.warn('Create Plot API Error, saving to local storage instead');
         return saveLocalPlot(normalizedPlot);
     }
 };
+
 
 export const getPlots = async () => {
     try {

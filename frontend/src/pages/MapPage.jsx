@@ -916,15 +916,23 @@ function MapPage() {
                     }
                 }
 
-                const apiData = {
-                    name: p.farmerName || 'ไม่ระบุชื่อ',
-                    planting_year: p.plantingYearBE ? parseInt(p.plantingYearBE) - 543 : new Date().getFullYear(),
+                // Pass ALL fields to createPlot for full normalization
+                const fullData = {
+                    ...p,
+                    farmerName: p.farmerName || 'ไม่ระบุชื่อ',
+                    carbon: parseFloat(p.carbon || 0),
+                    areaRai: parseFloat(p.areaRai || 0),
+                    areaSqm: p.areaSqm,
+                    plantingYearBE: p.plantingYearBE,
+                    variety: p.variety || 'RRIM 600',
+                    methods: p.methods || [],
                     geometry: geometryObj,
-                    notes: `พันธุ์: ${p.variety || 'RRIM 600'}${p.notes ? ' | ' + p.notes : ''}`
+                    dbh: p.dbh,
+                    height: p.height,
                 };
 
-                console.log('Sending apiData to createPlot:', apiData);
-                return createPlot(apiData);
+                console.log('Sending fullData to createPlot:', fullData);
+                return createPlot(fullData);
             });
 
             const results = await Promise.all(savePromises);
@@ -933,13 +941,14 @@ function MapPage() {
             // Map results back to local format if needed
             const newlySaved = results.map((result, index) => ({
                 ...pendingPlots[index],
-                id: result.id,
+                ...result,
+                id: result.id || pendingPlots[index].id,
                 isPending: false
             }));
 
             setSavedPlots(prev => [...prev, ...newlySaved]);
             setPendingPlots([]);
-            alert(`บันทึกเรียบร้อยทั้งหมด ${newlySaved.length} แปลง!\nข้อมูลพร้อมแสดงผลบนแดชบอร์ดแล้ว`);
+            alert(`บันทึกเรียบร้อยทั้งหมด ${newlySaved.length} แปลง!\nข้อมูลพร้อมแสดงผลบนแดชบอร์ดและประวัติแล้ว`);
         } catch (err) {
             console.error('Failed to save plots to API:', err);
             const errorMsg = err.message || 'Unknown error';
@@ -1265,9 +1274,24 @@ function MapPage() {
                     return;
                 }
 
-                // Batch Persist
+                // Batch Persist - ensure all fields are passed
                 try {
-                    const promises = pendingPlots.map(plot => createPlot(plot));
+                    const promises = pendingPlots.map(plot => {
+                        const fullPlotData = {
+                            ...plot,
+                            farmerName: plot.farmerName || 'ไม่ระบุชื่อ',
+                            carbon: parseFloat(plot.carbon || 0),
+                            areaRai: parseFloat(plot.areaRai || 0),
+                            areaSqm: plot.areaSqm,
+                            plantingYearBE: plot.plantingYearBE,
+                            variety: plot.variety || 'RRIM 600',
+                            methods: plot.methods || [],
+                            geometry: plot.geometry,
+                            dbh: plot.dbh,
+                            height: plot.height,
+                        };
+                        return createPlot(fullPlotData);
+                    });
                     await Promise.all(promises);
                 } catch (e) {
                     console.error("Batch save error (continuing local):", e);
@@ -1307,16 +1331,25 @@ function MapPage() {
                 }
             }
 
-            // Generate ID & Data
+            // Generate ID & prepare full data with all fields
             const plotId = plotData.id || `temp_${Date.now()}`;
             const finalPlot = {
                 ...plotData,
                 id: plotId,
+                farmerName: plotData.farmerName || 'ไม่ระบุชื่อ',
+                carbon: parseFloat(plotData.carbon || 0),
+                areaRai: parseFloat(plotData.areaRai || 0),
+                areaSqm: plotData.areaSqm,
+                plantingYearBE: plotData.plantingYearBE,
+                variety: plotData.variety || 'RRIM 600',
+                dbh: plotData.dbh,
+                height: plotData.height,
                 // Ensure methods are saved if available
-                methods: plotData.methods || (window.plotMethodsCache && window.plotMethodsCache[plotId]) || []
+                methods: plotData.methods || (window.plotMethodsCache && window.plotMethodsCache[plotId]) || [],
+                geometry: plotData.geometry,
             };
 
-            // Persist Single
+            // Persist Single - createPlot will normalize for localStorage
             await createPlot(finalPlot);
 
             // Update State
@@ -1330,10 +1363,6 @@ function MapPage() {
 
             // Remove from Pending
             setPendingPlots(prev => prev.filter(p => p.id !== plotId));
-
-            // Close Modal (only if single save meant closing, but usually single save keeps modal open until 'Save All' or explicitly close)
-            // But for 'Save' button in list, we might want to just update state
-            // If saving from Form (Step 3), we might want to close if it's the only one
 
             if (pendingPlots.length <= 1) {
                 setWorkflowModal(prev => ({ ...prev, isOpen: false }));

@@ -1,11 +1,20 @@
 export const MOCK_PLOTS = [
     {
         id: 'mock-1',
+        name: 'นายสมชาย รักเกษตร',
         farmer_name: 'นายสมชาย รักเกษตร',
+        farmerName: 'นายสมชาย รักเกษตร',
         area_rai: 12.5,
+        areaRai: 12.5,
         carbon_tons: 85.4,
-        planting_year: 2015 - 543,
+        carbon: 85.4,
+        planting_year: 2015,
+        plantingYearBE: 2558,
+        tree_age: new Date().getFullYear() - 2015,
+        age: new Date().getFullYear() - 2015,
         variety: 'RRIM 600',
+        method: 'eq1',
+        methods: [{ method: 'eq1', name: 'สมการ TGO (1)', carbon: '85.40' }],
         geometry: {
             type: 'Polygon',
             coordinates: [[
@@ -21,11 +30,20 @@ export const MOCK_PLOTS = [
     },
     {
         id: 'mock-2',
+        name: 'นางสมร ดีสวน',
         farmer_name: 'นางสมร ดีสวน',
+        farmerName: 'นางสมร ดีสวน',
         area_rai: 8.2,
+        areaRai: 8.2,
         carbon_tons: 42.1,
-        planting_year: 2018 - 543,
+        carbon: 42.1,
+        planting_year: 2018,
+        plantingYearBE: 2561,
+        tree_age: new Date().getFullYear() - 2018,
+        age: new Date().getFullYear() - 2018,
         variety: 'PB 235',
+        method: 'eq2',
+        methods: [{ method: 'eq2', name: 'สมการ TGO (2)', carbon: '42.10' }],
         geometry: {
             type: 'Polygon',
             coordinates: [[
@@ -41,11 +59,20 @@ export const MOCK_PLOTS = [
     },
     {
         id: 'mock-3',
+        name: 'นายบุญส่ง มุ่งมั่น',
         farmer_name: 'นายบุญส่ง มุ่งมั่น',
+        farmerName: 'นายบุญส่ง มุ่งมั่น',
         area_rai: 25.0,
+        areaRai: 25.0,
         carbon_tons: 156.8,
-        planting_year: 2010 - 543,
+        carbon: 156.8,
+        planting_year: 2010,
+        plantingYearBE: 2553,
+        tree_age: new Date().getFullYear() - 2010,
+        age: new Date().getFullYear() - 2010,
         variety: 'RRIT 251',
+        method: 'ndvi',
+        methods: [{ method: 'ndvi', name: 'NDVI Satellite', carbon: '156.80' }],
         geometry: {
             type: 'Polygon',
             coordinates: [[
