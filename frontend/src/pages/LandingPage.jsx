@@ -578,7 +578,7 @@ function LandingPage() {
                                 <div className="flex items-center justify-between mb-4 mt-2 md:mt-0">
                                     <h2 className="text-sm font-bold text-gray-700 flex items-center gap-2">
                                         <div className="w-1.5 h-4 bg-[#4c7c44] rounded-full"></div>
-                                        ผลการคำนวณเบื้องต้น
+                                        ผลการคำนวณ & มูลค่า (Updated)
                                     </h2>
                                     {calculationModel !== 'all' && (
                                         <button
@@ -666,30 +666,39 @@ function LandingPage() {
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="space-y-2 mb-4">
-                                        <div className="grid grid-cols-2 gap-2">
+                                    <div className="space-y-4 animate-fade-in">
+                                        <div className="grid grid-cols-2 gap-3">
                                             {[
-                                                { id: 'field', name: 'ภาคสนาม', icon: '🌲', color: 'text-[#166534]', bg: 'bg-[#f0fdf4]' },
-                                                { id: 'drone', name: 'โดรน', icon: '🚁', color: 'text-[#1e40af]', bg: 'bg-[#eff6ff]' },
-                                                { id: 'young', name: 'ยางเล็ก', icon: '🌱', color: 'text-[#854d0e]', bg: 'bg-[#fefce8]' },
-                                                { id: 'satellite', name: 'ดาวเทียม', icon: '🛰️', color: 'text-[#6b21a8]', bg: 'bg-[#faf5ff]' }
+                                                { id: 'field', name: 'ภาคสนาม', icon: '🌲', color: 'text-[#166534]', border: 'border-[#166534]', shadow: 'shadow-green-100' },
+                                                { id: 'drone', name: 'โดรน', icon: '🚁', color: 'text-[#1e40af]', border: 'border-[#1e40af]', shadow: 'shadow-blue-100' },
+                                                { id: 'young', name: 'ยางเล็ก', icon: '🌱', color: 'text-[#854d0e]', border: 'border-[#854d0e]', shadow: 'shadow-yellow-100' },
+                                                { id: 'satellite', name: 'ดาวเทียม', icon: '🛰️', color: 'text-[#6b21a8]', border: 'border-[#6b21a8]', shadow: 'shadow-purple-100' }
                                             ].map((m) => {
-                                                const val = calculateCarbon(trialArea.totalSqM, m.id, treeAge);
+                                                const carbonVal = calculateCarbon(trialArea.totalSqM, m.id, treeAge);
+                                                const priceVal = carbonVal * marketPrice;
                                                 return (
-                                                    <div key={m.id} className={`${m.bg} p-3 rounded-xl border border-transparent`}>
-                                                        <div className="flex items-center gap-1.5 mb-1">
-                                                            <span className="text-sm">{m.icon}</span>
-                                                            <span className="text-[10px] font-bold text-gray-500 uppercase">{m.name}</span>
+                                                    <div key={m.id} className={`bg-white p-4 rounded-2xl border-2 ${m.border} ${m.shadow} shadow-lg transition-all hover:scale-105 flex flex-col justify-between min-h-[160px]`}>
+                                                        <div>
+                                                            <div className="flex items-center gap-2 mb-2">
+                                                                <span className="text-xl bg-gray-50 rounded-lg p-1">{m.icon}</span>
+                                                                <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">{m.name}</span>
+                                                            </div>
+                                                            <div className={`text-2xl font-black ${m.color} leading-none mt-2`}>{formatNumber(carbonVal)}</div>
+                                                            <div className="text-[10px] text-gray-400 font-medium">tCO₂e (Carbon)</div>
                                                         </div>
-                                                        <div className={`text-lg font-black ${m.color} leading-none`}>{formatNumber(val)}</div>
-                                                        <div className="text-[10px] text-gray-500 mt-0.5">tCO₂e</div>
+
+                                                        <div className="pt-3 border-t-2 border-dashed border-gray-100 mt-3">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-[10px] text-gray-500 font-bold uppercase">Estimated Value</span>
+                                                                <div className="flex items-baseline gap-1">
+                                                                    <span className="text-lg font-black text-[#ea580c]">{formatNumber(priceVal)}</span>
+                                                                    <span className="text-[10px] text-[#ea580c] font-bold">THB</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 )
                                             })}
-                                        </div>
-                                        <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 flex justify-between items-center mt-2">
-                                            <span className="text-xs font-bold text-gray-500">ค่าเฉลี่ยทุกโมเดล</span>
-                                            <span className="text-sm font-black text-gray-800">{formatNumber(calculateCarbon(trialArea.totalSqM, 'all', treeAge))} <span className="text-[10px] font-normal text-gray-400">tCO₂e</span></span>
                                         </div>
                                     </div>
                                 )}
@@ -775,11 +784,11 @@ function LandingPage() {
                             </button>
                         )}
                     </div>
-                </div >
-            </section >
+                </div>
+            </section>
 
             {/* 8. Map Preview Section */}
-            < section className="py-24 bg-white" >
+            <section className="py-24 bg-white">
                 <div className="container-responsive text-center">
                     <h2 className="text-3xl font-bold tracking-tight text-[#2d4a27] mb-3">แผนที่พื้นที่ปลูกยางพาราในประเทศไทย</h2>
                     <p className="text-gray-500 font-medium">ศักยภาพการกักเก็บคาร์บอนในแต่ละภูมิภาค</p>
@@ -830,10 +839,10 @@ function LandingPage() {
                         </div>
                     </div>
                 </div>
-            </section >
+            </section>
 
             {/* 9. Footer */}
-            < footer className="bg-[#f7f5f2] border-t border-gray-100 pt-16 pb-10" >
+            <footer className="bg-[#f7f5f2] border-t border-gray-100 pt-16 pb-10">
                 <div className="container-responsive">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-16">
                         <div className="text-left">
@@ -875,7 +884,7 @@ function LandingPage() {
                         </div>
                     </div>
                 </div>
-            </footer >
+            </footer>
 
             <button
                 onClick={scrollToTop}
@@ -886,7 +895,7 @@ function LandingPage() {
                 <div className="absolute inset-0 bg-white/20 rounded-full animate-ping opacity-0 group-hover:opacity-75 duration-1000"></div>
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 15l7-7 7 7" /></svg>
             </button>
-        </div >
+        </div>
     )
 }
 
