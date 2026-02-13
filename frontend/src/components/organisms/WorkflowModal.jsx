@@ -97,6 +97,10 @@ export default function WorkflowModal({
     const containerRef = useRef(null);
     const fileInputRef = useRef(null);
     const [showShpInfo, setShowShpInfo] = useState(false);
+    const methodSectionRef = useRef(null);
+    const fieldDataRef = useRef(null);
+    const [farmerComplete, setFarmerComplete] = useState(false);
+    const [methodsComplete, setMethodsComplete] = useState(false);
 
     // ==========================================
     // SYNC PREVIEW PLOTS TO MAP
@@ -290,14 +294,27 @@ export default function WorkflowModal({
     }, [selectedMethods, satData.ndvi]);
 
     // ==========================================
-    // AUTO-ADVANCE (Only when creating new plot)
+    // AUTO-SCROLL within combined step (farmer info → methods)
     // ==========================================
     useEffect(() => {
-        if (!isEditing && currentStep === 1 && formData.farmerName && formData.plantingYearBE && formData.variety) {
-            const timer = setTimeout(() => setCurrentStep(2), 800);
-            return () => clearTimeout(timer);
+        const isFarmerDone = formData.farmerName && formData.plantingYearBE && formData.variety;
+        if (isFarmerDone && !farmerComplete && currentStep === 1) {
+            setFarmerComplete(true);
+            setTimeout(() => {
+                methodSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 400);
         }
-    }, [formData.farmerName, formData.plantingYearBE, formData.variety, currentStep, isEditing]);
+        if (!isFarmerDone) setFarmerComplete(false);
+    }, [formData.farmerName, formData.plantingYearBE, formData.variety, currentStep, farmerComplete]);
+
+    // Auto-scroll to field data when methods selected
+    useEffect(() => {
+        if (currentStep === 1 && selectedMethods.length > 0 && farmerComplete) {
+            setTimeout(() => {
+                fieldDataRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 300);
+        }
+    }, [selectedMethods, currentStep, farmerComplete]);
 
     // ==========================================
     // HANDLERS
@@ -973,15 +990,22 @@ export default function WorkflowModal({
                         </div>
                     )}
 
-                    {/* STEP 1: FARMER INFO */}
+                    {/* STEP 1: COMBINED FARMER INFO + METHODS (Auto-scroll) */}
                     {currentStep === 1 && (
                         <div className="space-y-5 pt-4">
+                            {/* Progress indicator */}
+                            <div className="flex items-center gap-2 px-1">
+                                <div className={cn("flex-1 h-1.5 rounded-full transition-all duration-700", farmerComplete ? "bg-emerald-500" : "bg-gray-100")} />
+                                <div className={cn("flex-1 h-1.5 rounded-full transition-all duration-700", farmerComplete && selectedMethods.length > 0 ? "bg-emerald-500" : "bg-gray-100")} />
+                                <div className={cn("flex-1 h-1.5 rounded-full transition-all duration-700", farmerComplete && selectedMethods.length > 0 && ((selectedMethods.includes('eq1') || selectedMethods.includes('eq2')) ? (formData.dbh && formData.height) : true) ? "bg-emerald-500" : "bg-gray-100")} />
+                            </div>
+
                             <div className="text-center">
-                                <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg animate-pulse">
-                                    <TreeDeciduous size={32} className="text-white" />
+                                <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-emerald-200/60">
+                                    <TreeDeciduous size={28} className="text-white" />
                                 </div>
-                                <h2 className="text-xl font-semibold text-slate-800 tracking-tight">ข้อมูลแปลงยางพารา</h2>
-                                <p className="text-xs font-medium text-slate-400 mt-1">กรอกข้อมูลเกษตรกรและรายละเอียดแปลง</p>
+                                <h2 className="text-lg font-bold text-slate-800 tracking-tight">ข้อมูลแปลงยางพารา</h2>
+                                <p className="text-[11px] font-medium text-slate-400 mt-0.5">กรอกข้อมูลด้านล่าง • ระบบจะเลื่อนอัตโนมัติ</p>
                             </div>
 
                             {/* Area Display with Toggle */}
@@ -1014,30 +1038,6 @@ export default function WorkflowModal({
                                     </>
                                 )}
                             </div>
-
-                            {/* Processing Queue Display */}
-                            {processingQueue.length > 0 && (
-                                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <List size={16} className="text-blue-600" />
-                                        <p className="text-xs font-bold text-blue-700 uppercase tracking-wider">
-                                            แปลงที่เหลือในคิว ({processingQueue.length})
-                                        </p>
-                                    </div>
-                                    <div className="space-y-1.5 max-h-24 overflow-y-auto scrollbar-thin">
-                                        {processingQueue.map((plot, index) => (
-                                            <div key={plot.id} className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 text-xs">
-                                                <span className="w-5 h-5 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">
-                                                    {index + 1}
-                                                </span>
-                                                <span className="flex-1 text-slate-700 font-medium truncate">{plot.farmerName}</span>
-                                                <span className="text-[10px] text-slate-400">{plot.areaRai}-{plot.areaNgan}-{parseFloat(plot.areaSqWah).toFixed(1)} ไร่</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
 
                             {/* Input Fields */}
                             <div className="space-y-4">
@@ -1102,207 +1102,199 @@ export default function WorkflowModal({
                                 </div>
                             </div>
 
-                            {/* Only show 'Next' button if in editing mode */}
-                            {isEditing ? (
-                                <div className="flex gap-2 pt-2">
+                            {/* Farmer complete indicator */}
+                            {farmerComplete && !isEditing && (
+                                <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 rounded-xl border border-emerald-100 animate-fadeIn">
+                                    <CheckCircle2 size={14} className="text-emerald-500" />
+                                    <span className="text-[11px] font-bold text-emerald-600">ข้อมูลเกษตรกรครบแล้ว</span>
+                                    <button onClick={() => { setFarmerComplete(false); containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); }} className="ml-auto text-[10px] text-emerald-500 font-bold hover:underline">แก้ไข</button>
+                                </div>
+                            )}
+
+                            {/* Edit mode: delete button */}
+                            {isEditing && (
+                                <div className="flex gap-2 pt-1">
                                     <button
-                                        onClick={() => {
-                                            if (window.confirm("ยืนยันการลบแปลงนี้?")) {
-                                                onDeletePlot(formData.id);
-                                                onClose();
-                                            }
-                                        }}
-                                        className="w-12 h-11 bg-red-50 hover:bg-red-100 text-red-500 rounded-xl flex items-center justify-center transition-all border border-red-100"
+                                        onClick={() => { if (window.confirm("ยืนยันการลบแปลงนี้?")) { onDeletePlot(formData.id); onClose(); } }}
+                                        className="w-11 h-11 bg-red-50 hover:bg-red-100 text-red-500 rounded-xl flex items-center justify-center transition-all border border-red-100"
                                         title="ลบแปลง"
                                     >
-                                        <Trash2 size={20} />
-                                    </button>
-                                    <button
-                                        onClick={() => setCurrentStep(2)}
-                                        disabled={!formData.farmerName || !formData.plantingYearBE || !formData.variety}
-                                        className="flex-1 h-11 bg-emerald-500 active:bg-emerald-600 text-white rounded-xl text-sm font-bold disabled:bg-gray-100 disabled:text-gray-400 transition-all shadow-lg shadow-emerald-200/50"
-                                    >
-                                        ถัดไป
+                                        <Trash2 size={18} />
                                     </button>
                                 </div>
-                            ) : (
-                                formData.farmerName && formData.plantingYearBE && formData.variety && (
-                                    <div className="flex items-center justify-center gap-2 text-emerald-500 py-3 animate-pulse">
-                                        <p className="text-xs font-bold">กำลังไปขั้นตอนถัดไป...</p>
-                                    </div>
-                                )
-                            )}
-                        </div>
-                    )}
-
-                    {/* STEP 2: CALCULATION METHOD - MULTI SELECT */}
-                    {currentStep === 2 && (
-                        <div className="space-y-5 pt-4">
-                            <div className="text-center">
-                                <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg">
-                                    <Calculator size={32} className="text-white animate-bounce" />
-                                </div>
-                                <h2 className="text-xl font-semibold text-gray-800">เลือกวิธีคำนวณ</h2>
-                                <p className="text-sm text-gray-500 mt-1">เลือกได้มากกว่า 1 วิธี เพื่อเปรียบเทียบผลลัพธ์</p>
-                            </div>
-
-                            {/* Quick Actions */}
-                            <div className="flex items-center justify-between px-1">
-                                <span className="text-[10px] font-bold text-slate-400 tracking-wider">
-                                    เลือกแล้ว {selectedMethods.length}/4 วิธี
-                                </span>
-                                <button
-                                    onClick={() => setSelectedMethods(selectedMethods.length === 4 ? [] : ['eq1', 'eq2', 'ndvi', 'tcari'])}
-                                    className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider hover:opacity-70 transition-opacity"
-                                >
-                                    {selectedMethods.length === 4 ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด 4 วิธี'}
-                                </button>
-                            </div>
-
-                            {/* Method Cards */}
-                            {(() => {
-                                const allMethods = [
-                                    { id: 'eq1', name: 'สมการที่ 1', formula: 'AGB = 0.118 × DBH²·⁵³', icon: '🌿', color: '#10b981', group: 'field', desc: 'ภาคสนาม' },
-                                    { id: 'eq2', name: 'สมการที่ 2', formula: 'AGB = 0.062 × DBH²·²³', icon: '🌱', color: '#059669', group: 'field', desc: 'ภาคสนาม' },
-                                    { id: 'ndvi', name: 'ดัชนี NDVI', formula: 'AGB = 34.2 × NDVI + 5.8', icon: '🛰️', color: '#3b82f6', group: 'sat', desc: 'ดาวเทียม' },
-                                    { id: 'tcari', name: 'ดัชนี TCARI', formula: 'AGB = 13.57 × TCARI + 7.45', icon: '📡', color: '#8b5cf6', group: 'sat', desc: 'ดาวเทียม' }
-                                ];
-                                const toggleMethod = (id) => {
-                                    setSelectedMethods(prev => prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]);
-                                };
-                                return (
-                                    <div className="grid grid-cols-2 gap-2.5">
-                                        {allMethods.map(m => {
-                                            const isSelected = selectedMethods.includes(m.id);
-                                            return (
-                                                <button
-                                                    key={m.id}
-                                                    onClick={() => toggleMethod(m.id)}
-                                                    className={cn(
-                                                        "relative p-3.5 rounded-2xl text-left transition-all duration-300 border-2 active:scale-[0.97] overflow-hidden",
-                                                        isSelected
-                                                            ? "border-current shadow-lg"
-                                                            : "border-gray-100 bg-white hover:border-gray-200"
-                                                    )}
-                                                    style={isSelected ? { borderColor: m.color, backgroundColor: `${m.color}08` } : {}}
-                                                >
-                                                    {/* Glow effect */}
-                                                    {isSelected && (
-                                                        <div className="absolute -top-6 -right-6 w-16 h-16 rounded-full blur-2xl opacity-30"
-                                                            style={{ backgroundColor: m.color }} />
-                                                    )}
-                                                    <div className="relative">
-                                                        <div className="flex items-center justify-between mb-2">
-                                                            <span className="text-xl">{m.icon}</span>
-                                                            <div className={cn(
-                                                                "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
-                                                                isSelected ? "border-current" : "border-gray-300"
-                                                            )}
-                                                                style={isSelected ? { borderColor: m.color, backgroundColor: m.color } : {}}
-                                                            >
-                                                                {isSelected && (
-                                                                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                                                    </svg>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                        <p className="text-xs font-bold text-gray-800 leading-tight">{m.name}</p>
-                                                        <p className="text-[9px] font-medium mt-0.5 px-1.5 py-0.5 rounded-md inline-block"
-                                                            style={isSelected ? { color: m.color, backgroundColor: `${m.color}15` } : { color: '#9ca3af' }}
-                                                        >
-                                                            {m.desc}
-                                                        </p>
-                                                        <p className="text-[9px] text-gray-400 font-mono mt-1.5 leading-tight">{m.formula}</p>
-                                                    </div>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                );
-                            })()}
-
-                            {/* Field Data Inputs - Show if any field method selected */}
-                            {(selectedMethods.includes('eq1') || selectedMethods.includes('eq2')) && (
-                                <div className="p-4 bg-gradient-to-br from-emerald-50/80 to-green-50/80 rounded-2xl border border-emerald-100 space-y-3 animate-fadeIn">
-                                    <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest flex items-center gap-1.5">
-                                        <span>🌿</span> ข้อมูลภาคสนาม
-                                    </p>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <label className="block text-[11px] font-bold text-gray-500 mb-1.5 ml-1">DBH (ซม.)</label>
-                                            <input
-                                                type="number"
-                                                placeholder="0.00"
-                                                value={formData.dbh}
-                                                onChange={e => setFormData({ ...formData, dbh: e.target.value })}
-                                                className="w-full h-10 bg-white rounded-xl px-4 text-sm border border-emerald-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all outline-none"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[11px] font-bold text-gray-500 mb-1.5 ml-1">ความสูง (ม.)</label>
-                                            <input
-                                                type="number"
-                                                placeholder="0.00"
-                                                value={formData.height}
-                                                onChange={e => setFormData({ ...formData, height: e.target.value })}
-                                                className="w-full h-10 bg-white rounded-xl px-4 text-sm border border-emerald-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all outline-none"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
                             )}
 
-                            {/* Satellite Data - Show if any sat method selected */}
-                            {(selectedMethods.includes('ndvi') || selectedMethods.includes('tcari')) && (
-                                <div className="p-4 bg-gradient-to-br from-blue-50/80 to-indigo-50/80 rounded-2xl border border-blue-100 animate-fadeIn">
-                                    <p className="text-[10px] font-bold text-blue-700 uppercase tracking-widest flex items-center gap-1.5 mb-2.5">
-                                        <span>🛰️</span> ข้อมูลดาวเทียม
-                                    </p>
-                                    {loadingSat ? (
-                                        <div className="flex items-center justify-center gap-2 text-blue-500 py-2">
-                                            <Loader2 size={18} className="animate-spin" />
-                                            <span className="text-xs font-medium">กำลังดึงข้อมูลดาวเทียม...</span>
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center gap-4">
-                                            <div className="flex-1 bg-white rounded-xl px-3 py-2.5 border border-blue-100">
-                                                <p className="text-[9px] text-blue-500 font-bold uppercase tracking-widest">NDVI</p>
-                                                <p className="text-lg font-bold text-gray-800">{satData.ndvi}</p>
-                                            </div>
-                                            <div className="flex-1 bg-white rounded-xl px-3 py-2.5 border border-purple-100">
-                                                <p className="text-[9px] text-purple-500 font-bold uppercase tracking-widest">TCARI</p>
-                                                <p className="text-lg font-bold text-gray-800">{satData.tcari}</p>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* Buttons */}
-                            <div className="flex gap-2 pt-2">
-                                <button
-                                    onClick={() => setCurrentStep(1)}
-                                    className="w-11 h-11 bg-gray-50 hover:bg-gray-100 rounded-xl flex items-center justify-center transition-colors border border-gray-100"
-                                    title="ย้อนกลับ"
-                                >
-                                    <ArrowLeft size={18} className="text-gray-400" />
-                                </button>
-                                <button
-                                    onClick={calculateCarbon}
-                                    disabled={loading || selectedMethods.length === 0}
-                                    className="flex-1 h-11 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-bold disabled:bg-gray-100 disabled:text-gray-400 transition-all shadow-lg shadow-emerald-200/50"
-                                >
-                                    {loading ? (
-                                        <span className="flex items-center justify-center gap-2">
-                                            <Loader2 size={16} className="animate-spin" />
-                                            กำลังคำนวณ {selectedMethods.length} วิธี...
+                            {/* ===== METHODS SECTION (auto-revealed) ===== */}
+                            {farmerComplete && (
+                                <div ref={methodSectionRef} className="space-y-4 pt-2 animate-fadeIn">
+                                    {/* Divider */}
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                            <Calculator size={12} /> วิธีคำนวณ
                                         </span>
-                                    ) : (
-                                        `คำนวณ ${selectedMethods.length} วิธี`
+                                        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+                                    </div>
+
+                                    {/* Quick select */}
+                                    <div className="flex items-center justify-between px-1">
+                                        <span className="text-[10px] font-bold text-slate-400 tracking-wider">
+                                            เลือกแล้ว {selectedMethods.length}/4 วิธี
+                                        </span>
+                                        <button
+                                            onClick={() => setSelectedMethods(selectedMethods.length === 4 ? [] : ['eq1', 'eq2', 'ndvi', 'tcari'])}
+                                            className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider hover:opacity-70 transition-opacity"
+                                        >
+                                            {selectedMethods.length === 4 ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
+                                        </button>
+                                    </div>
+
+                                    {/* Method Cards */}
+                                    {(() => {
+                                        const allMethods = [
+                                            { id: 'eq1', name: 'สมการที่ 1', formula: 'AGB = 0.118 × DBH²·⁵³', icon: '🌿', color: '#10b981', group: 'field', desc: 'ภาคสนาม' },
+                                            { id: 'eq2', name: 'สมการที่ 2', formula: 'AGB = 0.062 × DBH²·²³', icon: '🌱', color: '#059669', group: 'field', desc: 'ภาคสนาม' },
+                                            { id: 'ndvi', name: 'ดัชนี NDVI', formula: 'AGB = 34.2 × NDVI + 5.8', icon: '🛰️', color: '#3b82f6', group: 'sat', desc: 'ดาวเทียม' },
+                                            { id: 'tcari', name: 'ดัชนี TCARI', formula: 'AGB = 13.57 × TCARI + 7.45', icon: '📡', color: '#8b5cf6', group: 'sat', desc: 'ดาวเทียม' }
+                                        ];
+                                        const toggleMethod = (id) => {
+                                            setSelectedMethods(prev => prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]);
+                                        };
+                                        return (
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {allMethods.map(m => {
+                                                    const isSelected = selectedMethods.includes(m.id);
+                                                    return (
+                                                        <button
+                                                            key={m.id}
+                                                            onClick={() => toggleMethod(m.id)}
+                                                            className={cn(
+                                                                "relative p-3 rounded-2xl text-left transition-all duration-300 border-2 active:scale-[0.97] overflow-hidden",
+                                                                isSelected ? "border-current shadow-lg" : "border-gray-100 bg-white hover:border-gray-200"
+                                                            )}
+                                                            style={isSelected ? { borderColor: m.color, backgroundColor: `${m.color}08` } : {}}
+                                                        >
+                                                            {isSelected && (
+                                                                <div className="absolute -top-6 -right-6 w-16 h-16 rounded-full blur-2xl opacity-30" style={{ backgroundColor: m.color }} />
+                                                            )}
+                                                            <div className="relative">
+                                                                <div className="flex items-center justify-between mb-1.5">
+                                                                    <span className="text-lg">{m.icon}</span>
+                                                                    <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all", isSelected ? "border-current" : "border-gray-300")}
+                                                                        style={isSelected ? { borderColor: m.color, backgroundColor: m.color } : {}}
+                                                                    >
+                                                                        {isSelected && (
+                                                                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                                            </svg>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                <p className="text-xs font-bold text-gray-800 leading-tight">{m.name}</p>
+                                                                <p className="text-[9px] font-medium mt-0.5 px-1.5 py-0.5 rounded-md inline-block"
+                                                                    style={isSelected ? { color: m.color, backgroundColor: `${m.color}15` } : { color: '#9ca3af' }}
+                                                                >{m.desc}</p>
+                                                                <p className="text-[9px] text-gray-400 font-mono mt-1 leading-tight">{m.formula}</p>
+                                                            </div>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        );
+                                    })()}
+
+                                    {/* Field Data Inputs - auto-revealed */}
+                                    {(selectedMethods.includes('eq1') || selectedMethods.includes('eq2')) && (
+                                        <div ref={fieldDataRef} className="p-4 bg-gradient-to-br from-emerald-50/80 to-green-50/80 rounded-2xl border border-emerald-100 space-y-3 animate-fadeIn">
+                                            <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest flex items-center gap-1.5">
+                                                <span>🌿</span> ข้อมูลภาคสนาม
+                                            </p>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="block text-[11px] font-bold text-gray-500 mb-1.5 ml-1">DBH (ซม.)</label>
+                                                    <input type="number" placeholder="0.00" value={formData.dbh}
+                                                        onChange={e => setFormData({ ...formData, dbh: e.target.value })}
+                                                        className="w-full h-10 bg-white rounded-xl px-4 text-sm border border-emerald-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all outline-none"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[11px] font-bold text-gray-500 mb-1.5 ml-1">ความสูง (ม.)</label>
+                                                    <input type="number" placeholder="0.00" value={formData.height}
+                                                        onChange={e => setFormData({ ...formData, height: e.target.value })}
+                                                        className="w-full h-10 bg-white rounded-xl px-4 text-sm border border-emerald-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-all outline-none"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
                                     )}
-                                </button>
-                            </div>
+
+                                    {/* Satellite Data */}
+                                    {(selectedMethods.includes('ndvi') || selectedMethods.includes('tcari')) && (
+                                        <div className="p-4 bg-gradient-to-br from-blue-50/80 to-indigo-50/80 rounded-2xl border border-blue-100 animate-fadeIn">
+                                            <p className="text-[10px] font-bold text-blue-700 uppercase tracking-widest flex items-center gap-1.5 mb-2.5">
+                                                <span>🛰️</span> ข้อมูลดาวเทียม
+                                            </p>
+                                            {loadingSat ? (
+                                                <div className="flex items-center justify-center gap-2 text-blue-500 py-2">
+                                                    <Loader2 size={18} className="animate-spin" />
+                                                    <span className="text-xs font-medium">กำลังดึงข้อมูลดาวเทียม...</span>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-4">
+                                                    <div className="flex-1 bg-white rounded-xl px-3 py-2.5 border border-blue-100">
+                                                        <p className="text-[9px] text-blue-500 font-bold uppercase tracking-widest">NDVI</p>
+                                                        <p className="text-lg font-bold text-gray-800">{satData.ndvi}</p>
+                                                    </div>
+                                                    <div className="flex-1 bg-white rounded-xl px-3 py-2.5 border border-purple-100">
+                                                        <p className="text-[9px] text-purple-500 font-bold uppercase tracking-widest">TCARI</p>
+                                                        <p className="text-lg font-bold text-gray-800">{satData.tcari}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Calculate Button */}
+                                    <button
+                                        onClick={calculateCarbon}
+                                        disabled={loading || selectedMethods.length === 0}
+                                        className="w-full h-12 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white rounded-2xl text-sm font-bold disabled:bg-gray-100 disabled:from-gray-100 disabled:to-gray-100 disabled:text-gray-400 transition-all shadow-lg shadow-emerald-200/50 flex items-center justify-center gap-2"
+                                    >
+                                        {loading ? (
+                                            <span className="flex items-center justify-center gap-2">
+                                                <Loader2 size={16} className="animate-spin" />
+                                                กำลังคำนวณ {selectedMethods.length} วิธี...
+                                            </span>
+                                        ) : (
+                                            <>
+                                                <Calculator size={16} />
+                                                คำนวณคาร์บอน ({selectedMethods.length} วิธี)
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Processing Queue */}
+                            {processingQueue.length > 0 && (
+                                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <List size={16} className="text-blue-600" />
+                                        <p className="text-xs font-bold text-blue-700 uppercase tracking-wider">
+                                            แปลงที่เหลือในคิว ({processingQueue.length})
+                                        </p>
+                                    </div>
+                                    <div className="space-y-1.5 max-h-24 overflow-y-auto scrollbar-thin">
+                                        {processingQueue.map((plot, index) => (
+                                            <div key={plot.id} className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 text-xs">
+                                                <span className="w-5 h-5 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">{index + 1}</span>
+                                                <span className="flex-1 text-slate-700 font-medium truncate">{plot.farmerName}</span>
+                                                <span className="text-[10px] text-slate-400">{plot.areaRai}-{plot.areaNgan}-{parseFloat(plot.areaSqWah).toFixed(1)} ไร่</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -1412,7 +1404,7 @@ export default function WorkflowModal({
                             {/* Action Buttons */}
                             <div className="flex gap-2 mt-2">
                                 <button
-                                    onClick={() => setCurrentStep(2)}
+                                    onClick={() => setCurrentStep(1)}
                                     className="w-12 h-12 bg-gray-100 active:bg-gray-200 rounded-xl flex items-center justify-center transition-colors"
                                     title="แก้ไข"
                                 >
