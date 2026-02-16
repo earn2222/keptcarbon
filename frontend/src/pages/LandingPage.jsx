@@ -575,67 +575,28 @@ function LandingPage() {
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                                 </button>
 
-                                <div className="flex items-center justify-between mb-4 mt-2 md:mt-0">
-                                    <h2 className="text-sm font-bold text-gray-700 flex items-center gap-2">
-                                        <div className="w-1.5 h-4 bg-[#4c7c44] rounded-full"></div>
-                                        ผลการคำนวณ & มูลค่า (Updated)
+                                {/* Header with Compare All Button */}
+                                <div className="flex items-center justify-between mb-5 mt-2 md:mt-0">
+                                    <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
+                                        <div className="w-1.5 h-5 bg-[#4c7c44] rounded-full"></div>
+                                        ผลการคำนวณเบื้องต้น
                                     </h2>
                                     {calculationModel !== 'all' && (
                                         <button
                                             onClick={() => setCalculationModel('all')}
-                                            className="text-[10px] font-bold text-[#4c7c44] bg-[#4c7c44]/10 hover:bg-[#4c7c44] hover:text-white px-2 py-1 rounded-lg transition-all"
+                                            className="text-[10px] font-bold text-white bg-[#4c7c44] hover:bg-[#3d6336] px-3 py-1.5 rounded-lg transition-all shadow-sm"
                                         >
                                             เปรียบเทียบทั้งหมด
                                         </button>
                                     )}
                                 </div>
 
-                                {calculationModel !== 'all' && (
-                                    <div className="mb-6">
-                                        <div className="grid grid-cols-4 gap-2 mb-2">
-                                            {[
-                                                { id: 'field', label: 'ภาคสนาม', icon: '🌲', color: 'text-[#166534] bg-[#dcfce7]', hover: 'hover:bg-[#bbf7d0]' },
-                                                { id: 'drone', label: 'โดรน', icon: '🚁', color: 'text-[#1e40af] bg-[#dbeafe]', hover: 'hover:bg-[#bfdbfe]' },
-                                                { id: 'young', label: 'ยางเล็ก', icon: '🌱', color: 'text-[#854d0e] bg-[#fef9c3]', hover: 'hover:bg-[#fef08a]' },
-                                                { id: 'satellite', label: 'ดาวเทียม', icon: '🛰️', color: 'text-[#6b21a8] bg-[#f3e8ff]', hover: 'hover:bg-[#e9d5ff]' },
-                                            ].map((model) => (
-                                                <button
-                                                    key={model.id}
-                                                    onClick={() => setCalculationModel(model.id)}
-                                                    className={`
-                                                        flex flex-col items-center justify-center py-2 rounded-xl transition-all border border-transparent
-                                                        ${calculationModel === model.id
-                                                            ? `${model.color} shadow-sm ring-1 ring-black/5 font-bold scale-105`
-                                                            : 'bg-gray-50 text-gray-400 hover:bg-gray-100 scale-100'}
-                                                    `}
-                                                >
-                                                    <span className="text-base mb-0.5">{model.icon}</span>
-                                                    <span className="text-[10px] whitespace-nowrap">{model.label}</span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                        <div className="bg-gray-50/50 rounded-lg p-3 mb-4 border border-gray-100 flex items-center justify-center">
-                                            {[
-                                                { id: 'field', name: 'ภาคสนาม', eq: 'AGB = 0.118 × DBH^2.53', r2: '0.93' },
-                                                { id: 'drone', name: 'โดรน', eq: 'AGB = 34.2 × NDVI + 5.8', r2: '0.89' },
-                                                { id: 'young', name: 'ยางเล็ก', eq: 'AGB = 0.062 × DBH^2.23', r2: '0.94' },
-                                                { id: 'satellite', name: 'ดาวเทียม', eq: 'AGB = 13.57 × TCARI...', r2: '0.87' }
-                                            ].filter(m => m.id === calculationModel).map((m) => (
-                                                <div key={m.id} className="flex items-center gap-2 text-[10px] text-gray-500">
-                                                    <span className="font-bold text-[#4c7c44]">{m.name}:</span>
-                                                    <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-gray-200">{m.eq}</span>
-                                                    <span className="text-gray-400 text-[9px]">(R² {m.r2})</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
+                                {/* Back Button (when in "all" mode) */}
                                 {calculationModel === 'all' && (
                                     <div className="mb-4">
                                         <button
                                             onClick={() => setCalculationModel('field')}
-                                            className="w-full flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-2 rounded-xl text-xs transition-all mb-4"
+                                            className="w-full flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-2 rounded-xl text-xs transition-all"
                                         >
                                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
                                             กลับไปเลือกแบบเดี่ยว
@@ -643,134 +604,228 @@ function LandingPage() {
                                     </div>
                                 )}
 
+                                {/* Single Model Mode */}
                                 {calculationModel !== 'all' ? (
-                                    <div className="space-y-4">
-                                        <div className="text-center">
-                                            <div className="text-5xl font-black text-[#2d4a27] tracking-tight leading-none mb-1 animate-fade-in">
-                                                {formatNumber(calculateCarbon(trialArea.totalSqM, calculationModel, treeAge))}
+                                    <div className="space-y-5">
+                                        {/* 1. Method Selection */}
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">
+                                                1. เลือกวิธีคำนวณ
+                                            </label>
+                                            <div className="grid grid-cols-4 gap-2">
+                                                {[
+                                                    { id: 'field', label: 'ภาคสนาม', icon: '🌲', color: 'text-[#166534] bg-[#dcfce7]' },
+                                                    { id: 'drone', label: 'โดรน', icon: '🚁', color: 'text-[#1e40af] bg-[#dbeafe]' },
+                                                    { id: 'young', label: 'ยางเล็ก', icon: '🌱', color: 'text-[#854d0e] bg-[#fef9c3]' },
+                                                    { id: 'satellite', label: 'ดาวเทียม', icon: '🛰️', color: 'text-[#6b21a8] bg-[#f3e8ff]' },
+                                                ].map((model) => (
+                                                    <button
+                                                        key={model.id}
+                                                        onClick={() => setCalculationModel(model.id)}
+                                                        className={`flex flex-col items-center justify-center py-2.5 rounded-xl transition-all border
+                                                            ${calculationModel === model.id
+                                                                ? `${model.color} shadow-md ring-2 ring-black/10 font-bold scale-105`
+                                                                : 'bg-gray-50 text-gray-400 hover:bg-gray-100 border-transparent'}
+                                                        `}
+                                                    >
+                                                        <span className="text-lg mb-1">{model.icon}</span>
+                                                        <span className="text-[9px] whitespace-nowrap">{model.label}</span>
+                                                    </button>
+                                                ))}
                                             </div>
-                                            <div className="text-xs font-bold text-[#4c7c44] uppercase tracking-wider">ตันคาร์บอน (tCO₂e)</div>
+                                            {/* Equation Display */}
+                                            <div className="bg-gray-50 rounded-lg p-2.5 mt-2 border border-gray-100">
+                                                {[
+                                                    { id: 'field', name: 'ภาคสนาม', eq: 'AGB = 0.118 × DBH²·⁵³', r2: '0.93' },
+                                                    { id: 'drone', name: 'โดรน', eq: 'AGB = 34.2 × NDVI + 5.8', r2: '0.89' },
+                                                    { id: 'young', name: 'ยางเล็ก', eq: 'AGB = 0.062 × DBH²·²³', r2: '0.94' },
+                                                    { id: 'satellite', name: 'ดาวเทียม', eq: 'AGB = 13.57 × TCARI...', r2: '0.87' }
+                                                ].filter(m => m.id === calculationModel).map((m) => (
+                                                    <div key={m.id} className="flex items-center justify-between text-[10px]">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-bold text-[#4c7c44]">ภาคสนาม:</span>
+                                                            <span className="font-mono text-gray-600 bg-white px-2 py-0.5 rounded border border-gray-200">{m.eq}</span>
+                                                        </div>
+                                                        <span className="text-gray-400 text-[9px]">(R² = {m.r2})</span>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
 
-                                        <div className="bg-gradient-to-r from-[#fffbeb] to-[#fff7ed] rounded-2xl p-4 border border-[#fed7aa] flex justify-between items-center shadow-sm">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#f59e0b] to-[#d97706] text-white flex items-center justify-center text-lg font-bold shadow-md">฿</div>
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] font-bold text-[#9a3412] uppercase opacity-70">มูลค่าประเมิน</span>
-                                                    <span className="text-sm font-bold text-[#ea580c]">ที่ราคาตลาด</span>
+                                        {/* 2. Area Display */}
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">
+                                                2. ขนาดพื้นที่
+                                            </label>
+                                            <div className="grid grid-cols-3 divide-x divide-gray-100 border border-gray-200 rounded-xl bg-white overflow-hidden shadow-sm">
+                                                <div className="p-3 text-center">
+                                                    <div className="text-2xl font-black text-[#2d4a27] leading-none">{trialArea.rai}</div>
+                                                    <div className="text-[10px] text-gray-400 mt-1 font-semibold">ไร่</div>
+                                                </div>
+                                                <div className="p-3 text-center">
+                                                    <div className="text-2xl font-black text-[#2d4a27] leading-none">{trialArea.ngan}</div>
+                                                    <div className="text-[10px] text-gray-400 mt-1 font-semibold">งาน</div>
+                                                </div>
+                                                <div className="p-3 text-center">
+                                                    <div className="text-2xl font-black text-[#2d4a27] leading-none">{trialArea.wah}</div>
+                                                    <div className="text-[10px] text-gray-400 mt-1 font-semibold">ตร.วา</div>
                                                 </div>
                                             </div>
-                                            <div className="text-2xl font-black text-[#c2410c]">
-                                                {formatNumber(calculateCarbon(trialArea.totalSqM, calculationModel, treeAge) * marketPrice)}
+                                        </div>
+
+                                        {/* 3. Planting Year Selection */}
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 flex items-center justify-between">
+                                                <span>3. ปีที่ปลูก</span>
+                                                <span className="bg-[#ecfdf5] text-[#059669] px-2 py-1 rounded-md text-[10px] font-bold border border-[#059669]/10 shadow-sm">
+                                                    อายุ {treeAge} ปี
+                                                </span>
+                                            </label>
+                                            <select
+                                                value={plantingYear}
+                                                onChange={(e) => setPlantingYear(Number(e.target.value))}
+                                                className="w-full bg-white border-2 border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-2 focus:ring-[#4c7c44] focus:border-[#4c7c44] block p-3 outline-none transition-all font-semibold shadow-sm"
+                                            >
+                                                <option value="">เลือกปีที่ปลูก (พ.ศ.)</option>
+                                                {Array.from({ length: currentYear - 2500 + 1 }, (_, i) => currentYear - i).map(year => (
+                                                    <option key={year} value={year}>
+                                                        พ.ศ. {year} (อายุ {currentYear - year} ปี)
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        <div className="h-px bg-gray-200"></div>
+
+                                        {/* Carbon Storage Result */}
+                                        <div className="bg-gradient-to-br from-[#f0fdf4] to-[#ecfdf5] rounded-2xl p-4 border-2 border-[#4c7c44]/20 shadow-lg">
+                                            <div className="text-center mb-3">
+                                                <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">ปริมาณกักเก็บคาร์บอน</div>
+                                                <div className="text-5xl font-black text-[#2d4a27] tracking-tight leading-none">
+                                                    {formatNumber(calculateCarbon(trialArea.totalSqM, calculationModel, treeAge))}
+                                                </div>
+                                                <div className="text-sm font-bold text-[#4c7c44] mt-1">tCO₂e</div>
+                                            </div>
+                                            {/* AGB Display */}
+                                            <div className="bg-white/70 rounded-xl p-3 border border-[#4c7c44]/10">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-xs font-bold text-gray-600">มวลชีวภาพบนพื้นดิน (AGB)</span>
+                                                    <span className="text-lg font-black text-[#166534]">
+                                                        {formatNumber(calculateCarbon(trialArea.totalSqM, calculationModel, treeAge) * 0.5)}
+                                                        <span className="text-xs font-semibold ml-1">ตัน</span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Valuation with Price Slider */}
+                                        <div className="bg-gradient-to-br from-[#fffbeb] to-[#fff7ed] rounded-2xl p-4 border-2 border-[#f59e0b]/20 shadow-lg">
+                                            <div className="flex justify-between items-center mb-3">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#f59e0b] to-[#d97706] text-white flex items-center justify-center text-sm font-bold shadow-md">฿</div>
+                                                    <div>
+                                                        <div className="text-xs font-bold text-[#9a3412] uppercase">มูลค่าประเมิน</div>
+                                                        <div className="text-[10px] text-gray-500">ที่ราคาตลาด</div>
+                                                    </div>
+                                                </div>
+                                                <div className="text-3xl font-black text-[#c2410c]">
+                                                    {formatNumber(calculateCarbon(trialArea.totalSqM, calculationModel, treeAge) * marketPrice)}
+                                                </div>
+                                            </div>
+                                            {/* Price Slider */}
+                                            <div className="bg-white/70 rounded-xl p-3 border border-[#f59e0b]/10">
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className="text-xs font-bold text-gray-600">ราคาคาร์บอนในตลาด</span>
+                                                    <span className="bg-[#fef3c7] text-[#92400e] px-2 py-1 rounded-md text-xs font-bold">฿{marketPrice}/ตัน</span>
+                                                </div>
+                                                <input
+                                                    type="range"
+                                                    min="80"
+                                                    max="1000"
+                                                    step="10"
+                                                    value={marketPrice}
+                                                    onChange={(e) => setMarketPrice(Number(e.target.value))}
+                                                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#f59e0b]"
+                                                />
+                                                <div className="flex justify-between mt-1 text-[9px] text-gray-400 font-semibold">
+                                                    <span>฿80</span>
+                                                    <span>฿1,000</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="space-y-4 animate-fade-in">
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {[
-                                                { id: 'field', name: 'ภาคสนาม', icon: '🌲', color: 'text-[#166534]', border: 'border-[#166534]', shadow: 'shadow-green-100' },
-                                                { id: 'drone', name: 'โดรน', icon: '🚁', color: 'text-[#1e40af]', border: 'border-[#1e40af]', shadow: 'shadow-blue-100' },
-                                                { id: 'young', name: 'ยางเล็ก', icon: '🌱', color: 'text-[#854d0e]', border: 'border-[#854d0e]', shadow: 'shadow-yellow-100' },
-                                                { id: 'satellite', name: 'ดาวเทียม', icon: '🛰️', color: 'text-[#6b21a8]', border: 'border-[#6b21a8]', shadow: 'shadow-purple-100' }
-                                            ].map((m) => {
-                                                const carbonVal = calculateCarbon(trialArea.totalSqM, m.id, treeAge);
-                                                const priceVal = carbonVal * marketPrice;
-                                                return (
-                                                    <div key={m.id} className={`bg-white p-4 rounded-2xl border-2 ${m.border} ${m.shadow} shadow-lg transition-all hover:scale-105 flex flex-col justify-between min-h-[160px]`}>
-                                                        <div>
-                                                            <div className="flex items-center gap-2 mb-2">
-                                                                <span className="text-xl bg-gray-50 rounded-lg p-1">{m.icon}</span>
-                                                                <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">{m.name}</span>
-                                                            </div>
-                                                            <div className={`text-2xl font-black ${m.color} leading-none mt-2`}>{formatNumber(carbonVal)}</div>
-                                                            <div className="text-[10px] text-gray-400 font-medium">tCO₂e (Carbon)</div>
+                                    /* Compare All Mode - 4 Cards */
+                                    <div className="space-y-3">
+                                        {[
+                                            { id: 'field', name: 'ภาคสนาม (Field Data)', icon: '🌲', eq: 'AGB = 0.118 × DBH²·⁵³', r2: '0.93', color: 'text-[#166534]', bg: 'bg-[#f0fdf4]', border: 'border-[#166534]' },
+                                            { id: 'drone', name: 'โดรน (Drone NDVI)', icon: '🚁', eq: 'AGB = 34.2 × NDVI + 5.8', r2: '0.89', color: 'text-[#1e40af]', bg: 'bg-[#eff6ff]', border: 'border-[#1e40af]' },
+                                            { id: 'young', name: 'ยางเล็ก (Young Rubber)', icon: '🌱', eq: 'AGB = 0.062 × DBH²·²³', r2: '0.94', color: 'text-[#854d0e]', bg: 'bg-[#fefce8]', border: 'border-[#854d0e]' },
+                                            { id: 'satellite', name: 'ดาวเทียม (Satellite)', icon: '🛰️', eq: 'AGB = 13.57 × TCARI...', r2: '0.87', color: 'text-[#6b21a8]', bg: 'bg-[#faf5ff]', border: 'border-[#6b21a8]' }
+                                        ].map((m) => {
+                                            const carbonVal = calculateCarbon(trialArea.totalSqM, m.id, treeAge);
+                                            const agbVal = carbonVal * 0.5;
+                                            const priceVal = carbonVal * marketPrice;
+                                            return (
+                                                <div key={m.id} className={`${m.bg} rounded-2xl p-4 border-2 ${m.border} shadow-lg transition-all hover:scale-[1.02]`}>
+                                                    {/* Header: Icon + Name */}
+                                                    <div className="flex items-center gap-2 mb-3 pb-2 border-b-2 border-dashed border-gray-200">
+                                                        <span className="text-2xl">{m.icon}</span>
+                                                        <div className="flex-1">
+                                                            <div className={`text-sm font-bold ${m.color}`}>{m.name}</div>
+                                                            <div className="text-[9px] font-mono text-gray-500 mt-0.5">{m.eq} (R² = {m.r2})</div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        {/* Area + Year */}
+                                                        <div className="flex justify-between items-center text-xs">
+                                                            <span className="text-gray-600 font-semibold">ขนาดพื้นที่:</span>
+                                                            <span className="font-bold text-gray-800">{trialArea.rai}-{trialArea.ngan}-{trialArea.wah} (ไร่-งาน-วา)</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center text-xs">
+                                                            <span className="text-gray-600 font-semibold">ปีที่ปลูก:</span>
+                                                            <span className="font-bold text-gray-800">พ.ศ. {plantingYear} (อายุ {treeAge} ปี)</span>
                                                         </div>
 
-                                                        <div className="pt-3 border-t-2 border-dashed border-gray-100 mt-3">
-                                                            <div className="flex flex-col">
-                                                                <span className="text-[10px] text-gray-500 font-bold uppercase">Estimated Value</span>
-                                                                <div className="flex items-baseline gap-1">
-                                                                    <span className="text-lg font-black text-[#ea580c]">{formatNumber(priceVal)}</span>
-                                                                    <span className="text-[10px] text-[#ea580c] font-bold">THB</span>
+                                                        {/* Carbon */}
+                                                        <div className="bg-white/80 rounded-lg p-2.5 border border-gray-200">
+                                                            <div className="flex justify-between items-baseline">
+                                                                <span className="text-xs font-bold text-gray-600">ปริมาณกักเก็บคาร์บอน</span>
+                                                                <div>
+                                                                    <span className={`text-2xl font-black ${m.color}`}>{formatNumber(carbonVal)}</span>
+                                                                    <span className="text-xs font-semibold text-gray-500 ml-1">tCO₂e</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* AGB */}
+                                                        <div className="bg-white/80 rounded-lg p-2.5 border border-gray-200">
+                                                            <div className="flex justify-between items-baseline">
+                                                                <span className="text-xs font-bold text-gray-600">มวลชีวภาพบนพื้นดิน</span>
+                                                                <div>
+                                                                    <span className={`text-xl font-black ${m.color}`}>{formatNumber(agbVal)}</span>
+                                                                    <span className="text-xs font-semibold text-gray-500 ml-1">ตัน</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Valuation */}
+                                                        <div className="bg-gradient-to-r from-[#fff7ed] to-[#ffedd5] rounded-lg p-2.5 border border-[#f59e0b]/30">
+                                                            <div className="flex justify-between items-baseline">
+                                                                <span className="text-xs font-bold text-[#9a3412]">มูลค่าประเมิน (฿{marketPrice}/ตัน)</span>
+                                                                <div>
+                                                                    <span className="text-xl font-black text-[#c2410c]">{formatNumber(priceVal)}</span>
+                                                                    <span className="text-xs font-semibold text-[#ea580c] ml-1">บาท</span>
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                )
-                                            })}
-                                        </div>
+                                                </div>
+                                            )
+                                        })}
                                     </div>
                                 )}
-
-                                <div className="h-px bg-gray-100 my-5"></div>
-
-                                <div className="space-y-4">
-                                    <div className="grid grid-cols-3 divide-x divide-gray-100 border border-gray-100 rounded-xl bg-gray-50/50 overflow-hidden">
-                                        <div className="p-2 text-center">
-                                            <div className="text-lg font-bold text-gray-800 leading-none">{trialArea.rai}</div>
-                                            <div className="text-[9px] text-gray-400">ไร่</div>
-                                        </div>
-                                        <div className="p-2 text-center">
-                                            <div className="text-lg font-bold text-gray-800 leading-none">{trialArea.ngan}</div>
-                                            <div className="text-[9px] text-gray-400">งาน</div>
-                                        </div>
-                                        <div className="p-2 text-center">
-                                            <div className="text-lg font-bold text-gray-800 leading-none">{trialArea.wah}</div>
-                                            <div className="text-[9px] text-gray-400">วา</div>
-                                        </div>
-                                    </div>
-
-                                    {/* Planting Year Dropdown */}
-                                    <div>
-                                        <div className="flex justify-between items-center mb-2">
-                                            <span className="text-xs font-bold text-gray-400 flex items-center gap-1">
-                                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                </svg>
-                                                ปีที่ปลูก (พ.ศ.)
-                                            </span>
-                                            <span className="bg-[#ecfdf5] text-[#059669] px-2 py-0.5 rounded-md text-[10px] font-bold border border-[#059669]/10 shadow-sm">
-                                                อายุ {treeAge} ปี
-                                            </span>
-                                        </div>
-
-
-                                        <select
-                                            value={plantingYear}
-                                            onChange={(e) => setPlantingYear(Number(e.target.value))}
-                                            className="w-full bg-white border-2 border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-2 focus:ring-[#059669] focus:border-[#059669] block p-2.5 outline-none transition-all"
-                                        >
-                                            <option value="">เลือกปีที่ปลูก</option>
-                                            {Array.from({ length: currentYear - 2500 + 1 }, (_, i) => currentYear - i).map(year => (
-                                                <option key={year} value={year}>
-                                                    พ.ศ. {year} (อายุ {currentYear - year} ปี)
-                                                </option>
-                                            ))}
-                                        </select>
-
-                                    </div>
-
-                                    {/* Market Price Slider */}
-                                    <div>
-                                        <div className="flex justify-between items-center mb-2">
-                                            <span className="text-xs font-bold text-gray-400 flex items-center gap-1">
-                                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                ราคาตลาด
-                                            </span>
-                                            <span className="bg-[#f0fdf4] text-[#166534] px-2 py-0.5 rounded-md text-[10px] font-bold border border-[#166534]/10 shadow-sm">฿{marketPrice} / ตัน</span>
-                                        </div>
-                                        <input
-                                            type="range"
-                                            min="50"
-                                            max="1000"
-                                            step="10"
-                                            value={marketPrice}
-                                            onChange={(e) => setMarketPrice(Number(e.target.value))}
-                                            className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#4c7c44]"
-                                        />
-                                    </div>
-                                </div>
                             </div>
                         </div>
 
