@@ -6,7 +6,7 @@ import {
     Calculator, Upload, X, ChevronRight, ArrowLeft,
     CheckCircle2, Map, TreeDeciduous, List, Repeat, Eye,
     Search, Calendar, Coins, Scaling, Ruler, FileText, Globe,
-    LayoutDashboard, Clock
+    LayoutDashboard, Clock, Plus
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 
@@ -526,8 +526,9 @@ export default function WorkflowModal({
 
                 const methodResults = selectedMethods.map(methodId => {
                     const def = METHOD_DEFS[methodId];
-                    const carbonPerTree = def.calc();
-                    const totalCarbonTons = ((carbonPerTree * totalTrees) / 1000) * 0.47;
+                    const agbPerTree = def.calc();
+                    const totalAgbTons = (agbPerTree * totalTrees) / 1000;
+                    const totalCarbonTons = totalAgbTons * 0.47; // Carbon Stock (approx)
                     return {
                         id: methodId,
                         name: def.name,
@@ -535,12 +536,15 @@ export default function WorkflowModal({
                         icon: def.icon,
                         color: def.color,
                         carbon: totalCarbonTons.toFixed(2),
-                        carbonPerTree: carbonPerTree.toFixed(4)
+                        agb: totalAgbTons.toFixed(2),
+                        carbonPerTree: agbPerTree.toFixed(4)
                     };
                 });
 
                 const carbonValues = methodResults.map(m => parseFloat(m.carbon));
+                const agbValues = methodResults.map(m => parseFloat(m.agb));
                 const avgCarbon = (carbonValues.reduce((a, b) => a + b, 0) / carbonValues.length).toFixed(2);
+                const avgAgb = (agbValues.reduce((a, b) => a + b, 0) / agbValues.length).toFixed(2);
                 const bestCarbon = Math.max(...carbonValues).toFixed(2);
                 const minCarbon = Math.min(...carbonValues).toFixed(2);
 
@@ -554,6 +558,7 @@ export default function WorkflowModal({
                     bestCarbon,
                     minCarbon,
                     carbon: avgCarbon,
+                    agb: avgAgb,
                     method: methodResults.map(m => m.name).join(' + ')
                 });
                 setLoading(false);
@@ -573,6 +578,7 @@ export default function WorkflowModal({
             ...formData,
             id: formData.id || Date.now(),
             carbon: result.carbon,
+            agb: result.agb,
             method: result.method,
             methods: result.methods || [],
             selectedMethods: selectedMethods,
@@ -1366,13 +1372,25 @@ export default function WorkflowModal({
                                                     </div>
 
                                                     {/* Divider with dash */}
-                                                    <div className="h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent my-3 border-t border-dashed border-gray-200"></div>
+                                                    {/* Biomass Row */}
+                                                    <div className="flex items-center justify-between mb-2.5 bg-blue-50/50 p-2 rounded-lg border border-blue-100/50">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-5 h-5 rounded-md bg-blue-100 flex items-center justify-center text-blue-600">
+                                                                <TreeDeciduous size={12} strokeWidth={2.5} />
+                                                            </div>
+                                                            <span className="text-[10px] text-blue-800 font-bold">มวลชีวภาพ (AGB)</span>
+                                                        </div>
+                                                        <div className="flex items-baseline gap-1">
+                                                            <span className="text-sm font-black text-blue-700">{m.agb}</span>
+                                                            <span className="text-[9px] text-blue-500 font-bold">ตัน</span>
+                                                        </div>
+                                                    </div>
 
                                                     {/* Footer: Valuation */}
-                                                    <div className="flex items-center justify-between">
+                                                    <div className="flex items-center justify-between pt-2 border-t border-dashed border-gray-200">
                                                         <div className="flex items-center gap-1.5">
                                                             <div className="p-1 bg-amber-50 rounded-md">
-                                                                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                                                                <Coins size={12} className="text-amber-500" />
                                                             </div>
                                                             <span className="text-[10px] text-gray-500 font-medium">มูลค่าประเมิน (@฿{currentPrice})</span>
                                                         </div>
@@ -1387,11 +1405,19 @@ export default function WorkflowModal({
                                 ) : (
                                     /* Fallback for single result (legacy structure) */
                                     <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-                                        <div className="flex justify-between items-center mb-2">
+                                        <div className="flex justify-between items-center mb-3 pb-3 border-b border-gray-50">
                                             <span className="text-sm font-bold text-gray-700">ผลลัพธ์การคำนวณ</span>
-                                            <span className="text-xl font-black text-emerald-600">{result.carbon} tCO₂e</span>
+                                            <span className="text-xl font-black text-emerald-600">{result.carbon} <span className="text-xs font-bold text-gray-400">tCO₂e</span></span>
                                         </div>
-                                        <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+                                        {result.agb && (
+                                            <div className="flex justify-between items-center mb-2 bg-blue-50/50 p-2 rounded-lg">
+                                                <span className="text-xs font-bold text-blue-700 flex items-center gap-1.5">
+                                                    <TreeDeciduous size={12} /> มวลชีวภาพ (AGB)
+                                                </span>
+                                                <span className="text-sm font-bold text-blue-800">{result.agb} ตัน</span>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between items-center pt-2">
                                             <span className="text-xs text-gray-500">มูลค่าประเมิน</span>
                                             <span className="text-base font-bold text-amber-600">
                                                 ฿{((parseFloat(result.carbon || 0)) * (carbonPrice || 250)).toLocaleString(undefined, { maximumFractionDigits: 0 })}
@@ -1432,157 +1458,137 @@ export default function WorkflowModal({
                                 <p className="text-xs text-gray-500 font-medium mt-1">นี่คือสรุปผลลัพธ์ทั้งหมดที่คุณทำรายการ</p>
                             </div>
 
-                            {/* Summary Cards */}
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-4 text-center border border-emerald-100 flex flex-col justify-center">
-                                    <p className="text-[10px] uppercase font-bold text-emerald-600 tracking-wider mb-1">คาร์บอนเครดิตรวม</p>
-                                    <div className="flex items-baseline justify-center gap-1">
-                                        <span className="text-2xl font-black text-emerald-700 tracking-tight">
-                                            {accumulatedPlots.reduce((sum, p) => sum + parseFloat(p.carbon || 0), 0).toFixed(2)}
-                                        </span>
-                                        <span className="text-[10px] font-bold text-emerald-600">tCO₂e</span>
+                            {/* Summary Cards - Stacked Layout for Better Balance */}
+                            <div className="space-y-5">
+                                {/* Totals Section */}
+                                <div className="bg-gray-50/50 rounded-2xl p-3 border border-gray-100">
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <div className="bg-white rounded-xl p-2 text-center border border-emerald-100 shadow-sm flex flex-col justify-center min-h-[70px]">
+                                            <p className="text-[9px] uppercase font-bold text-emerald-600 tracking-wider mb-0.5">คาร์บอน</p>
+                                            <div className="flex flex-col items-center leading-none">
+                                                <span className="text-base font-black text-emerald-700 tracking-tight">
+                                                    {accumulatedPlots.reduce((sum, p) => sum + parseFloat(p.carbon || 0), 0).toFixed(2)}
+                                                </span>
+                                                <span className="text-[7px] font-bold text-emerald-600 opacity-60">tCO₂e</span>
+                                            </div>
+                                        </div>
+                                        <div className="bg-white rounded-xl p-2 text-center border border-blue-100 shadow-sm flex flex-col justify-center min-h-[70px]">
+                                            <p className="text-[9px] uppercase font-bold text-blue-600 tracking-wider mb-0.5">มวลชีวภาพ</p>
+                                            <div className="flex flex-col items-center leading-none">
+                                                <span className="text-base font-black text-blue-700 tracking-tight">
+                                                    {accumulatedPlots.reduce((sum, p) => sum + parseFloat(p.agb || ((parseFloat(p.carbon || 0) / 0.47))), 0).toFixed(2)}
+                                                </span>
+                                                <span className="text-[7px] font-bold text-blue-600 opacity-60">ตัน</span>
+                                            </div>
+                                        </div>
+                                        <div className="bg-white rounded-xl p-2 text-center border border-amber-100 shadow-sm flex flex-col justify-center min-h-[70px]">
+                                            <p className="text-[9px] uppercase font-bold text-amber-600 tracking-wider mb-0.5">มูลค่ารวม</p>
+                                            <div className="flex flex-col items-center leading-none">
+                                                <span className="text-base font-black text-amber-700 tracking-tight">
+                                                    {(accumulatedPlots.reduce((sum, p) => sum + parseFloat(p.carbon || 0), 0) * (carbonPrice || 250)).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                                </span>
+                                                <span className="text-[7px] font-bold text-amber-600 opacity-60">บาท</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-4 text-center border border-amber-100 flex flex-col justify-center">
-                                    <p className="text-[10px] uppercase font-bold text-amber-600 tracking-wider mb-1">มูลค่าประเมินรวม</p>
-                                    <div className="flex items-baseline justify-center gap-1">
-                                        <span className="text-xs font-bold text-amber-600">฿</span>
-                                        <span className="text-2xl font-black text-amber-700 tracking-tight">
-                                            {(accumulatedPlots.reduce((sum, p) => sum + parseFloat(p.carbon || 0), 0) * (carbonPrice || 250)).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                                        </span>
+
+                                {/* List Section */}
+                                <div>
+                                    <div className="flex justify-between items-center px-1 mb-2">
+                                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">รายการแปลง ({accumulatedPlots.length})</span>
+                                        <button className="text-[10px] font-bold text-emerald-600 hover:bg-emerald-50 px-2 py-1 rounded-lg transition-colors" onClick={() => onSave(null, true)}>
+                                            บันทึกทั้งหมด
+                                        </button>
+                                    </div>
+
+                                    {/* Scrollable List */}
+                                    <div className="space-y-3 max-h-[35vh] overflow-y-auto pr-1 scrollbar-thin pb-1">
+                                        {accumulatedPlots.map((plot, idx) => {
+                                            const price = (parseFloat(plot.carbon || 0) * (carbonPrice || 250)).toLocaleString(undefined, { maximumFractionDigits: 0 });
+                                            const areaLabel = `${plot.areaRai}-${plot.areaNgan}-${parseInt(plot.areaSqWah || 0)}`;
+
+                                            return (
+                                                <div key={plot.id} className="relative bg-white rounded-2xl border border-gray-100 shadow-sm p-3 overflow-hidden hover:shadow-md transition-all group">
+                                                    {/* Header */}
+                                                    <div className="flex justify-between items-start mb-2 relative z-10">
+                                                        <div className="flex items-center gap-2.5">
+                                                            <div className="w-6 h-6 bg-gray-900 text-white rounded-lg flex items-center justify-center font-bold text-[10px] shadow-sm shrink-0">
+                                                                {idx + 1}
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <h4 className="font-bold text-gray-800 text-sm truncate leading-tight">{plot.farmerName || 'ไม่ระบุชื่อ'}</h4>
+                                                                <p className="text-[10px] text-gray-400 font-medium truncate mt-0.5">พันธุ์ {plot.variety || '-'} • ปี {plot.plantingYearBE || '-'}</p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex gap-1 shrink-0">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    onDeletePlot(plot.id);
+                                                                }}
+                                                                className="w-6 h-6 rounded-lg bg-gray-50 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors flex items-center justify-center"
+                                                            >
+                                                                <Trash2 size={12} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Results Row */}
+                                                    <div className="grid grid-cols-3 gap-1.5 mt-2">
+                                                        {/* Carbon */}
+                                                        <div className="bg-emerald-50/50 rounded-lg p-1.5 flex flex-col items-center justify-center border border-emerald-100/50">
+                                                            <span className="text-[7px] font-bold text-emerald-600 uppercase tracking-wider mb-0.5">CO₂e</span>
+                                                            <span className="text-xs font-black text-emerald-700 leading-none">{parseFloat(plot.carbon).toFixed(2)}</span>
+                                                        </div>
+
+                                                        {/* Biomass */}
+                                                        <div className="bg-blue-50/50 rounded-lg p-1.5 flex flex-col items-center justify-center border border-blue-100/50">
+                                                            <span className="text-[7px] font-bold text-blue-600 uppercase tracking-wider mb-0.5">AGB</span>
+                                                            <span className="text-xs font-black text-blue-700 leading-none">
+                                                                {parseFloat(plot.agb || (parseFloat(plot.carbon) / 0.47)).toFixed(2)}
+                                                            </span>
+                                                        </div>
+
+                                                        {/* Price */}
+                                                        <div className="bg-amber-50/50 rounded-lg p-1.5 flex flex-col items-center justify-center border border-amber-100/50">
+                                                            <span className="text-[7px] font-bold text-amber-600 uppercase tracking-wider mb-0.5">฿</span>
+                                                            <span className="text-xs font-black text-amber-700 leading-none">{price}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
-                            </div>
 
-                            <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-1 flex justify-between items-center">
-                                <span>รายการแปลง ({accumulatedPlots.length})</span>
-                                <span className="text-emerald-500 cursor-pointer hover:underline" onClick={() => onSave(null, true)}>บันทึกทั้งหมด</span>
-                            </div>
+                                {/* Footer Buttons */}
+                                <div className="pt-2">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button
+                                            onClick={handleDigitizeMore}
+                                            className="h-11 bg-white hover:bg-emerald-50 border border-emerald-100 hover:border-emerald-200 text-emerald-600 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-sm"
+                                        >
+                                            <Plus size={14} strokeWidth={3} />
+                                            เพิ่มแปลงใหม่
+                                        </button>
 
-                            {/* Cards List */}
-                            <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-1 scrollbar-thin pb-2">
-                                {accumulatedPlots.map((plot, idx) => {
-                                    const price = (parseFloat(plot.carbon || 0) * (carbonPrice || 250)).toLocaleString(undefined, { maximumFractionDigits: 0 });
-                                    const areaLabel = `${plot.areaRai}-${plot.areaNgan}-${parseInt(plot.areaSqWah || 0)}`;
-
-                                    return (
-                                        <div key={plot.id} className="relative bg-white rounded-2xl border border-gray-100 shadow-sm p-4 overflow-hidden hover:shadow-md transition-all group">
-                                            {/* Decorative Background */}
-                                            <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-emerald-50 to-transparent rounded-bl-full opacity-50 pointer-events-none" />
-
-                                            {/* Header */}
-                                            <div className="flex justify-between items-start mb-3 relative z-10">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 bg-gray-900 text-white rounded-full flex items-center justify-center font-bold text-xs shadow-md shrink-0">
-                                                        {idx + 1}
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <h4 className="font-bold text-gray-800 text-sm truncate">{plot.farmerName || 'ไม่ระบุชื่อ'}</h4>
-                                                        <p className="text-[10px] text-gray-400 font-medium truncate">พันธุ์ {plot.variety || '-'} • ปี {plot.plantingYearBE || '-'}</p>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex gap-1 shrink-0">
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            onDeletePlot(plot.id);
-                                                        }}
-                                                        className="w-7 h-7 rounded-lg bg-gray-50 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors flex items-center justify-center"
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            {/* Data Grid */}
-                                            {/* Top Row: Basic Info */}
-                                            <div className="flex gap-2 mb-2">
-                                                {/* Age */}
-                                                <div className="flex-1 bg-orange-50/80 rounded-xl p-2 flex items-center justify-between border border-orange-100/50">
-                                                    <div className="flex items-center gap-1.5 min-w-0">
-                                                        <div className="w-5 h-5 rounded-full bg-orange-100 flex items-center justify-center shrink-0 text-orange-500">
-                                                            <Calendar size={10} strokeWidth={2.5} />
-                                                        </div>
-                                                        <span className="text-[10px] text-orange-800 font-bold truncate">อายุยาง</span>
-                                                    </div>
-                                                    <span className="text-xs font-bold text-orange-700">{plot.age || 0} <span className="text-[9px] font-normal opacity-70">ปี</span></span>
-                                                </div>
-
-                                                {/* Area */}
-                                                <div className="flex-1 bg-blue-50/80 rounded-xl p-2 flex items-center justify-between border border-blue-100/50">
-                                                    <div className="flex items-center gap-1.5 min-w-0">
-                                                        <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center shrink-0 text-blue-500">
-                                                            <Scaling size={10} strokeWidth={2.5} />
-                                                        </div>
-                                                        <span className="text-[10px] text-blue-800 font-bold truncate">พื้นที่</span>
-                                                    </div>
-                                                    <span className="text-xs font-bold text-blue-700 truncate ml-1">{areaLabel}</span>
-                                                </div>
-                                            </div>
-
-                                            {/* Bottom Row: Results (Premium Look) */}
-                                            <div className="grid grid-cols-2 gap-2">
-                                                {/* Carbon Credit */}
-                                                <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 rounded-xl p-2.5 flex flex-col items-center justify-center border border-emerald-100 relative overflow-hidden group-hover:border-emerald-200 transition-colors">
-                                                    <div className="flex items-center gap-1 mb-1 text-emerald-600">
-                                                        <Leaf size={10} strokeWidth={2.5} />
-                                                        <span className="text-[9px] font-bold uppercase tracking-wider">คาร์บอน</span>
-                                                    </div>
-                                                    <div className="flex items-baseline gap-1">
-                                                        <span className="text-lg font-extrabold text-emerald-700 tracking-tight leading-none">{plot.carbon}</span>
-                                                        <span className="text-[9px] font-bold text-emerald-600">tCO₂e</span>
-                                                    </div>
-                                                </div>
-
-                                                {/* Price */}
-                                                <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 rounded-xl p-2.5 flex flex-col items-center justify-center border border-amber-100 relative overflow-hidden group-hover:border-amber-200 transition-colors">
-                                                    <div className="flex items-center gap-1 mb-1 text-amber-600">
-                                                        <Coins size={10} strokeWidth={2.5} />
-                                                        <span className="text-[9px] font-bold uppercase tracking-wider">มูลค่า</span>
-                                                    </div>
-                                                    <div className="flex items-baseline gap-0.5">
-                                                        <span className="text-xs font-bold text-amber-600 mt-[1px]">฿</span>
-                                                        <span className="text-lg font-extrabold text-amber-700 tracking-tight leading-none">{price}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-
-                            {/* Footer Buttons - Decisions */}
-                            <div className="pt-4 border-t border-gray-100 mt-2">
-                                <div className="grid grid-cols-2 gap-3">
-                                    <button
-                                        onClick={handleDigitizeMore}
-                                        className="h-12 bg-white hover:bg-emerald-50 border-2 border-emerald-100 hover:border-emerald-200 text-emerald-600 rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-sm group"
-                                    >
-                                        <div className="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
-                                            <Map size={14} strokeWidth={2.5} />
-                                        </div>
-                                        เพิ่มแปลงใหม่
-                                    </button>
-
-                                    <button
-                                        onClick={() => onSave(null, true)}
-                                        disabled={accumulatedPlots.length === 0}
-                                        className="h-12 bg-gray-900 hover:bg-black text-white rounded-2xl text-sm font-bold disabled:bg-gray-100 disabled:text-gray-400 transition-all shadow-lg hover:shadow-xl shadow-gray-200 flex items-center justify-center gap-2 group"
-                                    >
-                                        <span className="group-hover:-translate-y-0.5 transition-transform">ยืนยันการบันทึก</span>
-                                        <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
-                                            <CheckCircle2 size={14} strokeWidth={2.5} />
-                                        </div>
-                                    </button>
+                                        <button
+                                            onClick={() => onSave(null, true)}
+                                            disabled={accumulatedPlots.length === 0}
+                                            className="h-11 bg-gray-900 hover:bg-black text-white rounded-xl text-xs font-bold disabled:bg-gray-100 disabled:text-gray-400 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                                        >
+                                            <CheckCircle2 size={16} />
+                                            ยืนยันการบันทึก
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     )}
-
-
                 </div>
             </div>
-        </div >
+        </div>
     );
 }

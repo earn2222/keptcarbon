@@ -250,9 +250,11 @@ function MapPage() {
             const method = plotMethods[newIndex];
             const currentPrice = 250; // Use fixed or get from state if possible
             const priceVal = (parseFloat(method.carbon) * currentPrice).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            const agbVal = method.agb || ((parseFloat(method.carbon) || 0) / 0.47).toFixed(2);
 
             // Elements to update
             const elCarbon = document.getElementById(`popup-carbon-${plotId}`);
+            const elAgb = document.getElementById(`popup-agb-${plotId}`); // New
             const elMethod = document.getElementById(`popup-method-${plotId}`);
             const elPrice = document.getElementById(`popup-price-${plotId}`);
             const elIndex = document.getElementById(`popup-count-${plotId}`);
@@ -263,6 +265,7 @@ function MapPage() {
                 elCarbon.textContent = method.carbon;
                 setTimeout(() => elCarbon.style.opacity = '1', 150);
             }
+            if (elAgb) elAgb.textContent = agbVal; // New
             if (elMethod) elMethod.textContent = method.name || method.formula;
             if (elPrice) elPrice.textContent = priceVal;
             if (elIndex) elIndex.textContent = `${newIndex + 1}/${plotMethods.length}`;
@@ -328,6 +331,7 @@ function MapPage() {
                             id: p.id,
                             farmerName: p.name || p.farmer_name || 'ไม่ระบุชื่อ',
                             carbon: parseFloat(p.carbon_tons) || 0,
+                            agb: p.agb ? parseFloat(p.agb) : (parseFloat(p.carbon_tons || 0) / 0.47).toFixed(2),
                             areaRai: parseFloat(p.area_rai) || 0,
                             geometry: geometry,
                             plantingYearBE: p.planting_year ? parseInt(p.planting_year) + 543 : '-',
@@ -601,6 +605,25 @@ function MapPage() {
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                                     </button>
                                 ` : ''}
+                            </div>
+                        </div>
+
+                        <!-- Biomass Section (Blue-Cyan) -->
+                        <div style="padding: 10px 12px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 16px; display: flex; align-items: center; gap: 10px; margin-bottom: 8px; box-shadow: 0 2px 4px rgba(14, 165, 233, 0.05);">
+                            <!-- Icon -->
+                            <div style="width: 38px; height: 38px; background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3); flex-shrink: 0; color: white;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10v9.5m-3-3l3 3 3-3"/><path d="M19 10c0-3.87-3.13-7-7-7s-7 3.13-7 7a6.97 6.97 0 0 0 1.5 4.33"/><path d="M12 21a9 9 0 0 0 9-9 9 9 0 0 0-9-9 9 9 0 0 0-9 9"/></svg>
+                            </div>
+                            
+                            <!-- Text -->
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="display: flex; align-items: baseline; gap: 4px;">
+                                    <span id="popup-agb-${plotData.id}" style="font-size: 18px; font-weight: 800; color: #0369a1; line-height: 1; letter-spacing: -0.5px;">${methods[0].agb || ((parseFloat(methods[0].carbon) || 0) / 0.47).toFixed(2)}</span>
+                                    <span style="font-size: 10px; font-weight: 700; color: #0284c7;">ตัน</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 3px; margin-top: 2px;">
+                                    <span style="font-size: 9px; font-weight: 600; color: #0ea5e9;">มวลชีวภาพ (AGB)</span>
+                                </div>
                             </div>
                         </div>
 
