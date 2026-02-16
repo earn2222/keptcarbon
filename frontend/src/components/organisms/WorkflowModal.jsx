@@ -647,6 +647,37 @@ export default function WorkflowModal({
         onSave(null, true);
     };
 
+    const handleEditAccumulatedPlot = (plot) => {
+        setFormData(prev => ({
+            ...prev,
+            ...plot,
+            id: plot.id,
+            farmerName: plot.farmerName || '',
+            originalShpName: plot.originalShpName || '',
+            plantingYearBE: plot.plantingYearBE || '',
+            variety: plot.variety || '',
+            age: plot.age || 0,
+            dbh: plot.dbh || '',
+            height: plot.height || '',
+            areaRai: plot.areaRai || 0,
+            areaNgan: plot.areaNgan || 0,
+            areaSqWah: plot.areaSqWah || 0,
+            areaSqm: plot.areaSqm || 0,
+            geometry: plot.geometry,
+            svgPath: plot.svgPath || (plot.geometry ? generateSvgPath(plot.geometry) : '')
+        }));
+
+        if (plot.selectedMethods) {
+            setSelectedMethods(plot.selectedMethods);
+        }
+
+        if (plot.satData) {
+            setSatData(plot.satData);
+        }
+
+        setCurrentStep(1);
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -1523,6 +1554,15 @@ export default function WorkflowModal({
                                                         </div>
 
                                                         <div className="flex gap-1 shrink-0">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleEditAccumulatedPlot(plot);
+                                                                }}
+                                                                className="w-6 h-6 rounded-lg bg-gray-50 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 transition-colors flex items-center justify-center"
+                                                            >
+                                                                <Edit3 size={12} />
+                                                            </button>
                                                             <button
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
