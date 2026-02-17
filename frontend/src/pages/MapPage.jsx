@@ -491,7 +491,32 @@ function MapPage() {
             }
 
             // Listen for drawing events
-            map.current.on('draw.create', updateArea)
+            map.current.on('draw.create', (e) => {
+                const data = draw.current.getAll();
+                if (data.features.length > 0) {
+                    const currentFeature = data.features[0];
+                    const areaSqm = turf.area(currentFeature);
+                    const areaRaiTotal = areaSqm / 1600;
+                    const rai = Math.floor(areaRaiTotal);
+                    const ngan = Math.floor((areaRaiTotal - rai) * 4);
+                    const sqWah = ((areaRaiTotal - rai - ngan / 4) * 400).toFixed(1);
+
+                    setWorkflowModal({
+                        isOpen: true,
+                        mode: 'draw',
+                        initialData: {
+                            geometry: currentFeature.geometry,
+                            areaSqm: areaSqm.toFixed(2),
+                            areaRai: rai,
+                            areaNgan: ngan,
+                            areaSqWah: sqWah
+                        }
+                    });
+
+                    // Exit draw mode to prevent accidental edits while modal is open
+                    // setTimeout(() => draw.current.changeMode('simple_select'), 100);
+                }
+            })
             map.current.on('draw.update', updateArea)
             map.current.on('draw.delete', updateArea)
         })
@@ -1910,22 +1935,7 @@ function MapPage() {
 
 
 
-                        {/* 3. ACTION BUTTONS - Simplified for Mobile */}
-                        <div className="fixed bottom-32 left-1/2 -translate-x-1/2 z-[110] flex gap-2 animate-slide-up">
-                            <button
-                                onClick={cancelDigitizing}
-                                className="bg-white/90 backdrop-blur-md px-6 py-2.5 rounded-full text-slate-500 font-bold text-[11px] shadow-lg border border-white/60 hover:bg-white active:scale-95 transition-all uppercase tracking-wider"
-                            >
-                                ยกเลิก
-                            </button>
 
-                            <button
-                                onClick={finishDigitizing}
-                                className="bg-emerald-600 px-8 py-2.5 rounded-full text-white font-black text-[11px] shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 active:scale-95 transition-all flex items-center gap-2 uppercase tracking-wider"
-                            >
-                                <span>วาดเสร็จแล้ว</span>
-                            </button>
-                        </div>
                     </>
                 )
             }
