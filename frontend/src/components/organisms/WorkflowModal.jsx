@@ -1061,13 +1061,13 @@ export default function WorkflowModal({
                                             {parseFloat(formData.areaSqm || 0).toLocaleString()} <span className="text-xs opacity-50 font-medium">ตร.ม.</span>
                                         </p>
                                         <p className="text-[11px] text-emerald-600 mt-1 font-bold">
-                                            {formData.areaRai}-{formData.areaNgan}-{parseFloat(formData.areaSqWah).toFixed(1)} ไร่
+                                            {formData.areaRai} ไร่ {formData.areaNgan} งาน {parseFloat(formData.areaSqWah).toFixed(1)} ตร.วา
                                         </p>
                                     </>
                                 ) : (
                                     <>
-                                        <p className="text-2xl font-semibold text-slate-800 tracking-tight">
-                                            {formData.areaRai}-{formData.areaNgan}-{parseFloat(formData.areaSqWah).toFixed(1)} <span className="text-xs opacity-50 font-medium">ไร่</span>
+                                        <p className="text-xl font-semibold text-slate-800 tracking-tight">
+                                            {formData.areaRai} <span className="text-xs opacity-50 font-medium">ไร่</span> {formData.areaNgan} <span className="text-xs opacity-50 font-medium">งาน</span> {parseFloat(formData.areaSqWah).toFixed(1)} <span className="text-xs opacity-50 font-medium">ตร.วา</span>
                                         </p>
                                         <p className="text-[11px] text-emerald-600 mt-1 font-bold uppercase tracking-tight">
                                             {parseFloat(formData.areaSqm || 0).toLocaleString()} ตร.ม.
@@ -1353,7 +1353,7 @@ export default function WorkflowModal({
                                 <div className="grid grid-cols-3 gap-2 text-center">
                                     <div className="bg-gray-50 rounded-xl p-2">
                                         <p className="text-[9px] text-gray-400 font-bold">พื้นที่</p>
-                                        <p className="text-xs font-bold text-gray-700">{formData.areaRai}-{formData.areaNgan}-{parseFloat(formData.areaSqWah).toFixed(0)}</p>
+                                        <p className="text-xs font-bold text-gray-700">{formData.areaRai} ไร่ {formData.areaNgan} งาน {parseFloat(formData.areaSqWah).toFixed(0)} วา</p>
                                     </div>
                                     <div className="bg-gray-50 rounded-xl p-2">
                                         <p className="text-[9px] text-gray-400 font-bold">ปีปลูก</p>
