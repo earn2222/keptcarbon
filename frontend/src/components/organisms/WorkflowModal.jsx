@@ -1395,10 +1395,11 @@ export default function WorkflowModal({
                                                             </div>
                                                         </div>
                                                         <div className="text-right">
+                                                            <span className="block text-[9px] font-bold text-emerald-600/80 mb-0.5 text-right">คาร์บอน</span>
                                                             <span className="block text-2xl font-black text-emerald-600 tracking-tight leading-none">
                                                                 {m.carbon}
                                                             </span>
-                                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">tCO₂e</span>
+                                                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">tCO₂e</span>
                                                         </div>
                                                     </div>
 
