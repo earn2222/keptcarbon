@@ -273,7 +273,7 @@ function MapPage() {
 
         if (map.current) return
 
-        // Create map with Globe projection
+        // Create map with Globe 3D projection (MapLibre)
         map.current = new maplibregl.Map({
             container: mapContainer.current,
             style: {
@@ -284,8 +284,6 @@ function MapPage() {
                         tiles: [
                             'https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
                             'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-                            'https://mt2.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-                            'https://mt3.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'
                         ],
                         tileSize: 256,
                         attribution: '© Google'
@@ -303,12 +301,18 @@ function MapPage() {
                 glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf'
             },
             center: [100.5018, 13.7563], // Bangkok
-            zoom: 1.5,
+            zoom: 2, // Start zoomed out to see the globe
             pitch: 0,
             bearing: 0,
             maxPitch: 85,
-            antialias: true
+            antialias: true,
+            projection: { type: 'globe' } // Explicit object configuration
         })
+
+        // Force projection and set atmosphere on style load
+        map.current.on('style.load', () => {
+            map.current.setProjection({ type: 'globe' });
+        });
 
         // Fetch existing plots from API
         const loadInitialPlots = async () => {
@@ -349,11 +353,21 @@ function MapPage() {
 
         // Map Load Event
         map.current.on('load', () => {
-            // Note: Globe projection and Fog are not supported in MapLibre GL JS.
-            // Skipping these features to prevent console errors.
-            console.log('Map loaded successfully (mercator projection)');
-
+            console.log('🌍 Map loaded successfully with Globe 3D projection!');
             setMapLoaded(true)
+
+            // Set Atmosphere to match standard map feel (dark but not pitch black)
+            if (map.current.setFog) {
+                map.current.setFog({
+                    'range': [0.5, 10],
+                    'color': 'rgb(255, 255, 255)',
+                    'high-color': '#245cdf',
+                    'horizon-blend': 0.1,
+                    'space-color': '#111827', // Gray 900 (Softer than black)
+                    'star-intensity': 0.15 // Subtle stars
+                });
+            }
+
             startIntroAnimation()
 
             // Initialize Draw Control
@@ -1052,9 +1066,6 @@ function MapPage() {
         }
     };
 
-    // ==========================================
-    // INTRO ANIMATION - Globe to Thailand
-    // ==========================================
     // ==========================================
     // INTRO ANIMATION - Globe to Thailand
     // ==========================================
