@@ -1622,32 +1622,7 @@ export default function WorkflowModal({
                                     </div>
                                 </div>
 
-                                {/* Price Slider Tool (Summary) */}
-                                <div className="bg-amber-50/50 rounded-xl p-3 border border-amber-100 flex items-center justify-between gap-3 shadow-sm">
-                                    <div className="flex items-center gap-2 shrink-0">
-                                        <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
-                                            <Coins size={16} className="text-amber-600" />
-                                        </div>
-                                        <div>
-                                            <p className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">ราคาตลาด</p>
-                                            <p className="text-[9px] text-amber-600/70">ใช้กับทุกแปลง</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                                        <input
-                                            type="range"
-                                            min="0"
-                                            max="500"
-                                            step="10"
-                                            value={currentPrice}
-                                            onChange={(e) => setCurrentPrice(parseInt(e.target.value))}
-                                            className="flex-1 h-2 bg-amber-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
-                                        />
-                                        <div className="bg-white px-2 py-1 rounded-lg border border-amber-100 shadow-sm min-w-[60px] text-center">
-                                            <span className="text-xs font-black text-amber-600">฿{currentPrice}</span>
-                                        </div>
-                                    </div>
-                                </div>
+
 
                                 {/* List Section */}
                                 <div>
