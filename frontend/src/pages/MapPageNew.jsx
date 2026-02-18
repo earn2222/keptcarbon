@@ -660,7 +660,7 @@ function MapPageNew() {
                             </div>
                             <div>
                                 <h3 class="font-bold text-gray-800 text-base leading-tight">${plotData.farmerName}</h3>
-                                <p class="text-xs text-gray-500">${plotData.areaRai}-${plotData.areaNgan}-${parseInt(plotData.areaSqWah || 0)} ไร่ • อายุ ${plotData.age || 0} ปี</p>
+                                <p class="text-xs text-gray-500">${plotData.areaRai}-${plotData.areaNgan}-${parseInt(plotData.areaSqWah || 0)} ไร่ • อายุ ${plotData.age || 0} ปี${plotData.manualAge ? ` (ระบุ: ${plotData.manualAge})` : ''}</p>
                             </div>
                         </div>
                         

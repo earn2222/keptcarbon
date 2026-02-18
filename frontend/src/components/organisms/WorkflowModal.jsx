@@ -61,6 +61,12 @@ export default function WorkflowModal({
     isEditing = false,
     carbonPrice = 250
 }) {
+    const [currentPrice, setCurrentPrice] = useState(carbonPrice);
+
+    // Sync if prop changes
+    useEffect(() => {
+        if (carbonPrice) setCurrentPrice(carbonPrice);
+    }, [carbonPrice]);
     const [currentStep, setCurrentStep] = useState(-1);
     const [selectedMethods, setSelectedMethods] = useState(['eq1']);
     const [loading, setLoading] = useState(false);
@@ -76,6 +82,7 @@ export default function WorkflowModal({
         areaSqm: 0,
         plantingYearBE: '',
         age: 0,
+        manualAge: '', // New optional field
         variety: '',
         dbh: '',
         height: '',
@@ -236,6 +243,7 @@ export default function WorkflowModal({
                 plantingYearBE: initialData.plantingYearBE || '',
                 variety: initialData.variety || '',
                 age: initialData.age || 0,
+                manualAge: initialData.manualAge || '', // Restore manual age
                 dbh: initialData.dbh || '',
                 height: initialData.height || '',
                 areaRai: initialData.areaRai || 0,
@@ -1119,6 +1127,21 @@ export default function WorkflowModal({
                                 <div>
                                     <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                                         <div className="w-6 h-6 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600">
+                                            <Calendar size={14} />
+                                        </div>
+                                        อายุยางพารา <span className="text-xs text-gray-400 font-normal">(ไม่บังคับ)</span>
+                                    </label>
+                                    <input
+                                        type="number"
+                                        placeholder="ระบุอายุ (ปี) หากทราบ"
+                                        value={formData.manualAge}
+                                        onChange={e => setFormData({ ...formData, manualAge: e.target.value })}
+                                        className="w-full h-12 bg-gray-50 rounded-xl px-4 text-base border border-gray-200 focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 transition-all outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                        <div className="w-6 h-6 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.77 10-10 10Z" /><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" /></svg>
                                         </div>
                                         พันธุ์ยางพารา
@@ -1356,8 +1379,13 @@ export default function WorkflowModal({
                                         <p className="text-xs font-bold text-gray-700">{formData.areaRai} ไร่ {formData.areaNgan} งาน {parseFloat(formData.areaSqWah).toFixed(0)} วา</p>
                                     </div>
                                     <div className="bg-gray-50 rounded-xl p-2">
-                                        <p className="text-[9px] text-gray-400 font-bold">ปีปลูก</p>
-                                        <p className="text-xs font-bold text-gray-700">{formData.plantingYearBE}</p>
+                                        <p className="text-[9px] text-gray-400 font-bold">ปีปลูก / อายุ</p>
+                                        <div className="flex flex-col">
+                                            <p className="text-xs font-bold text-gray-700">{formData.plantingYearBE || '-'}</p>
+                                            {formData.manualAge && (
+                                                <p className="text-[9px] text-emerald-600 font-medium">(ระบุเอง: {formData.manualAge} ปี)</p>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="bg-gray-50 rounded-xl p-2">
                                         <p className="text-[9px] text-gray-400 font-bold">จำนวนวิธี</p>
@@ -1366,12 +1394,55 @@ export default function WorkflowModal({
                                 </div>
                             </div>
 
+                            {/* NEW: Age Verification Section (Optional) */}
+                            {formData.manualAge && (
+                                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100">
+                                            <Search size={16} />
+                                        </div>
+                                        <h4 className="text-sm font-bold text-gray-800">ตรวจสอบความถูกต้องของข้อมูล</h4>
+                                    </div>
+
+                                    <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-xs text-slate-500 font-medium">อายุคำนวณจากปีปลูก ({formData.plantingYearBE})</span>
+                                            <span className="text-sm font-bold text-slate-700">{formData.age} ปี</span>
+                                        </div>
+                                        <div className="flex items-center justify-between mb-3">
+                                            <span className="text-xs text-slate-500 font-medium">อายุที่ระบุเอง (Manual Input)</span>
+                                            <span className="text-sm font-bold text-indigo-600">{formData.manualAge} ปี</span>
+                                        </div>
+
+                                        {/* Verification Status */}
+                                        <div className={cn(
+                                            "flex items-center gap-2 p-2 rounded-lg border transition-all",
+                                            parseInt(formData.age) === parseInt(formData.manualAge)
+                                                ? "bg-emerald-50/50 border-emerald-100 text-emerald-700"
+                                                : "bg-amber-50/50 border-amber-100 text-amber-700"
+                                        )}>
+                                            {parseInt(formData.age) === parseInt(formData.manualAge) ? (
+                                                <>
+                                                    <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
+                                                    <span className="text-xs font-bold">ข้อมูลตรงกัน (Verified)</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div className="w-4 h-4 rounded-full bg-amber-200 text-amber-700 flex items-center justify-center font-bold text-[10px] shrink-0">!</div>
+                                                    <span className="text-xs font-bold">ข้อมูลแตกต่างกัน {Math.abs(parseInt(formData.age) - parseInt(formData.manualAge))} ปี</span>
+                                                    <span className="text-[10px] text-amber-600/70 ml-auto font-normal">โปรดตรวจสอบ</span>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Multi-Method Results - Individual Cards */}
                             <div className="space-y-3">
                                 {result.methods && result.methods.length > 0 ? (
                                     result.methods.map((m, i) => {
                                         const carbonVal = parseFloat(m.carbon || 0);
-                                        const currentPrice = carbonPrice || 250;
                                         const priceVal = carbonVal * currentPrice;
 
                                         return (
@@ -1418,7 +1489,6 @@ export default function WorkflowModal({
                                                         </div>
                                                     </div>
 
-                                                    {/* Footer: Valuation */}
                                                     <div className="flex items-center justify-between pt-2 border-t border-dashed border-gray-200">
                                                         <div className="flex items-center gap-1.5">
                                                             <div className="p-1 bg-amber-50 rounded-md">
@@ -1450,13 +1520,40 @@ export default function WorkflowModal({
                                             </div>
                                         )}
                                         <div className="flex justify-between items-center pt-2">
-                                            <span className="text-xs text-gray-500">มูลค่าประเมิน</span>
+                                            <span className="text-xs text-gray-500">มูลค่าประเมิน (@฿{currentPrice})</span>
                                             <span className="text-base font-bold text-amber-600">
-                                                ฿{((parseFloat(result.carbon || 0)) * (carbonPrice || 250)).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                                ฿{((parseFloat(result.carbon || 0)) * currentPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                                             </span>
                                         </div>
                                     </div>
                                 )}
+                            </div>
+
+                            {/* Price Slider Tool */}
+                            <div className="bg-amber-50/50 rounded-xl p-3 border border-amber-100 flex items-center justify-between gap-3 shadow-sm">
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                                        <Coins size={16} className="text-amber-600" />
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">ราคาตลาด</p>
+                                        <p className="text-[9px] text-amber-600/70">บาท/ตันคาร์บอน</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="500"
+                                        step="10"
+                                        value={currentPrice}
+                                        onChange={(e) => setCurrentPrice(parseInt(e.target.value))}
+                                        className="flex-1 h-2 bg-amber-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                                    />
+                                    <div className="bg-white px-2 py-1 rounded-lg border border-amber-100 shadow-sm min-w-[60px] text-center">
+                                        <span className="text-xs font-black text-amber-600">฿{currentPrice}</span>
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Action Buttons */}
@@ -1517,10 +1614,37 @@ export default function WorkflowModal({
                                             <p className="text-[9px] uppercase font-bold text-amber-600 tracking-wider mb-0.5">มูลค่ารวม</p>
                                             <div className="flex flex-col items-center leading-none">
                                                 <span className="text-base font-black text-amber-700 tracking-tight">
-                                                    {(accumulatedPlots.reduce((sum, p) => sum + parseFloat(p.carbon || 0), 0) * (carbonPrice || 250)).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                                    {(accumulatedPlots.reduce((sum, p) => sum + parseFloat(p.carbon || 0), 0) * currentPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                                                 </span>
                                                 <span className="text-[7px] font-bold text-amber-600 opacity-60">บาท</span>
                                             </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Price Slider Tool (Summary) */}
+                                <div className="bg-amber-50/50 rounded-xl p-3 border border-amber-100 flex items-center justify-between gap-3 shadow-sm">
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                                            <Coins size={16} className="text-amber-600" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">ราคาตลาด</p>
+                                            <p className="text-[9px] text-amber-600/70">ใช้กับทุกแปลง</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="500"
+                                            step="10"
+                                            value={currentPrice}
+                                            onChange={(e) => setCurrentPrice(parseInt(e.target.value))}
+                                            className="flex-1 h-2 bg-amber-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                                        />
+                                        <div className="bg-white px-2 py-1 rounded-lg border border-amber-100 shadow-sm min-w-[60px] text-center">
+                                            <span className="text-xs font-black text-amber-600">฿{currentPrice}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -1537,7 +1661,7 @@ export default function WorkflowModal({
                                     {/* Scrollable List */}
                                     <div className="space-y-3 max-h-[35vh] overflow-y-auto pr-1 scrollbar-thin pb-1">
                                         {accumulatedPlots.map((plot, idx) => {
-                                            const price = (parseFloat(plot.carbon || 0) * (carbonPrice || 250)).toLocaleString(undefined, { maximumFractionDigits: 0 });
+                                            const price = (parseFloat(plot.carbon || 0) * currentPrice).toLocaleString(undefined, { maximumFractionDigits: 0 });
                                             const areaLabel = `${plot.areaRai}-${plot.areaNgan}-${parseInt(plot.areaSqWah || 0)}`;
 
                                             return (
@@ -1630,6 +1754,6 @@ export default function WorkflowModal({
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

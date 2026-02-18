@@ -228,6 +228,38 @@ function MapPage() {
         // Initialize global cache for plot methods
         window.plotMethodsCache = {};
 
+        // Global handler for price updates from slider
+        window.handlePopupPrice = (plotId) => {
+            const slider = document.getElementById(`price-slider-${plotId}`);
+            const unitPriceDisplay = document.getElementById(`unit-price-${plotId}`);
+            const totalPriceDisplay = document.getElementById(`popup-price-${plotId}`);
+            const container = document.getElementById(`popup-nav-${plotId}`);
+
+            if (!slider || !totalPriceDisplay) return;
+
+            const currentPrice = parseInt(slider.value);
+            if (unitPriceDisplay) unitPriceDisplay.textContent = `฿${currentPrice}/ตัน`;
+
+            // Get Current Carbon
+            let currentCarbon = 0;
+            const plotMethods = window.plotMethodsCache[plotId] || [];
+
+            if (container && plotMethods.length > 0) {
+                const idx = parseInt(container.getAttribute('data-index') || '0');
+                currentCarbon = parseFloat(plotMethods[idx].carbon) || 0;
+            } else {
+                // Fallback if no navigation (single method)
+                // We need to find the carbon value from DOM or cache
+                // Simplest is to assume cache exists with at least 1 item
+                if (plotMethods.length > 0) {
+                    currentCarbon = parseFloat(plotMethods[0].carbon) || 0;
+                }
+            }
+
+            const totalValue = (currentCarbon * currentPrice).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            totalPriceDisplay.textContent = totalValue;
+        };
+
         // Global handler for popup navigation
         window.handlePopupNav = (plotId, direction) => {
             const plotMethods = window.plotMethodsCache[plotId];
@@ -248,7 +280,11 @@ function MapPage() {
 
             // Update Display Content
             const method = plotMethods[newIndex];
-            const currentPrice = 250; // Use fixed or get from state if possible
+
+            // Get current price from slider if exists (dynamic), else default 250
+            const slider = document.getElementById(`price-slider-${plotId}`);
+            const currentPrice = slider ? parseInt(slider.value) : 250;
+
             const priceVal = (parseFloat(method.carbon) * currentPrice).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
             const agbVal = method.agb || ((parseFloat(method.carbon) || 0) / 0.47).toFixed(2);
 
@@ -667,22 +703,40 @@ function MapPage() {
                         </div>
 
                         <!-- Valuation Section (Green-Gold) -->
-                        <div style="padding: 10px 12px; background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border-radius: 16px; display: flex; align-items: center; gap: 10px; box-shadow: 0 2px 4px rgba(245, 158, 11, 0.05);">
-                            <!-- Coin Icon with Trend Arrow -->
-                            <div style="width: 38px; height: 38px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3); flex-shrink: 0; color: white;">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                        <div style="padding: 10px 12px; background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border-radius: 16px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 2px 4px rgba(245, 158, 11, 0.05);">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <!-- Coin Icon with Trend Arrow -->
+                                <div style="width: 38px; height: 38px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3); flex-shrink: 0; color: white;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                                </div>
+                                
+                                <!-- Text -->
+                                <div style="flex: 1; min-width: 0;">
+                                    <div style="display: flex; align-items: baseline; gap: 4px;">
+                                        <span id="popup-price-${plotData.id}" style="font-size: 18px; font-weight: 800; color: #b45309; line-height: 1; letter-spacing: -0.5px;">${((parseFloat(methods[0].carbon) || 0) * 250).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</span>
+                                        <span style="font-size: 10px; font-weight: 700; color: #d97706;">บาท</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 3px; margin-top: 2px;">
+                                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+                                        <span style="font-size: 9px; font-weight: 600; color: #f59e0b;">มูลค่าประเมิน (ประมาณการ)</span>
+                                    </div>
+                                </div>
                             </div>
                             
-                            <!-- Text -->
-                            <div style="flex: 1; min-width: 0;">
-                                <div style="display: flex; align-items: baseline; gap: 4px;">
-                                    <span id="popup-price-${plotData.id}" style="font-size: 18px; font-weight: 800; color: #b45309; line-height: 1; letter-spacing: -0.5px;">${((parseFloat(methods[0].carbon) || 0) * 250).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</span>
-                                    <span style="font-size: 10px; font-weight: 700; color: #d97706;">บาท</span>
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 3px; margin-top: 2px;">
-                                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
-                                    <span style="font-size: 9px; font-weight: 600; color: #f59e0b;">ราคาตลาด ฿250/ตัน</span>
-                                </div>
+                            <!-- Slider Section -->
+                             <div style="border-top: 1px dashed rgba(245, 158, 11, 0.3); padding-top: 6px; display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 9px; font-weight: 700; color: #d97706; white-space: nowrap;">ราคาตลาด:</span>
+                                <input 
+                                    type="range" 
+                                    id="price-slider-${plotData.id}" 
+                                    min="0" 
+                                    max="500" 
+                                    step="10" 
+                                    value="250" 
+                                    style="flex: 1; height: 4px; border-radius: 2px; -webkit-appearance: none; background: #fbbf24; cursor: pointer; accent-color: #d97706;"
+                                    oninput="window.handlePopupPrice('${plotData.id}')"
+                                />
+                                <span id="unit-price-${plotData.id}" style="font-size: 9px; font-weight: 800; color: #b45309; min-width: 45px; text-align: right;">฿250/ตัน</span>
                             </div>
                         </div>
                         
