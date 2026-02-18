@@ -295,7 +295,14 @@ export default function WorkflowModal({
         if (hasSatMethod && satData.ndvi === 0) {
             setLoadingSat(true);
             setTimeout(() => {
-                setSatData({ ndvi: 0.72, tcari: 0.45 });
+                setSatData({
+                    ndvi: 0.72,
+                    tcari: 0.45,
+                    date: '14',
+                    month: 'กุมภาพันธ์',
+                    year: '2569',
+                    source: 'Sentinel-2'
+                });
                 setLoadingSat(false);
             }, 1500);
         }
@@ -503,7 +510,14 @@ export default function WorkflowModal({
         if (hasSatMethod && (!satData || (satData.ndvi === 0 && satData.tcari === 0))) {
             setLoadingSat(true);
             setTimeout(() => {
-                setSatData({ ndvi: 0.72, tcari: 0.45 });
+                setSatData({
+                    ndvi: 0.72,
+                    tcari: 0.45,
+                    date: '14',
+                    month: 'กุมภาพันธ์',
+                    year: '2569',
+                    source: 'Sentinel-2'
+                });
                 setLoadingSat(false);
                 calculateCarbon();
             }, 1000);
@@ -1308,6 +1322,18 @@ export default function WorkflowModal({
                                                     <div className="flex-1 bg-white rounded-xl px-3 py-2.5 border border-purple-100">
                                                         <p className="text-[9px] text-purple-500 font-bold uppercase tracking-widest">TCARI</p>
                                                         <p className="text-lg font-bold text-gray-800">{satData.tcari}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {!loadingSat && (
+                                                <div className="mt-3 flex items-center justify-between text-[10px] text-blue-400 font-medium px-1 border-t border-blue-100/50 pt-2">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <Globe size={10} />
+                                                        <span>ที่มา: {satData.source || 'Sentinel-2'}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <Clock size={10} />
+                                                        <span>ข้อมูลล่าสุด: {satData.date} {satData.month} {satData.year}</span>
                                                     </div>
                                                 </div>
                                             )}
