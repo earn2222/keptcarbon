@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { provinceCoords } from '../data/province-coords'
 import * as turf from '@turf/turf'
+import thailandAddressData from '../data/thailand-address.json'
 import MapboxDraw from '@mapbox/mapbox-gl-draw'
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css'
 import WorkflowModal from '../components/organisms/WorkflowModal'
@@ -207,6 +208,21 @@ function MapPage() {
     const [selectedProvince, setSelectedProvince] = useState('')
     const [provinceSearch, setProvinceSearch] = useState('')
     const [filteredProvinces, setFilteredProvinces] = useState(thaiProvinces)
+
+    // ==========================================
+    // CASCADING SEARCH STATES
+    // ==========================================
+    const [searchTab, setSearchTab] = useState('location') // 'location' | 'coords'
+    const [selectedProvinceCode, setSelectedProvinceCode] = useState(null)
+    const [selectedDistrictCode, setSelectedDistrictCode] = useState(null)
+    const [selectedSubdistrictCode, setSelectedSubdistrictCode] = useState(null)
+    const [districtSearch, setDistrictSearch] = useState('')
+    const [subdistrictSearch, setSubdistrictSearch] = useState('')
+    const [breadcrumbs, setBreadcrumbs] = useState([])
+    const [searchLoading, setSearchLoading] = useState(false)
+    const [activeBoundaryLevel, setActiveBoundaryLevel] = useState(null)
+    const [coordLat, setCoordLat] = useState('')
+    const [coordLng, setCoordLng] = useState('')
 
     useEffect(() => {
         const profile = localStorage.getItem('userProfile')
@@ -1243,7 +1259,7 @@ function MapPage() {
     }
 
     // ==========================================
-    // SEARCH PROVINCE
+    // SEARCH PROVINCE (Legacy)
     // ==========================================
     useEffect(() => {
         if (provinceSearch) {
@@ -1260,7 +1276,7 @@ function MapPage() {
         const coords = provinceCoords[province]
         if (coords && map.current) {
             map.current.flyTo({
-                center: [coords[1], coords[0]], // Note: coords are [lat, lng], MapLibre uses [lng, lat]
+                center: [coords[1], coords[0]],
                 zoom: 10,
                 pitch: 45,
                 bearing: 0,
@@ -1270,6 +1286,196 @@ function MapPage() {
             setShowSearchPanel(false)
         }
     }
+
+    // ==========================================
+    // CASCADING SEARCH LOGIC
+    // ==========================================
+    const uniqueProvinces = useMemo(() => {
+        const map = new Map()
+        thailandAddressData.forEach(item => {
+            if (!map.has(item.provinceCode)) {
+                map.set(item.provinceCode, {
+                    code: item.provinceCode,
+                    nameTh: item.provinceNameTh,
+                    nameEn: item.provinceNameEn || ''
+                })
+            }
+        })
+        let arr = Array.from(map.values()).sort((a, b) => a.nameTh.localeCompare(b.nameTh, 'th'))
+        if (provinceSearch) arr = arr.filter(p => p.nameTh.includes(provinceSearch) || p.nameEn.toLowerCase().includes(provinceSearch.toLowerCase()))
+        return arr
+    }, [provinceSearch])
+
+    const filteredDistricts = useMemo(() => {
+        if (!selectedProvinceCode) return []
+        const map = new Map()
+        thailandAddressData.filter(i => i.provinceCode === selectedProvinceCode).forEach(item => {
+            if (!map.has(item.districtCode)) {
+                map.set(item.districtCode, {
+                    code: item.districtCode,
+                    nameTh: item.districtNameTh,
+                    nameEn: item.districtNameEn || ''
+                })
+            }
+        })
+        let arr = Array.from(map.values()).sort((a, b) => a.nameTh.localeCompare(b.nameTh, 'th'))
+        if (districtSearch) arr = arr.filter(d => d.nameTh.includes(districtSearch) || d.nameEn.toLowerCase().includes(districtSearch.toLowerCase()))
+        return arr
+    }, [selectedProvinceCode, districtSearch])
+
+    const filteredSubdistricts = useMemo(() => {
+        if (!selectedDistrictCode) return []
+        const map = new Map()
+        thailandAddressData.filter(i => i.districtCode === selectedDistrictCode).forEach(item => {
+            if (!map.has(item.subdistrictCode)) {
+                map.set(item.subdistrictCode, {
+                    code: item.subdistrictCode,
+                    nameTh: item.subdistrictNameTh,
+                    nameEn: item.subdistrictNameEn || ''
+                })
+            }
+        })
+        let arr = Array.from(map.values()).sort((a, b) => a.nameTh.localeCompare(b.nameTh, 'th'))
+        if (subdistrictSearch) arr = arr.filter(d => d.nameTh.includes(subdistrictSearch) || d.nameEn.toLowerCase().includes(subdistrictSearch.toLowerCase()))
+        return arr
+    }, [selectedDistrictCode, subdistrictSearch])
+
+    // ==========================================
+    // BOUNDARY DISPLAY FUNCTIONS
+    // ==========================================
+    const clearBoundaryLayers = useCallback(() => {
+        if (!map.current) return
+        const ids = ['admin-boundary-fill', 'admin-boundary-line', 'admin-boundary-line-glow', 'village-points', 'village-labels']
+        ids.forEach(id => { try { if (map.current.getLayer(id)) map.current.removeLayer(id) } catch (e) { } })
+            ;['admin-boundary', 'village-data'].forEach(id => { try { if (map.current.getSource(id)) map.current.removeSource(id) } catch (e) { } })
+        setActiveBoundaryLevel(null)
+    }, [])
+
+    const showBoundary = useCallback((geojson, level, zoomLevel) => {
+        if (!map.current || !geojson) return
+        clearBoundaryLayers()
+        const colors = {
+            province: { fill: 'rgba(59, 130, 246, 0.12)', line: '#3b82f6', glow: 'rgba(59, 130, 246, 0.4)' },
+            district: { fill: 'rgba(139, 92, 246, 0.12)', line: '#8b5cf6', glow: 'rgba(139, 92, 246, 0.4)' },
+            subdistrict: { fill: 'rgba(16, 185, 129, 0.12)', line: '#10b981', glow: 'rgba(16, 185, 129, 0.4)' }
+        }
+        const c = colors[level] || colors.province
+        map.current.addSource('admin-boundary', { type: 'geojson', data: geojson })
+        map.current.addLayer({ id: 'admin-boundary-line-glow', type: 'line', source: 'admin-boundary', paint: { 'line-color': c.glow, 'line-width': 8, 'line-blur': 6, 'line-opacity': 0.6 } })
+        map.current.addLayer({ id: 'admin-boundary-fill', type: 'fill', source: 'admin-boundary', paint: { 'fill-color': c.fill, 'fill-opacity': 0.5 } })
+        map.current.addLayer({ id: 'admin-boundary-line', type: 'line', source: 'admin-boundary', paint: { 'line-color': c.line, 'line-width': level === 'subdistrict' ? 2 : 3, 'line-dasharray': level === 'subdistrict' ? [3, 2] : [1] } })
+        try {
+            const bbox = turf.bbox(geojson)
+            map.current.fitBounds(bbox, { padding: 60, maxZoom: zoomLevel || 12, duration: 2000 })
+        } catch (e) { console.warn('Could not fit bounds:', e) }
+        setActiveBoundaryLevel(level)
+    }, [clearBoundaryLayers])
+
+    const fetchBoundary = useCallback(async (name, level) => {
+        setSearchLoading(true)
+        try {
+            const query = encodeURIComponent(name + ', Thailand')
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=geojson&polygon_geojson=1&limit=1&accept-language=th`, {
+                headers: { 'User-Agent': 'KeptCarbon/1.0' }
+            })
+            const data = await res.json()
+            if (data.features && data.features.length > 0) {
+                const feature = data.features[0]
+                if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
+                    const zoomLevel = level === 'province' ? 9 : level === 'district' ? 12 : 14
+                    showBoundary(feature, level, zoomLevel)
+                } else {
+                    const [lng, lat] = feature.geometry.coordinates
+                    map.current.flyTo({ center: [lng, lat], zoom: level === 'province' ? 9 : level === 'district' ? 12 : 14, pitch: 45, duration: 2000 })
+                }
+            }
+        } catch (err) { console.warn('Boundary fetch failed:', err) }
+        finally { setSearchLoading(false) }
+    }, [showBoundary])
+
+    // ==========================================
+    // CASCADING SEARCH HANDLERS
+    // ==========================================
+    const handleProvinceSelect = useCallback((prov) => {
+        setSelectedProvinceCode(prov.code)
+        setSelectedDistrictCode(null)
+        setSelectedSubdistrictCode(null)
+        setDistrictSearch('')
+        setSubdistrictSearch('')
+        setBreadcrumbs([{ label: prov.nameTh, level: 'province', code: prov.code }])
+        fetchBoundary(prov.nameTh, 'province')
+    }, [fetchBoundary])
+
+    const handleDistrictSelect = useCallback((dist) => {
+        setSelectedDistrictCode(dist.code)
+        setSelectedSubdistrictCode(null)
+        setSubdistrictSearch('')
+        setBreadcrumbs(prev => [...prev.slice(0, 1), { label: dist.nameTh, level: 'district', code: dist.code }])
+        const provName = breadcrumbs[0]?.label || ''
+        fetchBoundary(dist.nameTh + ' ' + provName, 'district')
+    }, [breadcrumbs, fetchBoundary])
+
+    const handleSubdistrictSelect = useCallback((sub) => {
+        setSelectedSubdistrictCode(sub.code)
+        setBreadcrumbs(prev => [...prev.slice(0, 2), { label: sub.nameTh, level: 'subdistrict', code: sub.code }])
+        const distName = breadcrumbs[1]?.label || ''
+        const provName = breadcrumbs[0]?.label || ''
+        fetchBoundary(sub.nameTh + ' ' + distName + ' ' + provName, 'subdistrict')
+    }, [breadcrumbs, fetchBoundary])
+
+    const handleBreadcrumbClick = useCallback((index) => {
+        if (index === -1) {
+            setSelectedProvinceCode(null)
+            setSelectedDistrictCode(null)
+            setSelectedSubdistrictCode(null)
+            setProvinceSearch('')
+            setDistrictSearch('')
+            setSubdistrictSearch('')
+            setBreadcrumbs([])
+            clearBoundaryLayers()
+            return
+        }
+        const bc = breadcrumbs[index]
+        if (bc.level === 'province') {
+            setSelectedDistrictCode(null)
+            setSelectedSubdistrictCode(null)
+            setDistrictSearch('')
+            setSubdistrictSearch('')
+            setBreadcrumbs(prev => prev.slice(0, 1))
+            fetchBoundary(bc.label, 'province')
+        }
+    }, [breadcrumbs, fetchBoundary, clearBoundaryLayers])
+
+    const resetSearch = useCallback(() => {
+        setSelectedProvinceCode(null)
+        setSelectedDistrictCode(null)
+        setSelectedSubdistrictCode(null)
+        setProvinceSearch('')
+        setDistrictSearch('')
+        setSubdistrictSearch('')
+        setBreadcrumbs([])
+        clearBoundaryLayers()
+    }, [clearBoundaryLayers])
+
+    // ==========================================
+    // COORDINATE SEARCH
+    // ==========================================
+    const handleCoordSearch = useCallback(() => {
+        const latitude = parseFloat(coordLat)
+        const longitude = parseFloat(coordLng)
+        if (isNaN(latitude) || isNaN(longitude)) { alert('กรุณากรอกพิกัดให้ถูกต้อง'); return }
+        if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) { alert('พิกัดไม่ถูกต้อง (Lat: -90~90, Lng: -180~180)'); return }
+        clearBoundaryLayers()
+        map.current.flyTo({ center: [longitude, latitude], zoom: 14, pitch: 45, duration: 2000 })
+        if (userMarker.current) {
+            userMarker.current.setLngLat([longitude, latitude])
+        } else {
+            const el = document.createElement('div')
+            el.className = 'user-marker'
+            el.innerHTML = `<div class="user-marker-pulse" style="background:rgba(239,68,68,0.3)"></div><div class="user-marker-dot" style="background:linear-gradient(135deg,#ef4444,#dc2626)"></div>`
+            userMarker.current = new maplibregl.Marker({ element: el }).setLngLat([longitude, latitude]).addTo(map.current)
+        }
+    }, [coordLat, coordLng, clearBoundaryLayers])
 
     // ==========================================
     // DIGITIZE LOGIC
@@ -1695,46 +1901,193 @@ function MapPage() {
             </div>
 
             {/* ==========================================
-                SEARCH PANEL
+                ENHANCED SEARCH PANEL
             ========================================== */}
             {showSearchPanel && (
-                <div className="absolute top-20 right-4 z-40 w-72 animate-slideInRight">
+                <div className="absolute top-20 right-4 z-40 w-80 animate-slideInRight">
                     <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
+                        {/* Header */}
                         <div className="p-4 border-b border-slate-100">
                             <div className="flex items-center justify-between mb-3">
                                 <h3 className="text-sm font-semibold text-slate-700">ค้นหาสถานที่</h3>
-                                <button
-                                    onClick={() => setShowSearchPanel(false)}
-                                    className="p-1 text-slate-400 hover:text-slate-600"
-                                >
+                                <button onClick={() => setShowSearchPanel(false)} className="p-1 text-slate-400 hover:text-slate-600">
                                     <CloseIcon />
                                 </button>
                             </div>
-                            <input
-                                type="text"
-                                placeholder="พิมพ์ชื่อจังหวัด..."
-                                value={provinceSearch}
-                                onChange={(e) => setProvinceSearch(e.target.value)}
-                                className="w-full px-4 py-2.5 bg-slate-50 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all"
-                            />
-                        </div>
-                        <div className="max-h-60 overflow-y-auto scrollbar-subtle">
-                            {filteredProvinces.slice(0, 15).map((province) => (
-                                <button
-                                    key={province}
-                                    onClick={() => flyToProvince(province)}
-                                    className={`w-full text-left px-4 py-3 text-sm transition-colors hover:bg-emerald-50 flex items-center gap-3
-                                        ${selectedProvince === province ? 'bg-emerald-50 text-emerald-600' : 'text-slate-600'}`}
-                                >
-                                    <LocationIcon />
-                                    <span>{province}</span>
+                            {/* Tabs */}
+                            <div className="flex gap-1 bg-slate-100 rounded-xl p-1">
+                                <button onClick={() => setSearchTab('location')} className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all duration-200 ${searchTab === 'location' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
+                                    ค้นหาตำแหน่ง
                                 </button>
-                            ))}
+                                <button onClick={() => setSearchTab('coords')} className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all duration-200 ${searchTab === 'coords' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
+                                    พิกัด Lat/Lng
+                                </button>
+                            </div>
                         </div>
+
+                        {/* Location Search Tab */}
+                        {searchTab === 'location' && (
+                            <div>
+                                {/* Breadcrumbs */}
+                                {breadcrumbs.length > 0 && (
+                                    <div className="px-4 pt-3 flex items-center gap-1 flex-wrap">
+                                        <button onClick={() => handleBreadcrumbClick(-1)} className="text-[10px] font-bold text-emerald-600 hover:underline">ทั้งหมด</button>
+                                        {breadcrumbs.map((bc, i) => (
+                                            <span key={i} className="flex items-center gap-1">
+                                                <span className="text-slate-300 text-[10px]">›</span>
+                                                <button onClick={() => handleBreadcrumbClick(i)} className={`text-[10px] font-bold ${i === breadcrumbs.length - 1 ? 'text-slate-700' : 'text-emerald-600 hover:underline'}`}>
+                                                    {bc.label}
+                                                </button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Loading */}
+                                {searchLoading && (
+                                    <div className="mx-4 mt-2">
+                                        <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
+                                            <div className="h-full bg-gradient-to-r from-emerald-400 to-blue-500 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 mt-1 text-center">กำลังโหลดขอบเขต...</p>
+                                    </div>
+                                )}
+
+                                {/* Active Boundary Badge */}
+                                {activeBoundaryLevel && !searchLoading && (
+                                    <div className="mx-4 mt-2 flex items-center justify-between">
+                                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold ${activeBoundaryLevel === 'province' ? 'bg-blue-50 text-blue-600' :
+                                            activeBoundaryLevel === 'district' ? 'bg-purple-50 text-purple-600' :
+                                                'bg-emerald-50 text-emerald-600'
+                                            }`}>
+                                            <div className={`w-1.5 h-1.5 rounded-full ${activeBoundaryLevel === 'province' ? 'bg-blue-500' :
+                                                activeBoundaryLevel === 'district' ? 'bg-purple-500' :
+                                                    'bg-emerald-500'
+                                                }`}></div>
+                                            แสดงขอบเขต{activeBoundaryLevel === 'province' ? 'จังหวัด' : activeBoundaryLevel === 'district' ? 'อำเภอ' : 'ตำบล'}
+                                        </span>
+                                        <button onClick={clearBoundaryLayers} className="text-[10px] text-red-400 hover:text-red-600 font-medium">ล้าง</button>
+                                    </div>
+                                )}
+
+                                {/* Province List */}
+                                {!selectedProvinceCode && (
+                                    <div>
+                                        <div className="p-3">
+                                            <input
+                                                type="text"
+                                                placeholder="ค้นหาจังหวัด..."
+                                                value={provinceSearch}
+                                                onChange={(e) => setProvinceSearch(e.target.value)}
+                                                className="w-full px-3 py-2 bg-slate-50 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all"
+                                            />
+                                        </div>
+                                        <div className="max-h-64 overflow-y-auto scrollbar-subtle pb-2">
+                                            {uniqueProvinces.map(prov => (
+                                                <button key={prov.code} onClick={() => handleProvinceSelect(prov)} className="w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-emerald-50 flex items-center gap-3 group">
+                                                    <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500 group-hover:bg-blue-100 transition-colors flex-shrink-0">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                                                    </div>
+                                                    <div className="flex flex-col min-w-0">
+                                                        <span className="text-xs font-semibold text-slate-700 truncate">{prov.nameTh}</span>
+                                                        {prov.nameEn && <span className="text-[10px] text-slate-400 truncate">{prov.nameEn}</span>}
+                                                    </div>
+                                                    <svg className="w-4 h-4 text-slate-300 ml-auto flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M9 5l7 7-7 7" /></svg>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* District List */}
+                                {selectedProvinceCode && !selectedDistrictCode && (
+                                    <div>
+                                        <div className="p-3">
+                                            <input
+                                                type="text"
+                                                placeholder="ค้นหาอำเภอ..."
+                                                value={districtSearch}
+                                                onChange={(e) => setDistrictSearch(e.target.value)}
+                                                className="w-full px-3 py-2 bg-slate-50 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 transition-all"
+                                            />
+                                        </div>
+                                        <div className="max-h-64 overflow-y-auto scrollbar-subtle pb-2">
+                                            {filteredDistricts.map(dist => (
+                                                <button key={dist.code} onClick={() => handleDistrictSelect(dist)} className="w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-purple-50 flex items-center gap-3 group">
+                                                    <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center text-purple-500 group-hover:bg-purple-100 transition-colors flex-shrink-0">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 12h18M12 3v18" /></svg>
+                                                    </div>
+                                                    <div className="flex flex-col min-w-0">
+                                                        <span className="text-xs font-semibold text-slate-700 truncate">{dist.nameTh}</span>
+                                                        {dist.nameEn && <span className="text-[10px] text-slate-400 truncate">{dist.nameEn}</span>}
+                                                    </div>
+                                                    <svg className="w-4 h-4 text-slate-300 ml-auto flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M9 5l7 7-7 7" /></svg>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Sub-district List */}
+                                {selectedDistrictCode && (
+                                    <div>
+                                        <div className="p-3">
+                                            <input
+                                                type="text"
+                                                placeholder="ค้นหาตำบล..."
+                                                value={subdistrictSearch}
+                                                onChange={(e) => setSubdistrictSearch(e.target.value)}
+                                                className="w-full px-3 py-2 bg-slate-50 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all"
+                                            />
+                                        </div>
+                                        <div className="max-h-64 overflow-y-auto scrollbar-subtle pb-2">
+                                            {filteredSubdistricts.map(sub => (
+                                                <button key={sub.code} onClick={() => handleSubdistrictSelect(sub)} className={`w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-emerald-50 flex items-center gap-3 group ${selectedSubdistrictCode === sub.code ? 'bg-emerald-50' : ''}`}>
+                                                    <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-500 group-hover:bg-emerald-100 transition-colors flex-shrink-0">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l9 4.5v11L12 22l-9-4.5v-11L12 2z" /></svg>
+                                                    </div>
+                                                    <div className="flex flex-col min-w-0">
+                                                        <span className="text-xs font-semibold text-slate-700 truncate">{sub.nameTh}</span>
+                                                        {sub.nameEn && <span className="text-[10px] text-slate-400 truncate">{sub.nameEn}</span>}
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Coordinate Search Tab */}
+                        {searchTab === 'coords' && (
+                            <div className="p-4 space-y-3">
+                                <div>
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Latitude</label>
+                                    <input type="number" step="any" value={coordLat} onChange={(e) => setCoordLat(e.target.value)} placeholder="เช่น 13.7563" className="w-full px-3 py-2 bg-slate-50 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all" />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Longitude</label>
+                                    <input type="number" step="any" value={coordLng} onChange={(e) => setCoordLng(e.target.value)} placeholder="เช่น 100.5018" className="w-full px-3 py-2 bg-slate-50 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all" />
+                                </div>
+                                {/* Quick Presets */}
+                                <div className="flex flex-wrap gap-1">
+                                    {[{ name: 'กรุงเทพ', lat: 13.7563, lng: 100.5018 }, { name: 'เชียงใหม่', lat: 18.7883, lng: 98.9853 }, { name: 'ภูเก็ต', lat: 7.8804, lng: 98.3923 }, { name: 'ขอนแก่น', lat: 16.4322, lng: 102.8236 }].map(p => (
+                                        <button key={p.name} onClick={() => { setCoordLat(String(p.lat)); setCoordLng(String(p.lng)) }} className="px-2 py-1 bg-slate-100 hover:bg-blue-50 text-[10px] font-medium text-slate-500 hover:text-blue-600 rounded-lg transition-colors">
+                                            {p.name}
+                                        </button>
+                                    ))}
+                                </div>
+                                <button onClick={handleCoordSearch} className="w-full py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-xs font-bold rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all shadow-md shadow-blue-500/20 active:scale-[0.98]">
+                                    ไปยังพิกัดนี้
+                                </button>
+                                <div className="bg-blue-50 rounded-xl p-3">
+                                    <p className="text-[10px] text-blue-600 font-medium">💡 กรอกพิกัดทศนิยม เช่น Lat: 13.7563, Lng: 100.5018</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
-            )
-            }
+            )}
 
             {/* ==========================================
                 LAYER PANEL

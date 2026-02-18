@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { provinceCoords } from '../data/province-coords'
@@ -6,6 +6,7 @@ import * as turf from '@turf/turf'
 import MapboxDraw from '@mapbox/mapbox-gl-draw'
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css'
 import WorkflowModal from '../components/organisms/WorkflowModal'
+import thaiAddressRaw from '../data/thailand-address.json'
 
 // ==========================================
 // THAI ADDRESS DATA (Compact)
@@ -198,6 +199,56 @@ function MapPageNew() {
     const [provinceSearch, setProvinceSearch] = useState('')
     const [filteredProvinces, setFilteredProvinces] = useState(thaiProvinces)
 
+    // Enhanced cascading search state
+    const [searchTab, setSearchTab] = useState('location') // 'location' | 'coords'
+    const [selectedProvinceCode, setSelectedProvinceCode] = useState(null)
+    const [selectedDistrictCode, setSelectedDistrictCode] = useState(null)
+    const [selectedSubdistrictCode, setSelectedSubdistrictCode] = useState(null)
+    const [districtSearch, setDistrictSearch] = useState('')
+    const [subdistrictSearch, setSubdistrictSearch] = useState('')
+    const [searchLoading, setSearchLoading] = useState(false)
+    const [coordLat, setCoordLat] = useState('')
+    const [coordLng, setCoordLng] = useState('')
+    const [activeBoundaryLevel, setActiveBoundaryLevel] = useState(null) // 'province' | 'district' | 'subdistrict'
+    const [breadcrumbs, setBreadcrumbs] = useState([])
+
+    // Derive unique provinces, districts, subdistricts from thaiAddressRaw
+    const uniqueProvinces = useMemo(() => {
+        const map = new Map()
+        thaiAddressRaw.forEach(r => {
+            if (!map.has(r.provinceCode)) {
+                map.set(r.provinceCode, { code: r.provinceCode, nameTh: r.provinceNameTh, nameEn: r.provinceNameEn })
+            }
+        })
+        return Array.from(map.values()).sort((a, b) => a.nameTh.localeCompare(b.nameTh, 'th'))
+    }, [])
+
+    const filteredDistricts = useMemo(() => {
+        if (!selectedProvinceCode) return []
+        const map = new Map()
+        thaiAddressRaw.filter(r => r.provinceCode === selectedProvinceCode).forEach(r => {
+            if (!map.has(r.districtCode)) {
+                map.set(r.districtCode, { code: r.districtCode, nameTh: r.districtNameTh, nameEn: r.districtNameEn })
+            }
+        })
+        let arr = Array.from(map.values()).sort((a, b) => a.nameTh.localeCompare(b.nameTh, 'th'))
+        if (districtSearch) arr = arr.filter(d => d.nameTh.includes(districtSearch) || d.nameEn.toLowerCase().includes(districtSearch.toLowerCase()))
+        return arr
+    }, [selectedProvinceCode, districtSearch])
+
+    const filteredSubdistricts = useMemo(() => {
+        if (!selectedDistrictCode) return []
+        const map = new Map()
+        thaiAddressRaw.filter(r => r.districtCode === selectedDistrictCode).forEach(r => {
+            if (!map.has(r.subdistrictCode)) {
+                map.set(r.subdistrictCode, { code: r.subdistrictCode, nameTh: r.subdistrictNameTh, nameEn: r.subdistrictNameEn })
+            }
+        })
+        let arr = Array.from(map.values()).sort((a, b) => a.nameTh.localeCompare(b.nameTh, 'th'))
+        if (subdistrictSearch) arr = arr.filter(d => d.nameTh.includes(subdistrictSearch) || d.nameEn.toLowerCase().includes(subdistrictSearch.toLowerCase()))
+        return arr
+    }, [selectedDistrictCode, subdistrictSearch])
+
     // Multi-plot State
     const [accumulatedPlots, setAccumulatedPlots] = useState([])
     const [popupPlotId, setPopupPlotId] = useState(null)
@@ -205,8 +256,6 @@ function MapPageNew() {
 
     // Preview plots from SHP import
     const [previewPlots, setPreviewPlots] = useState([])
-
-    // ... (rest of search logic)
 
 
 
@@ -872,7 +921,7 @@ function MapPageNew() {
     }
 
     // ==========================================
-    // SEARCH PROVINCE
+    // SEARCH PROVINCE (legacy filter)
     // ==========================================
     useEffect(() => {
         if (provinceSearch) {
@@ -889,16 +938,308 @@ function MapPageNew() {
         const coords = provinceCoords[province]
         if (coords && map.current) {
             map.current.flyTo({
-                center: [coords[1], coords[0]], // Note: coords are [lat, lng], MapLibre uses [lng, lat]
+                center: [coords[1], coords[0]],
                 zoom: 10,
                 pitch: 45,
                 bearing: 0,
                 duration: 2500
             })
             setSelectedProvince(province)
-            setShowSearchPanel(false)
         }
     }
+
+    // ==========================================
+    // ADMINISTRATIVE BOUNDARY HELPERS
+    // ==========================================
+    const clearBoundaryLayers = useCallback(() => {
+        if (!map.current) return
+        const layerIds = [
+            'admin-boundary-fill', 'admin-boundary-line', 'admin-boundary-line-glow',
+            'village-points', 'village-labels'
+        ]
+        layerIds.forEach(id => {
+            if (map.current.getLayer(id)) map.current.removeLayer(id)
+        })
+        const sourceIds = ['admin-boundary', 'village-points-src']
+        sourceIds.forEach(id => {
+            if (map.current.getSource(id)) map.current.removeSource(id)
+        })
+    }, [])
+
+    const showBoundary = useCallback((geojson, level, zoomLevel) => {
+        if (!map.current || !geojson) return
+        clearBoundaryLayers()
+
+        // Color palette by level
+        const colors = {
+            province: { fill: 'rgba(59, 130, 246, 0.12)', line: '#3b82f6', glow: 'rgba(59, 130, 246, 0.3)' },
+            district: { fill: 'rgba(168, 85, 247, 0.12)', line: '#a855f7', glow: 'rgba(168, 85, 247, 0.3)' },
+            subdistrict: { fill: 'rgba(16, 185, 129, 0.15)', line: '#10b981', glow: 'rgba(16, 185, 129, 0.3)' }
+        }
+        const c = colors[level] || colors.province
+
+        map.current.addSource('admin-boundary', {
+            type: 'geojson',
+            data: geojson
+        })
+
+        // Glow outline
+        map.current.addLayer({
+            id: 'admin-boundary-line-glow',
+            type: 'line',
+            source: 'admin-boundary',
+            paint: {
+                'line-color': c.glow,
+                'line-width': 8,
+                'line-blur': 6,
+                'line-opacity': 0.6
+            }
+        })
+
+        // Fill
+        map.current.addLayer({
+            id: 'admin-boundary-fill',
+            type: 'fill',
+            source: 'admin-boundary',
+            paint: {
+                'fill-color': c.fill,
+                'fill-opacity': 0.6
+            }
+        })
+
+        // Line
+        map.current.addLayer({
+            id: 'admin-boundary-line',
+            type: 'line',
+            source: 'admin-boundary',
+            paint: {
+                'line-color': c.line,
+                'line-width': 3,
+                'line-dasharray': level === 'subdistrict' ? [3, 2] : [1, 0]
+            }
+        })
+
+        // Fit bounds
+        try {
+            const bbox = turf.bbox(geojson)
+            map.current.fitBounds(bbox, {
+                padding: 60,
+                maxZoom: zoomLevel || 12,
+                duration: 2000
+            })
+        } catch (e) {
+            console.warn('Could not fit bounds:', e)
+        }
+
+        setActiveBoundaryLevel(level)
+    }, [clearBoundaryLayers])
+
+    const showVillageMarkers = useCallback((villages) => {
+        if (!map.current || !villages || villages.length === 0) return
+
+        // Remove existing village layers
+        if (map.current.getLayer('village-labels')) map.current.removeLayer('village-labels')
+        if (map.current.getLayer('village-points')) map.current.removeLayer('village-points')
+        if (map.current.getSource('village-points-src')) map.current.removeSource('village-points-src')
+
+        const geojson = {
+            type: 'FeatureCollection',
+            features: villages.map((v, i) => ({
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: [v.lng, v.lat] },
+                properties: { name: v.name || `หมู่บ้าน ${i + 1}`, id: i }
+            }))
+        }
+
+        map.current.addSource('village-points-src', {
+            type: 'geojson',
+            data: geojson
+        })
+
+        map.current.addLayer({
+            id: 'village-points',
+            type: 'circle',
+            source: 'village-points-src',
+            paint: {
+                'circle-radius': 7,
+                'circle-color': '#f59e0b',
+                'circle-stroke-color': '#ffffff',
+                'circle-stroke-width': 2.5,
+                'circle-opacity': 0.9
+            }
+        })
+
+        map.current.addLayer({
+            id: 'village-labels',
+            type: 'symbol',
+            source: 'village-points-src',
+            layout: {
+                'text-field': ['get', 'name'],
+                'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+                'text-size': 12,
+                'text-offset': [0, 1.8],
+                'text-anchor': 'top',
+                'text-max-width': 10
+            },
+            paint: {
+                'text-color': '#f59e0b',
+                'text-halo-color': '#1e293b',
+                'text-halo-width': 2
+            }
+        })
+    }, [])
+
+    // ==========================================
+    // FETCH BOUNDARY FROM OVERPASS/NOMINATIM
+    // ==========================================
+    const fetchBoundary = useCallback(async (name, level) => {
+        setSearchLoading(true)
+        try {
+            // Use Nominatim to get the boundary polygon
+            const query = encodeURIComponent(name + ', Thailand')
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=geojson&polygon_geojson=1&limit=1&accept-language=th`, {
+                headers: { 'User-Agent': 'KeptCarbon/1.0' }
+            })
+            const data = await res.json()
+            if (data.features && data.features.length > 0) {
+                const feature = data.features[0]
+                if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
+                    const zoomLevel = level === 'province' ? 9 : level === 'district' ? 12 : 14
+                    showBoundary(feature, level, zoomLevel)
+                } else {
+                    // Point result — just fly to it
+                    const [lng, lat] = feature.geometry.coordinates
+                    map.current.flyTo({
+                        center: [lng, lat],
+                        zoom: level === 'province' ? 9 : level === 'district' ? 12 : 14,
+                        pitch: 45,
+                        duration: 2000
+                    })
+                }
+            }
+        } catch (err) {
+            console.warn('Boundary fetch failed:', err)
+        } finally {
+            setSearchLoading(false)
+        }
+    }, [showBoundary])
+
+    // ==========================================
+    // CASCADING SEARCH HANDLERS
+    // ==========================================
+    const handleProvinceSelect = useCallback((prov) => {
+        setSelectedProvinceCode(prov.code)
+        setSelectedDistrictCode(null)
+        setSelectedSubdistrictCode(null)
+        setDistrictSearch('')
+        setSubdistrictSearch('')
+        setSelectedProvince(prov.nameTh)
+        setBreadcrumbs([{ level: 'province', name: prov.nameTh, code: prov.code }])
+
+        // Fly using existing coords if available
+        const coords = provinceCoords[prov.nameTh]
+        if (coords && map.current) {
+            map.current.flyTo({
+                center: [coords[1], coords[0]],
+                zoom: 9,
+                pitch: 45,
+                bearing: 0,
+                duration: 2000
+            })
+        }
+        // Fetch boundary
+        fetchBoundary(prov.nameTh, 'province')
+    }, [fetchBoundary])
+
+    const handleDistrictSelect = useCallback((dist) => {
+        setSelectedDistrictCode(dist.code)
+        setSelectedSubdistrictCode(null)
+        setSubdistrictSearch('')
+        const provName = breadcrumbs.length > 0 ? breadcrumbs[0].name : ''
+        setBreadcrumbs(prev => [
+            prev[0],
+            { level: 'district', name: dist.nameTh, code: dist.code }
+        ])
+        fetchBoundary(`${dist.nameTh}, ${provName}`, 'district')
+    }, [breadcrumbs, fetchBoundary])
+
+    const handleSubdistrictSelect = useCallback((sub) => {
+        setSelectedSubdistrictCode(sub.code)
+        const provName = breadcrumbs.length > 0 ? breadcrumbs[0].name : ''
+        const distName = breadcrumbs.length > 1 ? breadcrumbs[1].name : ''
+        setBreadcrumbs(prev => [
+            prev[0],
+            prev[1],
+            { level: 'subdistrict', name: sub.nameTh, code: sub.code }
+        ])
+        fetchBoundary(`${sub.nameTh}, ${distName}, ${provName}`, 'subdistrict')
+    }, [breadcrumbs, fetchBoundary])
+
+    const handleBreadcrumbClick = useCallback((index) => {
+        if (index === 0) {
+            // Back to province level
+            setSelectedDistrictCode(null)
+            setSelectedSubdistrictCode(null)
+            setDistrictSearch('')
+            setSubdistrictSearch('')
+            setBreadcrumbs(prev => [prev[0]])
+            const provName = breadcrumbs[0]?.name
+            if (provName) fetchBoundary(provName, 'province')
+        } else if (index === 1) {
+            // Back to district level
+            setSelectedSubdistrictCode(null)
+            setSubdistrictSearch('')
+            setBreadcrumbs(prev => [prev[0], prev[1]])
+            const provName = breadcrumbs[0]?.name
+            const distName = breadcrumbs[1]?.name
+            if (distName) fetchBoundary(`${distName}, ${provName}`, 'district')
+        }
+    }, [breadcrumbs, fetchBoundary])
+
+    const resetSearch = useCallback(() => {
+        setSelectedProvinceCode(null)
+        setSelectedDistrictCode(null)
+        setSelectedSubdistrictCode(null)
+        setProvinceSearch('')
+        setDistrictSearch('')
+        setSubdistrictSearch('')
+        setBreadcrumbs([])
+        setActiveBoundaryLevel(null)
+        clearBoundaryLayers()
+    }, [clearBoundaryLayers])
+
+    const handleCoordSearch = useCallback(() => {
+        const lat = parseFloat(coordLat)
+        const lng = parseFloat(coordLng)
+        if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+            alert('กรุณากรอกค่าพิกัดให้ถูกต้อง\nLat: -90 ถึง 90\nLng: -180 ถึง 180')
+            return
+        }
+
+        if (!map.current) return
+
+        clearBoundaryLayers()
+
+        // Add marker at coords
+        const markerEl = document.createElement('div')
+        markerEl.innerHTML = `
+            <div style="position:relative;width:32px;height:32px">
+                <div style="position:absolute;inset:0;background:rgba(239,68,68,0.25);border-radius:50%;animation:pulse-ring 1.5s infinite"></div>
+                <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:16px;height:16px;background:linear-gradient(135deg,#ef4444,#dc2626);border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.3)"></div>
+            </div>
+        `
+
+        new maplibregl.Marker({ element: markerEl })
+            .setLngLat([lng, lat])
+            .addTo(map.current)
+
+        map.current.flyTo({
+            center: [lng, lat],
+            zoom: 15,
+            pitch: 45,
+            duration: 2000
+        })
+    }, [coordLat, coordLng, clearBoundaryLayers])
 
     // ==========================================
     // DIGITIZE LOGIC
@@ -1039,42 +1380,279 @@ function MapPageNew() {
             </div>
 
             {/* ==========================================
-                SEARCH PANEL
+                SEARCH PANEL - Enhanced Cascading
             ========================================== */}
             {showSearchPanel && (
-                <div className="absolute top-20 right-4 z-40 w-72 animate-slideInRight">
+                <div className="absolute top-20 right-4 z-40 animate-slideInRight" style={{ width: '340px' }}>
                     <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
+                        {/* Header */}
                         <div className="p-4 border-b border-slate-100">
                             <div className="flex items-center justify-between mb-3">
-                                <h3 className="text-sm font-medium text-slate-700">ค้นหาสถานที่</h3>
+                                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
+                                    ค้นหาสถานที่
+                                </h3>
                                 <button
-                                    onClick={() => setShowSearchPanel(false)}
-                                    className="p-1 text-slate-400 hover:text-slate-600"
+                                    onClick={() => { setShowSearchPanel(false); resetSearch(); }}
+                                    className="p-1 text-slate-400 hover:text-slate-600 transition-colors"
                                 >
                                     <CloseIcon />
                                 </button>
                             </div>
-                            <input
-                                type="text"
-                                placeholder="พิมพ์ชื่อจังหวัด..."
-                                value={provinceSearch}
-                                onChange={(e) => setProvinceSearch(e.target.value)}
-                                className="w-full px-4 py-2.5 bg-slate-50 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all"
-                            />
-                        </div>
-                        <div className="max-h-60 overflow-y-auto scrollbar-subtle">
-                            {filteredProvinces.slice(0, 15).map((province) => (
+
+                            {/* Tab Switcher */}
+                            <div className="flex bg-slate-100 rounded-xl p-0.5 gap-0.5">
                                 <button
-                                    key={province}
-                                    onClick={() => flyToProvince(province)}
-                                    className={`w-full text-left px-4 py-3 text-sm transition-colors hover:bg-emerald-50 flex items-center gap-3
-                                        ${selectedProvince === province ? 'bg-emerald-50 text-emerald-600' : 'text-slate-600'}`}
+                                    onClick={() => setSearchTab('location')}
+                                    className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all duration-200 flex items-center justify-center gap-1.5
+                                        ${searchTab === 'location'
+                                            ? 'bg-white text-emerald-600 shadow-sm'
+                                            : 'text-slate-500 hover:text-slate-700'}`}
                                 >
-                                    <LocationIcon />
-                                    <span>{province}</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
+                                    ค้นหาตำแหน่ง
                                 </button>
-                            ))}
+                                <button
+                                    onClick={() => setSearchTab('coords')}
+                                    className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all duration-200 flex items-center justify-center gap-1.5
+                                        ${searchTab === 'coords'
+                                            ? 'bg-white text-emerald-600 shadow-sm'
+                                            : 'text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="2" x2="22" y1="12" y2="12" /><line x1="12" x2="12" y1="2" y2="22" /></svg>
+                                    พิกัด Lat/Lng
+                                </button>
+                            </div>
                         </div>
+
+                        {/* ===== LOCATION TAB ===== */}
+                        {searchTab === 'location' && (
+                            <div>
+                                {/* Breadcrumbs */}
+                                {breadcrumbs.length > 0 && (
+                                    <div className="px-4 pt-3 pb-1 flex items-center gap-1 flex-wrap">
+                                        <button
+                                            onClick={resetSearch}
+                                            className="text-[10px] font-medium text-slate-400 hover:text-emerald-600 transition-colors flex items-center gap-0.5"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>
+                                            ทั้งหมด
+                                        </button>
+                                        {breadcrumbs.map((bc, idx) => (
+                                            <span key={idx} className="flex items-center gap-1">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#94a3af" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+                                                <button
+                                                    onClick={() => handleBreadcrumbClick(idx)}
+                                                    className={`text-[10px] font-semibold transition-colors ${idx === breadcrumbs.length - 1 ? 'text-emerald-600' : 'text-slate-500 hover:text-emerald-600'}`}
+                                                >
+                                                    {bc.name}
+                                                </button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Loading bar */}
+                                {searchLoading && (
+                                    <div className="px-4 pt-2">
+                                        <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
+                                            <div className="h-full bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-400 rounded-full animate-pulse" style={{ width: '70%' }}></div>
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 mt-1 text-center">กำลังโหลดขอบเขต...</p>
+                                    </div>
+                                )}
+
+                                {/* Active Boundary Badge */}
+                                {activeBoundaryLevel && !searchLoading && (
+                                    <div className="px-4 pt-2">
+                                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-semibold border
+                                            ${activeBoundaryLevel === 'province' ? 'bg-blue-50 text-blue-600 border-blue-200' :
+                                                activeBoundaryLevel === 'district' ? 'bg-purple-50 text-purple-600 border-purple-200' :
+                                                    'bg-emerald-50 text-emerald-600 border-emerald-200'}`}
+                                        >
+                                            <span className={`w-2 h-2 rounded-full ${activeBoundaryLevel === 'province' ? 'bg-blue-500' : activeBoundaryLevel === 'district' ? 'bg-purple-500' : 'bg-emerald-500'}`}></span>
+                                            แสดงขอบเขต: {activeBoundaryLevel === 'province' ? 'จังหวัด' : activeBoundaryLevel === 'district' ? 'อำเภอ' : 'ตำบล'}
+                                            <button onClick={() => { clearBoundaryLayers(); setActiveBoundaryLevel(null); }} className="ml-auto opacity-60 hover:opacity-100">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* ===== Province List ===== */}
+                                {!selectedProvinceCode && (
+                                    <div>
+                                        <div className="px-4 pt-3 pb-2">
+                                            <input
+                                                type="text"
+                                                placeholder="🔍 ค้นหาจังหวัด..."
+                                                value={provinceSearch}
+                                                onChange={(e) => setProvinceSearch(e.target.value)}
+                                                className="w-full px-3.5 py-2.5 bg-slate-50 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all placeholder:text-slate-400"
+                                            />
+                                        </div>
+                                        <div className="max-h-[280px] overflow-y-auto scrollbar-subtle">
+                                            {uniqueProvinces
+                                                .filter(p => !provinceSearch || p.nameTh.includes(provinceSearch) || p.nameEn.toLowerCase().includes(provinceSearch.toLowerCase()))
+                                                .map((prov) => (
+                                                    <button
+                                                        key={prov.code}
+                                                        onClick={() => handleProvinceSelect(prov)}
+                                                        className="w-full text-left px-4 py-2.5 text-sm transition-all hover:bg-emerald-50 flex items-center gap-3 group border-b border-slate-50 last:border-0"
+                                                    >
+                                                        <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500 group-hover:bg-blue-100 transition-colors flex-shrink-0">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="font-medium text-slate-700 group-hover:text-emerald-700 truncate">{prov.nameTh}</p>
+                                                            <p className="text-[10px] text-slate-400">{prov.nameEn}</p>
+                                                        </div>
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0"><path d="m9 18 6-6-6-6" /></svg>
+                                                    </button>
+                                                ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* ===== District List ===== */}
+                                {selectedProvinceCode && !selectedDistrictCode && (
+                                    <div>
+                                        <div className="px-4 pt-3 pb-2">
+                                            <input
+                                                type="text"
+                                                placeholder="🔍 ค้นหาอำเภอ..."
+                                                value={districtSearch}
+                                                onChange={(e) => setDistrictSearch(e.target.value)}
+                                                className="w-full px-3.5 py-2.5 bg-slate-50 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 transition-all placeholder:text-slate-400"
+                                            />
+                                        </div>
+                                        <div className="max-h-[280px] overflow-y-auto scrollbar-subtle">
+                                            {filteredDistricts.map((dist) => (
+                                                <button
+                                                    key={dist.code}
+                                                    onClick={() => handleDistrictSelect(dist)}
+                                                    className="w-full text-left px-4 py-2.5 text-sm transition-all hover:bg-purple-50 flex items-center gap-3 group border-b border-slate-50 last:border-0"
+                                                >
+                                                    <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center text-purple-500 group-hover:bg-purple-100 transition-colors flex-shrink-0">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M3 12h18" /></svg>
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-medium text-slate-700 group-hover:text-purple-700 truncate">{dist.nameTh}</p>
+                                                        <p className="text-[10px] text-slate-400">{dist.nameEn}</p>
+                                                    </div>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0"><path d="m9 18 6-6-6-6" /></svg>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* ===== Sub-district List ===== */}
+                                {selectedDistrictCode && (
+                                    <div>
+                                        <div className="px-4 pt-3 pb-2">
+                                            <input
+                                                type="text"
+                                                placeholder="🔍 ค้นหาตำบล..."
+                                                value={subdistrictSearch}
+                                                onChange={(e) => setSubdistrictSearch(e.target.value)}
+                                                className="w-full px-3.5 py-2.5 bg-slate-50 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all placeholder:text-slate-400"
+                                            />
+                                        </div>
+                                        <div className="max-h-[280px] overflow-y-auto scrollbar-subtle">
+                                            {filteredSubdistricts.map((sub) => (
+                                                <button
+                                                    key={sub.code}
+                                                    onClick={() => handleSubdistrictSelect(sub)}
+                                                    className={`w-full text-left px-4 py-2.5 text-sm transition-all hover:bg-emerald-50 flex items-center gap-3 group border-b border-slate-50 last:border-0
+                                                        ${selectedSubdistrictCode === sub.code ? 'bg-emerald-50' : ''}`}
+                                                >
+                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors
+                                                        ${selectedSubdistrictCode === sub.code ? 'bg-emerald-500 text-white' : 'bg-emerald-50 text-emerald-500 group-hover:bg-emerald-100'}`}
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2" /></svg>
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-medium text-slate-700 group-hover:text-emerald-700 truncate">{sub.nameTh}</p>
+                                                        <p className="text-[10px] text-slate-400">{sub.nameEn}</p>
+                                                    </div>
+                                                    {selectedSubdistrictCode === sub.code && (
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0"><polyline points="20 6 9 17 4 12" /></svg>
+                                                    )}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* ===== COORDINATES TAB ===== */}
+                        {searchTab === 'coords' && (
+                            <div className="p-4">
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Latitude (ละติจูด)</label>
+                                        <input
+                                            type="number"
+                                            step="any"
+                                            placeholder="เช่น 13.7563"
+                                            value={coordLat}
+                                            onChange={(e) => setCoordLat(e.target.value)}
+                                            className="w-full px-3.5 py-2.5 bg-slate-50 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all tabular-nums placeholder:text-slate-400"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Longitude (ลองจิจูด)</label>
+                                        <input
+                                            type="number"
+                                            step="any"
+                                            placeholder="เช่น 100.5018"
+                                            value={coordLng}
+                                            onChange={(e) => setCoordLng(e.target.value)}
+                                            className="w-full px-3.5 py-2.5 bg-slate-50 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all tabular-nums placeholder:text-slate-400"
+                                        />
+                                    </div>
+
+                                    {/* Quick presets */}
+                                    <div>
+                                        <p className="text-[10px] text-slate-400 font-medium mb-1.5">ตัวอย่างพิกัด</p>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {[
+                                                { name: 'กรุงเทพ', lat: 13.7563, lng: 100.5018 },
+                                                { name: 'เชียงใหม่', lat: 18.7883, lng: 98.9853 },
+                                                { name: 'ภูเก็ต', lat: 7.8804, lng: 98.3923 },
+                                                { name: 'ขอนแก่น', lat: 16.4322, lng: 102.8236 }
+                                            ].map(({ name, lat, lng }) => (
+                                                <button
+                                                    key={name}
+                                                    onClick={() => { setCoordLat(String(lat)); setCoordLng(String(lng)); }}
+                                                    className="px-2.5 py-1 rounded-lg bg-slate-100 text-[10px] font-medium text-slate-500 hover:bg-emerald-50 hover:text-emerald-600 transition-colors"
+                                                >
+                                                    {name}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={handleCoordSearch}
+                                        className="w-full py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11" /></svg>
+                                        ไปยังพิกัดนี้
+                                    </button>
+                                </div>
+
+                                {/* Info */}
+                                <div className="mt-4 p-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+                                    <p className="text-[10px] text-blue-600 font-medium flex items-start gap-1.5">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>
+                                        รองรับพิกัดในรูปแบบ Decimal Degrees (WGS84) เช่น Lat 13.7563, Lng 100.5018
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
