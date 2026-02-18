@@ -724,20 +724,7 @@ function MapPage() {
                             </div>
                             
                             <!-- Slider Section -->
-                             <div style="border-top: 1px dashed rgba(245, 158, 11, 0.3); padding-top: 6px; display: flex; align-items: center; gap: 8px;">
-                                <span style="font-size: 9px; font-weight: 700; color: #d97706; white-space: nowrap;">ราคาตลาด:</span>
-                                <input 
-                                    type="range" 
-                                    id="price-slider-${plotData.id}" 
-                                    min="0" 
-                                    max="500" 
-                                    step="10" 
-                                    value="250" 
-                                    style="flex: 1; height: 4px; border-radius: 2px; -webkit-appearance: none; background: #fbbf24; cursor: pointer; accent-color: #d97706;"
-                                    oninput="window.handlePopupPrice('${plotData.id}')"
-                                />
-                                <span id="unit-price-${plotData.id}" style="font-size: 9px; font-weight: 800; color: #b45309; min-width: 45px; text-align: right;">฿250/ตัน</span>
-                            </div>
+
                         </div>
                         
                         ${hasMultiple ? `
