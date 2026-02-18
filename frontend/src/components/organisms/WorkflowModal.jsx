@@ -1370,7 +1370,29 @@ export default function WorkflowModal({
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <h3 className="text-lg font-bold text-gray-800 truncate">{formData.farmerName}</h3>
-                                        <p className="text-sm text-gray-500">{formData.variety} • {formData.age} ปี</p>
+                                        <p className="text-sm text-gray-500 mb-1.5">{formData.variety} • {formData.age} ปี</p>
+
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex items-center gap-1.5">
+                                                <Map size={10} className="text-gray-400" />
+                                                <span className="text-[10px] text-gray-500 font-medium">ต.สุเทพ อ.เมือง จ. เชียงใหม่</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <Globe size={10} className="text-gray-400" />
+                                                <span className="text-[10px] text-gray-500 font-mono">
+                                                    {(() => {
+                                                        try {
+                                                            if (formData.geometry) {
+                                                                const center = turf.center(formData.geometry);
+                                                                const [lng, lat] = center.geometry.coordinates;
+                                                                return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+                                                            }
+                                                            return '-';
+                                                        } catch (e) { return '-'; }
+                                                    })()}
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-3 gap-2 text-center">
@@ -1587,6 +1609,7 @@ export default function WorkflowModal({
                                 <p className="text-xs text-gray-500 font-medium mt-1">นี่คือสรุปผลลัพธ์ทั้งหมดที่คุณทำรายการ</p>
                             </div>
 
+
                             {/* Summary Cards - Stacked Layout for Better Balance */}
                             <div className="space-y-5">
                                 {/* Totals Section */}
@@ -1643,13 +1666,38 @@ export default function WorkflowModal({
                                                 <div key={plot.id} className="relative bg-white rounded-2xl border border-gray-100 shadow-sm p-3 overflow-hidden hover:shadow-md transition-all group">
                                                     {/* Header */}
                                                     <div className="flex justify-between items-start mb-2 relative z-10">
-                                                        <div className="flex items-center gap-2.5">
-                                                            <div className="w-6 h-6 bg-gray-900 text-white rounded-lg flex items-center justify-center font-bold text-[10px] shadow-sm shrink-0">
-                                                                {idx + 1}
+                                                        <div className="flex items-start gap-3">
+                                                            <div className="w-10 h-10 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-md shrink-0 border-2 border-emerald-100 mt-1">
+                                                                <TreeDeciduous size={18} strokeWidth={2.5} />
                                                             </div>
-                                                            <div className="min-w-0">
-                                                                <h4 className="font-bold text-gray-800 text-sm truncate leading-tight">{plot.farmerName || 'ไม่ระบุชื่อ'}</h4>
-                                                                <p className="text-[10px] text-gray-400 font-medium truncate mt-0.5">พันธุ์ {plot.variety || '-'} • ปี {plot.plantingYearBE || '-'}</p>
+                                                            <div className="min-w-0 flex flex-col pt-0.5">
+                                                                <h4 className="font-bold text-gray-800 text-base leading-tight">{plot.farmerName || 'ไม่ระบุชื่อ'}</h4>
+                                                                <p className="text-[11px] text-gray-400 font-medium truncate mt-0.5 mb-1.5">
+                                                                    พันธุ์ {plot.variety || '-'} • {plot.age || 0} ปี
+                                                                </p>
+
+                                                                {/* Minimal Location Info */}
+                                                                <div className="flex flex-col gap-1">
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <Map size={10} className="text-gray-400" />
+                                                                        <span className="text-[10px] text-gray-500 font-medium">ต.สุเทพ อ.เมือง จ. เชียงใหม่</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <Globe size={10} className="text-gray-400" />
+                                                                        <span className="text-[10px] text-gray-500 font-mono">
+                                                                            {(() => {
+                                                                                try {
+                                                                                    if (plot.geometry) {
+                                                                                        const center = turf.center(plot.geometry);
+                                                                                        const [lng, lat] = center.geometry.coordinates;
+                                                                                        return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+                                                                                    }
+                                                                                    return '-';
+                                                                                } catch (e) { return '-'; }
+                                                                            })()}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
 

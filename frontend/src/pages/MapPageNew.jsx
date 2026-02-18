@@ -660,7 +660,18 @@ function MapPageNew() {
                             </div>
                             <div>
                                 <h3 class="font-bold text-gray-800 text-base leading-tight">${plotData.farmerName}</h3>
-                                <p class="text-xs text-gray-500">${plotData.areaRai}-${plotData.areaNgan}-${parseInt(plotData.areaSqWah || 0)} ไร่ • อายุ ${plotData.age || 0} ปี${plotData.manualAge ? ` (ระบุ: ${plotData.manualAge})` : ''}</p>
+                                <p class="text-xs text-gray-500 mb-1">${plotData.variety} • ${plotData.age || 0} ปี</p>
+                                
+                                <div style="display: flex; flex-direction: column; gap: 2px;">
+                                    <div style="display: flex; align-items: center; gap: 4px;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #64748b;"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                                        <span style="font-size: 10px; color: #64748b; font-weight: 500;">ต.สุเทพ อ.เมือง จ. เชียงใหม่</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 4px;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #64748b;"><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="22"/></svg>
+                                        <span style="font-size: 10px; color: #64748b; font-weight: 500;">${lat.toFixed(5)}, ${lng.toFixed(5)}</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         
@@ -683,7 +694,6 @@ function MapPageNew() {
                                     <p class="text-xs text-amber-700 font-medium">มูลค่าโดยประมาณ</p>
                                 </div>
                                 <p class="text-lg font-bold text-amber-600">${totalPrice} <span class="text-xs font-normal text-amber-600/70">บาท</span></p>
-                                <p class="text-[10px] text-amber-600/60 mt-1">@ ${carbonPrice} บาท/tCO₂e</p>
                             </div>
                         </div>
         
