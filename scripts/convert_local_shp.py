@@ -41,8 +41,10 @@ from shapely.geometry import mapping
 # ==========================================
 # PATHS - Local SHP files
 # ==========================================
-SHP_BASE = Path(r"D:\Kanyapat\เว็บยางพารา\shp")
-OUTPUT_DIR = Path(r"D:\Kanyapat\web_yang\keptcarbon\frontend\public\boundaries")
+# Use path relative to this script
+BASE_DIR = Path(__file__).resolve().parent.parent
+SHP_BASE = BASE_DIR / "data" / "shp"
+OUTPUT_DIR = BASE_DIR / "frontend" / "public" / "boundaries"
 
 # Simplification tolerance (degrees)
 SIMPLIFY_TOLERANCE = {
@@ -52,11 +54,12 @@ SIMPLIFY_TOLERANCE = {
     "village": 0.0005,
 }
 
+# Adjust these paths based on how you extract the ZIP file
 SHP_FILES = {
-    "province": SHP_BASE / "province" / "TH_Province.shp",
-    "district": SHP_BASE / "amphoe" / "L05_AdminBoundary_Amphoe_2011_50k_FGDS_beta.shp",
-    "subdistrict": SHP_BASE / "Tambon" / "TH_Tambon.shp",
-    "village": SHP_BASE / "village" / "TH_Village.shp",
+    "province": SHP_BASE / "tha_admin_boundaries" / "province" / "TH_Province.shp",
+    "district": SHP_BASE / "tha_admin_boundaries" / "amphoe" / "L05_AdminBoundary_Amphoe_2011_50k_FGDS_beta.shp",
+    "subdistrict": SHP_BASE / "tha_admin_boundaries" / "Tambon" / "TH_Tambon.shp",
+    "village": SHP_BASE / "tha_admin_boundaries" / "village" / "TH_Village.shp",
 }
 
 OUTPUT_NAMES = {

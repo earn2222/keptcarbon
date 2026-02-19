@@ -43,4 +43,4 @@ coverage/
 # Data
 *.zip
 *.rar
-frontend/public/shp/
+data/shp/
