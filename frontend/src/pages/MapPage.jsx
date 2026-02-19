@@ -2244,14 +2244,7 @@ function MapPage() {
                                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Longitude</label>
                                     <input type="number" step="any" value={coordLng} onChange={(e) => setCoordLng(e.target.value)} placeholder="เช่น 100.5018" className="w-full px-3 py-2 bg-slate-50 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all" />
                                 </div>
-                                {/* Quick Presets */}
-                                <div className="flex flex-wrap gap-1">
-                                    {[{ name: 'กรุงเทพ', lat: 13.7563, lng: 100.5018 }, { name: 'เชียงใหม่', lat: 18.7883, lng: 98.9853 }, { name: 'ภูเก็ต', lat: 7.8804, lng: 98.3923 }, { name: 'ขอนแก่น', lat: 16.4322, lng: 102.8236 }].map(p => (
-                                        <button key={p.name} onClick={() => { setCoordLat(String(p.lat)); setCoordLng(String(p.lng)) }} className="px-2 py-1 bg-slate-100 hover:bg-blue-50 text-[10px] font-medium text-slate-500 hover:text-blue-600 rounded-lg transition-colors">
-                                            {p.name}
-                                        </button>
-                                    ))}
-                                </div>
+
                                 <button onClick={handleCoordSearch} className="w-full py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-xs font-bold rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all shadow-md shadow-blue-500/20 active:scale-[0.98]">
                                     ไปยังพิกัดนี้
                                 </button>
