@@ -59,7 +59,8 @@ export default function WorkflowModal({
     onZoomToPlot,
     onPreviewPlots,
     isEditing = false,
-    carbonPrice = 250
+    carbonPrice = 250,
+    currentFormattedAddress = 'ไม่ระบุสถานที่'
 }) {
     const [currentPrice, setCurrentPrice] = useState(carbonPrice);
 
@@ -608,7 +609,9 @@ export default function WorkflowModal({
             avgCarbon: result.avgCarbon,
             bestCarbon: result.bestCarbon,
             minCarbon: result.minCarbon,
-            savedAt: new Date().toISOString()
+            minCarbon: result.minCarbon,
+            savedAt: new Date().toISOString(),
+            address: formData.address || currentFormattedAddress // Add address
         };
 
         console.log("Saving plot Data:", plotData);
@@ -1395,13 +1398,13 @@ export default function WorkflowModal({
                                         <TreeDeciduous size={24} className="text-white" />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <h3 className="text-lg font-bold text-gray-800 truncate">{formData.farmerName}</h3>
-                                        <p className="text-sm text-gray-500 mb-1.5">{formData.variety} • {formData.age} ปี</p>
+                                        <h3 className="text-lg font-bold text-gray-800 truncate">{formData.farmerName || 'ไม่ระบุชื่อ'}</h3>
+                                        <p className="text-sm text-gray-500 mb-1.5">{formData.variety || '-'} • {formData.age || 0} ปี</p>
 
                                         <div className="flex flex-col gap-1">
                                             <div className="flex items-center gap-1.5">
                                                 <Map size={10} className="text-gray-400" />
-                                                <span className="text-[10px] text-gray-500 font-medium">ต.สุเทพ อ.เมือง จ. เชียงใหม่</span>
+                                                <span className="text-[10px] text-gray-500 font-medium">{formData.address || currentFormattedAddress || 'ไม่ระบุสถานที่'}</span>
                                             </div>
                                             <div className="flex items-center gap-1.5">
                                                 <Globe size={10} className="text-gray-400" />
@@ -1706,7 +1709,7 @@ export default function WorkflowModal({
                                                                 <div className="flex flex-col gap-1">
                                                                     <div className="flex items-center gap-1.5">
                                                                         <Map size={10} className="text-gray-400" />
-                                                                        <span className="text-[10px] text-gray-500 font-medium">ต.สุเทพ อ.เมือง จ. เชียงใหม่</span>
+                                                                        <span className="text-[10px] text-gray-500 font-medium">{plot.address || 'ไม่ระบุสถานที่'}</span>
                                                                     </div>
                                                                     <div className="flex items-center gap-1.5">
                                                                         <Globe size={10} className="text-gray-400" />

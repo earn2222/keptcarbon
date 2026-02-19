@@ -198,7 +198,7 @@ function MapPage() {
     const [savedPlots, setSavedPlots] = useState([])
     const [pendingPlots, setPendingPlots] = useState([])
     const [previewPlots, setPreviewPlots] = useState([])
-    const [coordinates, setCoordinates] = useState({ lat: 13.7563, lng: 100.5018, zoom: 5 })
+    const [coordinates, setCoordinates] = useState({ lat: 13.7563, lng: 100.5018, zoom: 5, locationName: 'ประเทศไทย' })
     const popupRef = useRef(null)
 
     // Draw state
@@ -576,11 +576,12 @@ function MapPage() {
         // Update coordinates on move
         map.current.on('move', () => {
             const center = map.current.getCenter()
-            setCoordinates({
+            setCoordinates(prev => ({
+                ...prev, // Keep locationName
                 lat: center.lat.toFixed(5),
                 lng: center.lng.toFixed(5),
                 zoom: map.current.getZoom().toFixed(1)
-            })
+            }))
         })
 
         // Click handler for plots
@@ -632,6 +633,18 @@ function MapPage() {
                     </button>
                 ` : '';
 
+                // Calculate center for display
+                let displayLat = coordinates.lat.toFixed(5);
+                let displayLng = coordinates.lng.toFixed(5);
+
+                if (feature.geometry) {
+                    try {
+                        const center = turf.center(feature.geometry);
+                        displayLat = center.geometry.coordinates[1].toFixed(5);
+                        displayLng = center.geometry.coordinates[0].toFixed(5);
+                    } catch (e) { }
+                }
+
                 // Create content HTML string - Enhanced with Multi-Method Support
                 const popupContent = `
                     <div class="m-card" style="padding: 16px; font-family: 'Prompt', 'Inter', system-ui, sans-serif;">
@@ -647,13 +660,25 @@ function MapPage() {
                         </div>
                         
                         <!-- Farmer Name with Icon -->
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                             <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                             </div>
                             <h2 class="m-name" style="font-size: 16px; font-weight: 800; color: #0f172a; margin: 0; letter-spacing: -0.3px; line-height: 1.2;">
                                 ${plotData.farmerName || 'ไม่ระบุชื่อ'}
                             </h2>
+                        </div>
+
+                        <!-- Location & Coords (New) -->
+                        <div style="margin-bottom: 12px; padding: 0 2px;">
+                            <div style="display: flex; align-items: start; gap: 6px; margin-bottom: 4px;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-top:1px; flex-shrink:0;"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                                <span style="font-size: 11px; font-weight: 600; color: #475569; line-height: 1.4;">${plotData.address || 'ไม่ระบุสถานที่'}</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                                <span style="font-size: 10px; font-family: 'JetBrains Mono', monospace; color: #64748b;">${displayLat}, ${displayLng}</span>
+                            </div>
                         </div>
                         
                         <!-- Info Row with Icons -->
@@ -1573,6 +1598,7 @@ function MapPage() {
         setSubdistrictSearch('')
         setBreadcrumbs([{ label: prov.nameTh, level: 'province', code: prov.code }])
         fetchBoundary(prov.nameTh, 'province', { code: prov.code })
+        setCoordinates(prev => ({ ...prev, locationName: prov.nameTh }));
     }, [fetchBoundary])
 
     const handleDistrictSelect = useCallback((dist) => {
@@ -1580,8 +1606,11 @@ function MapPage() {
         setSelectedSubdistrictCode(null)
         setSubdistrictSearch('')
         setBreadcrumbs(prev => [...prev.slice(0, 1), { label: dist.nameTh, level: 'district', code: dist.code }])
+        // Create full location string: Province > District
         const provName = breadcrumbs[0]?.label || ''
+        const fullName = `${provName} > ${dist.nameTh}`
         fetchBoundary(dist.nameTh, 'district', { provName, code: dist.code })
+        setCoordinates(prev => ({ ...prev, locationName: fullName }));
     }, [breadcrumbs, fetchBoundary])
 
     const handleSubdistrictSelect = useCallback((sub) => {
@@ -1589,7 +1618,9 @@ function MapPage() {
         setBreadcrumbs(prev => [...prev.slice(0, 2), { label: sub.nameTh, level: 'subdistrict', code: sub.code }])
         const distName = breadcrumbs[1]?.label || ''
         const provName = breadcrumbs[0]?.label || ''
+        const fullName = `${provName} > ${distName} > ${sub.nameTh}`
         fetchBoundary(sub.nameTh, 'subdistrict', { distName, provName, code: sub.code })
+        setCoordinates(prev => ({ ...prev, locationName: fullName }));
     }, [breadcrumbs, fetchBoundary])
 
     const handleBreadcrumbClick = useCallback((index) => {
@@ -1630,6 +1661,7 @@ function MapPage() {
         setSubdistrictSearch('')
         setBreadcrumbs([])
         clearBoundaryLayers()
+        setCoordinates(prev => ({ ...prev, locationName: 'ประเทศไทย' }));
     }, [clearBoundaryLayers])
 
     // ==========================================
@@ -1813,11 +1845,27 @@ function MapPage() {
             }
 
             // Generate ID & prepare full data with all fields
+            // Generate ID & prepare full data with all fields
             const plotId = plotData.id || `temp_${Date.now()}`;
+
+            // Extract address from locationName if available
+            let address = plotData.address;
+            if (!address && coordinates.locationName && coordinates.locationName !== 'ประเทศไทย') {
+                const parts = coordinates.locationName.split(' > ');
+                if (parts.length === 3) {
+                    address = `ต.${parts[2]} อ.${parts[1]} จ.${parts[0]}`;
+                } else if (parts.length === 2) {
+                    address = `อ.${parts[1]} จ.${parts[0]}`;
+                } else {
+                    address = coordinates.locationName;
+                }
+            }
+
             const finalPlot = {
                 ...plotData,
                 id: plotId,
                 farmerName: plotData.farmerName || 'ไม่ระบุชื่อ',
+                address: address || 'ไม่ระบุสถานที่', // Save address
                 carbon: parseFloat(plotData.carbon || 0),
                 areaRai: parseFloat(plotData.areaRai || 0),
                 areaSqm: plotData.areaSqm,
@@ -1990,6 +2038,17 @@ function MapPage() {
                 COORDINATES (Vertical Stack) - Mobile Optimized
             ========================================== */}
             <div className="absolute top-4 left-4 z-30 flex flex-col gap-2 font-sans select-none">
+
+                {/* 0. LOCATION NAME (New) */}
+                <div className="group flex items-center gap-2 px-2.5 py-1.5 bg-slate-900/60 backdrop-blur-md rounded-lg border border-white/5 shadow-lg shadow-black/10 hover:bg-slate-900/80 hover:border-pink-500/30 hover:pl-3 transition-all duration-300 w-fit max-w-[200px]">
+                    <div className="w-1.5 h-1.5 rounded-full bg-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.6)] group-hover:animate-pulse" />
+                    <div className="flex flex-col overflow-hidden">
+                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none">Location</span>
+                        <span className="text-[11px] font-prompt font-medium text-pink-50 leading-none mt-0.5 truncate max-w-[150px]">
+                            {coordinates.locationName || 'ประเทศไทย'}
+                        </span>
+                    </div>
+                </div>
 
                 {/* 1. LATITUDE */}
                 <div
@@ -2499,6 +2558,14 @@ function MapPage() {
                 mode={workflowModal.mode}
                 initialData={workflowModal.initialData}
                 accumulatedPlots={pendingPlots}
+                currentFormattedAddress={(() => {
+                    const loc = coordinates.locationName;
+                    if (!loc || loc === 'ประเทศไทย') return 'ไม่ระบุสถานที่';
+                    const parts = loc.split(' > ');
+                    if (parts.length === 3) return `ต.${parts[2]} อ.${parts[1]} จ.${parts[0]}`;
+                    if (parts.length === 2) return `อ.${parts[1]} จ.${parts[0]}`;
+                    return `จ.${parts[0]}`;
+                })()}
                 onClose={() => setWorkflowModal({ isOpen: false, mode: null })}
                 onSave={handleCoreSave}
                 onAddAnother={handleCoreAddAnother}
