@@ -39,3 +39,8 @@ postgres_data/
 # Test
 coverage/
 .pytest_cache/
+
+# Data
+*.zip
+*.rar
+frontend/public/shp/

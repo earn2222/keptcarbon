@@ -1345,7 +1345,7 @@ function MapPage() {
     // ==========================================
     const clearBoundaryLayers = useCallback(() => {
         if (!map.current) return
-        const ids = ['admin-boundary-fill', 'admin-boundary-line', 'admin-boundary-line-glow', 'village-points', 'village-labels']
+        const ids = ['admin-boundary-fill', 'admin-boundary-line', 'admin-boundary-line-glow', 'village-points', 'village-labels', 'village-points-glow']
         ids.forEach(id => { try { if (map.current.getLayer(id)) map.current.removeLayer(id) } catch (e) { } })
             ;['admin-boundary', 'village-data'].forEach(id => { try { if (map.current.getSource(id)) map.current.removeSource(id) } catch (e) { } })
         setActiveBoundaryLevel(null)
@@ -1357,7 +1357,7 @@ function MapPage() {
         const colors = {
             province: { fill: 'rgba(59, 130, 246, 0.12)', line: '#3b82f6', glow: 'rgba(59, 130, 246, 0.4)' },
             district: { fill: 'rgba(139, 92, 246, 0.12)', line: '#8b5cf6', glow: 'rgba(139, 92, 246, 0.4)' },
-            subdistrict: { fill: 'rgba(16, 185, 129, 0.12)', line: '#10b981', glow: 'rgba(16, 185, 129, 0.4)' }
+            subdistrict: { fill: 'rgba(16, 185, 129, 0.15)', line: '#10b981', glow: 'rgba(16, 185, 129, 0.5)' }
         }
         const c = colors[level] || colors.province
         map.current.addSource('admin-boundary', { type: 'geojson', data: geojson })
@@ -1371,27 +1371,196 @@ function MapPage() {
         setActiveBoundaryLevel(level)
     }, [clearBoundaryLayers])
 
-    const fetchBoundary = useCallback(async (name, level) => {
-        setSearchLoading(true)
+    // Show village markers with labels on the map
+    const showVillageMarkers = useCallback((villages) => {
+        if (!map.current || !villages || villages.length === 0) return
+            // Remove old village layers
+            ;['village-points', 'village-labels', 'village-points-glow'].forEach(id => { try { if (map.current.getLayer(id)) map.current.removeLayer(id) } catch (e) { } })
+        try { if (map.current.getSource('village-data')) map.current.removeSource('village-data') } catch (e) { }
+
+        const geojson = {
+            type: 'FeatureCollection',
+            features: villages.map((v, i) => ({
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: [v.lng, v.lat] },
+                properties: { name: v.name, id: i }
+            }))
+        }
+        map.current.addSource('village-data', { type: 'geojson', data: geojson })
+
+        // Outer glow circle
+        map.current.addLayer({
+            id: 'village-points-glow',
+            type: 'circle',
+            source: 'village-data',
+            paint: {
+                'circle-radius': 12,
+                'circle-color': '#f59e0b',
+                'circle-opacity': 0.15,
+                'circle-blur': 0.8
+            }
+        })
+
+        // Village point circles  
+        map.current.addLayer({
+            id: 'village-points',
+            type: 'circle',
+            source: 'village-data',
+            paint: {
+                'circle-radius': 6,
+                'circle-color': '#f59e0b',
+                'circle-stroke-width': 2.5,
+                'circle-stroke-color': '#ffffff',
+                'circle-opacity': 0.9
+            }
+        })
+
+        // Village name labels
+        map.current.addLayer({
+            id: 'village-labels',
+            type: 'symbol',
+            source: 'village-data',
+            layout: {
+                'text-field': ['get', 'name'],
+                'text-size': 12,
+                'text-offset': [0, 1.8],
+                'text-anchor': 'top',
+                'text-font': ['Open Sans Regular'],
+                'text-max-width': 10,
+                'text-allow-overlap': false,
+                'text-ignore-placement': false
+            },
+            paint: {
+                'text-color': '#92400e',
+                'text-halo-color': '#ffffff',
+                'text-halo-width': 2,
+                'text-halo-blur': 0.5
+            }
+        })
+    }, [])
+
+    // ==========================================
+    // RESOURCE FETCHING (LOCAL GEOJSON)
+    // ==========================================
+
+    // Helper to fetch and filter local GeoJSON
+    const fetchLocalGeoJSON = async (url) => {
         try {
-            const query = encodeURIComponent(name + ', Thailand')
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=geojson&polygon_geojson=1&limit=1&accept-language=th`, {
-                headers: { 'User-Agent': 'KeptCarbon/1.0' }
-            })
-            const data = await res.json()
-            if (data.features && data.features.length > 0) {
-                const feature = data.features[0]
-                if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
-                    const zoomLevel = level === 'province' ? 9 : level === 'district' ? 12 : 14
-                    showBoundary(feature, level, zoomLevel)
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+            return await res.json();
+        } catch (e) {
+            console.error(`Failed to load ${url}:`, e);
+            return null;
+        }
+    }
+
+    // Fetch villages from local GeoJSON
+    const fetchVillages = useCallback(async (subdistrictName, districtName, provinceName) => {
+        try {
+            // Note: thailand_villages.geojson is large (~21MB), so this might take a moment on first load
+            const data = await fetchLocalGeoJSON('/boundaries/thailand_villages.geojson');
+
+            if (data && data.features) {
+                // Filter by subdistrict name (and ideally district/province to be safe, but file structure varies)
+                // properties: { tam_name_th, amp_name_th, prov_name_th, name_th, ... }
+                const villages = data.features
+                    .filter(f => {
+                        const p = f.properties;
+                        // Loose matching to handle potential whitespace or minor spelling diffs
+                        return p.tam_name_th?.includes(subdistrictName) &&
+                            (districtName ? p.amp_name_th?.includes(districtName) : true);
+                    })
+                    .map((f, i) => ({
+                        lat: f.geometry.coordinates[1],
+                        lng: f.geometry.coordinates[0],
+                        name: f.properties.name_th,
+                        id: f.properties.code || i
+                    }));
+
+                if (villages.length > 0) {
+                    showVillageMarkers(villages);
                 } else {
-                    const [lng, lat] = feature.geometry.coordinates
-                    map.current.flyTo({ center: [lng, lat], zoom: level === 'province' ? 9 : level === 'district' ? 12 : 14, pitch: 45, duration: 2000 })
+                    console.log('No villages found in local file for:', subdistrictName);
                 }
             }
-        } catch (err) { console.warn('Boundary fetch failed:', err) }
-        finally { setSearchLoading(false) }
-    }, [showBoundary])
+        } catch (err) { console.warn('Village fetch failed:', err) }
+    }, [showVillageMarkers])
+
+    // Fetch administrative boundaries from local GeoJSONs
+    const fetchBoundary = useCallback(async (name, level, extraContext = {}) => {
+        setSearchLoading(true);
+        try {
+            let url = '';
+            let filterFn = null;
+            let zoomLevel = 10;
+
+            if (level === 'province') {
+                url = '/boundaries/thailand_provinces.geojson';
+                zoomLevel = 9;
+                // Match by ID if we have it, otherwise name
+                // extraContext.code sent from handleProvinceSelect would be ideal, but we can match name
+                // thailand_provinces: { code, name_th, name_en }
+                filterFn = (f) => f.properties.name_th === name || f.properties.name_en === name;
+
+                // If we have a code in extraContext, prefer it
+                if (extraContext.code) {
+                    filterFn = (f) => f.properties.code == extraContext.code;
+                }
+
+            } else if (level === 'district') {
+                url = '/boundaries/thailand_districts.geojson';
+                zoomLevel = 11;
+                // thailand_districts: { AMP_CODE, AMP_NAME_T, PRV_CODE ... }
+                // Match by AMP_CODE if valid
+                if (extraContext.code) {
+                    filterFn = (f) => f.properties.AMP_CODE == extraContext.code;
+                } else {
+                    filterFn = (f) => f.properties.AMP_NAME_T === name;
+                }
+
+            } else if (level === 'subdistrict') {
+                url = '/boundaries/thailand_subdistricts.geojson';
+                zoomLevel = 13;
+                // thailand_subdistricts: { prov_code, amp_code, tam_code, name_th ... }
+                // Construct ID from parts if we have full context
+                if (extraContext.code && extraContext.code.length === 6) {
+                    const p = extraContext.code.substring(0, 2);
+                    const a = extraContext.code.substring(2, 4);
+                    const t = extraContext.code.substring(4, 6);
+                    filterFn = (f) => f.properties.prov_code == p && f.properties.amp_code == a && f.properties.tam_code == t;
+                } else {
+                    filterFn = (f) => f.properties.name_th === name;
+                }
+            }
+
+            if (!url) return;
+
+            const data = await fetchLocalGeoJSON(url);
+            if (data && data.features) {
+                const feature = data.features.find(filterFn);
+
+                if (feature) {
+                    showBoundary(feature, level, zoomLevel);
+
+                    // Specific logic for subdistrict: fetch villages matches
+                    if (level === 'subdistrict') {
+                        // Pass names for filtering
+                        fetchVillages(name, extraContext.distName, extraContext.provName);
+                    }
+                } else {
+                    console.warn(`Boundary not found in ${url} for criteria:`, name, extraContext);
+                    // Fallback to searching by name loosely if strict match failed?
+                    // For now, strict match on code is best.
+                }
+            }
+
+        } catch (err) {
+            console.warn('Boundary fetch failed:', err);
+        } finally {
+            setSearchLoading(false);
+        }
+    }, [showBoundary, fetchVillages]);
 
     // ==========================================
     // CASCADING SEARCH HANDLERS
@@ -1403,7 +1572,7 @@ function MapPage() {
         setDistrictSearch('')
         setSubdistrictSearch('')
         setBreadcrumbs([{ label: prov.nameTh, level: 'province', code: prov.code }])
-        fetchBoundary(prov.nameTh, 'province')
+        fetchBoundary(prov.nameTh, 'province', { code: prov.code })
     }, [fetchBoundary])
 
     const handleDistrictSelect = useCallback((dist) => {
@@ -1412,7 +1581,7 @@ function MapPage() {
         setSubdistrictSearch('')
         setBreadcrumbs(prev => [...prev.slice(0, 1), { label: dist.nameTh, level: 'district', code: dist.code }])
         const provName = breadcrumbs[0]?.label || ''
-        fetchBoundary(dist.nameTh + ' ' + provName, 'district')
+        fetchBoundary(dist.nameTh, 'district', { provName, code: dist.code })
     }, [breadcrumbs, fetchBoundary])
 
     const handleSubdistrictSelect = useCallback((sub) => {
@@ -1420,7 +1589,7 @@ function MapPage() {
         setBreadcrumbs(prev => [...prev.slice(0, 2), { label: sub.nameTh, level: 'subdistrict', code: sub.code }])
         const distName = breadcrumbs[1]?.label || ''
         const provName = breadcrumbs[0]?.label || ''
-        fetchBoundary(sub.nameTh + ' ' + distName + ' ' + provName, 'subdistrict')
+        fetchBoundary(sub.nameTh, 'subdistrict', { distName, provName, code: sub.code })
     }, [breadcrumbs, fetchBoundary])
 
     const handleBreadcrumbClick = useCallback((index) => {
@@ -1442,7 +1611,13 @@ function MapPage() {
             setDistrictSearch('')
             setSubdistrictSearch('')
             setBreadcrumbs(prev => prev.slice(0, 1))
-            fetchBoundary(bc.label, 'province')
+            fetchBoundary(bc.label, 'province', { code: bc.code })
+        } else if (bc.level === 'district') {
+            setSelectedSubdistrictCode(null)
+            setSubdistrictSearch('')
+            setBreadcrumbs(prev => prev.slice(0, 2))
+            const provName = breadcrumbs[0]?.label || ''
+            fetchBoundary(bc.label, 'district', { provName, code: bc.code })
         }
     }, [breadcrumbs, fetchBoundary, clearBoundaryLayers])
 
