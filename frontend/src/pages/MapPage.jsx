@@ -1983,58 +1983,49 @@ function MapPage() {
             {/* ==========================================
                 CRYSTAL COORDINATES (Top Left)
             ========================================== */}
-            <div className="absolute top-6 left-6 z-30">
-                <div className="bg-black/20 backdrop-blur-xl rounded-2xl px-5 py-3 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all duration-300 hover:bg-black/30 hover:border-white/20 group">
-                    <div className="flex items-center gap-8">
-                        {/* Latitude */}
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20 group-hover:scale-110 transition-all duration-300">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M12 2v20M2 12h20" />
-                                    <circle cx="12" cy="12" r="10" opacity="0.3" />
-                                </svg>
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="text-[9px] text-white/30 font-black uppercase tracking-[0.2em] leading-none mb-1">LAT</span>
-                                <span className="text-[13px] text-white/90 font-mono tracking-tight tabular-nums leading-none">{coordinates.lat}</span>
-                            </div>
-                        </div>
+            {/* ==========================================
+                CRYSTAL COORDINATES (Top Left) - Redesigned
+            ========================================== */}
+            {/* ==========================================
+                COORDINATES (Vertical Stack) - Mobile Optimized
+            ========================================== */}
+            <div className="absolute top-4 left-4 z-30 flex flex-col gap-2 font-sans select-none">
 
-                        {/* Divider */}
-                        <div className="w-px h-6 bg-white/10" />
-
-                        {/* Longitude */}
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/20 group-hover:scale-110 transition-all duration-300">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="12" cy="12" r="10" />
-                                    <path d="M12 2v20" opacity="0.3" />
-                                </svg>
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="text-[9px] text-white/30 font-black uppercase tracking-[0.2em] leading-none mb-1">LNG</span>
-                                <span className="text-[13px] text-white/90 font-mono tracking-tight tabular-nums leading-none">{coordinates.lng}</span>
-                            </div>
-                        </div>
-
-                        {/* Divider */}
-                        <div className="w-px h-6 bg-white/10" />
-
-                        {/* Zoom */}
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400 border border-amber-500/20 group-hover:scale-110 transition-all duration-300">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="11" cy="11" r="8" />
-                                    <path d="m21 21-4.3-4.3" />
-                                </svg>
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="text-[9px] text-white/30 font-black uppercase tracking-[0.2em] leading-none mb-1">ZOOM</span>
-                                <span className="text-[13px] text-emerald-400 font-mono font-black tracking-tight tabular-nums leading-none">{coordinates.zoom}</span>
-                            </div>
-                        </div>
+                {/* 1. LATITUDE */}
+                <div
+                    className="group flex items-center gap-2 px-2.5 py-1.5 bg-slate-900/60 backdrop-blur-md rounded-lg border border-white/5 shadow-lg shadow-black/10 hover:bg-slate-900/80 hover:border-emerald-500/30 hover:pl-3 transition-all duration-300 cursor-pointer active:scale-95 w-fit"
+                    onClick={() => { navigator.clipboard.writeText(coordinates.lat); }}
+                    title="Copy Latitude"
+                >
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)] group-hover:animate-pulse" />
+                    <div className="flex flex-col">
+                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none">Lat</span>
+                        <span className="text-[11px] font-mono font-medium text-emerald-50 leading-none mt-0.5">{coordinates.lat}</span>
                     </div>
                 </div>
+
+                {/* 2. LONGITUDE */}
+                <div
+                    className="group flex items-center gap-2 px-2.5 py-1.5 bg-slate-900/60 backdrop-blur-md rounded-lg border border-white/5 shadow-lg shadow-black/10 hover:bg-slate-900/80 hover:border-blue-500/30 hover:pl-3 transition-all duration-300 cursor-pointer active:scale-95 w-fit"
+                    onClick={() => { navigator.clipboard.writeText(coordinates.lng); }}
+                    title="Copy Longitude"
+                >
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)] group-hover:animate-spin" />
+                    <div className="flex flex-col">
+                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none">Lng</span>
+                        <span className="text-[11px] font-mono font-medium text-blue-50 leading-none mt-0.5">{coordinates.lng}</span>
+                    </div>
+                </div>
+
+                {/* 3. ZOOM */}
+                <div className="group flex items-center gap-2 px-2.5 py-1.5 bg-slate-900/60 backdrop-blur-md rounded-lg border border-white/5 shadow-lg shadow-black/10 hover:bg-slate-900/80 hover:border-amber-500/30 hover:pl-3 transition-all duration-300 cursor-default w-fit">
+                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)] group-hover:scale-150 transition-transform" />
+                    <div className="flex flex-col">
+                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none">Zoom</span>
+                        <span className="text-[11px] font-mono font-black text-amber-50 leading-none mt-0.5">{coordinates.zoom}</span>
+                    </div>
+                </div>
+
             </div>
 
             {/* ==========================================
