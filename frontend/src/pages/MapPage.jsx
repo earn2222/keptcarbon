@@ -577,12 +577,66 @@ function MapPage() {
         map.current.on('move', () => {
             const center = map.current.getCenter()
             setCoordinates(prev => ({
-                ...prev, // Keep locationName
+                ...prev, // Keep locationName temporarily
                 lat: center.lat.toFixed(5),
                 lng: center.lng.toFixed(5),
                 zoom: map.current.getZoom().toFixed(1)
             }))
         })
+
+        // Reverse Geocoding on Move End
+        map.current.on('moveend', async () => {
+            const center = map.current.getCenter();
+            try {
+                // Use OpenStreetMap Nominatim API (Free, requires attribution)
+                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${center.lat}&lon=${center.lng}&zoom=14&addressdetails=1&accept-language=th`);
+                const data = await response.json();
+
+                if (data && data.address) {
+                    const addr = data.address;
+                    // Extract Thai admin levels with more fallbacks
+                    const subdistrict = addr.suburb || addr.quarter || addr.neighbourhood || addr.village || addr.hamlet || '';
+                    const district = addr.city_district || addr.district || addr.county || addr.town || addr.city || addr.municipality || '';
+                    const province = addr.state || addr.province || addr.region || '';
+                    const country = addr.country || '';
+
+                    // Refined Location Construction Logic
+                    let displayLoc = coordinates.locationName;
+
+                    if (country === 'ประเทศไทย' || province) {
+                        // Start building from Province
+                        if (province) {
+                            let parts = [province];
+
+                            if (district && district !== province) {
+                                // Clean up 'อำเภอ' prefix if redundant or ensure it matches style
+                                parts.push(district);
+                            }
+
+                            if (subdistrict && subdistrict !== district && subdistrict !== province) {
+                                parts.push(subdistrict);
+                            }
+
+                            displayLoc = parts.join(' > ');
+                        } else {
+                            displayLoc = 'ประเทศไทย';
+                        }
+                    } else {
+                        // Global fallback
+                        if (data.display_name) {
+                            displayLoc = data.display_name.split(',').slice(0, 2).join(', ');
+                        }
+                    }
+
+                    // Update state if changed
+                    if (displayLoc && displayLoc !== coordinates.locationName) {
+                        setCoordinates(prev => ({ ...prev, locationName: displayLoc }));
+                    }
+                }
+            } catch (error) {
+                console.error("Reverse Geocode Error:", error);
+            }
+        });
 
         // Click handler for plots
         map.current.on('click', 'saved-plots-layer', (e) => {
@@ -1850,14 +1904,28 @@ function MapPage() {
 
             // Extract address from locationName if available
             let address = plotData.address;
-            if (!address && coordinates.locationName && coordinates.locationName !== 'ประเทศไทย') {
-                const parts = coordinates.locationName.split(' > ');
-                if (parts.length === 3) {
-                    address = `ต.${parts[2]} อ.${parts[1]} จ.${parts[0]}`;
-                } else if (parts.length === 2) {
-                    address = `อ.${parts[1]} จ.${parts[0]}`;
+            if (!address) {
+                if (coordinates.locationName && coordinates.locationName !== 'ประเทศไทย') {
+                    const parts = coordinates.locationName.split(' > ');
+                    if (parts.length === 3) {
+                        address = `ต.${parts[2]} อ.${parts[1]} จ.${parts[0]}`;
+                    } else if (parts.length === 2) {
+                        address = `อ.${parts[1]} จ.${parts[0]}`;
+                    } else {
+                        address = coordinates.locationName;
+                    }
+                } else if (plotData.geometry) {
+                    // Fallback to geometry centroid if available
+                    try {
+                        const center = turf.center(plotData.geometry);
+                        const [lng, lat] = center.geometry.coordinates;
+                        address = `พิกัดแปลง: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+                    } catch (e) {
+                        address = `พิกัด: ${coordinates.lat}, ${coordinates.lng}`;
+                    }
                 } else {
-                    address = coordinates.locationName;
+                    // Final fallback to map center
+                    address = `พิกัด: ${coordinates.lat}, ${coordinates.lng}`;
                 }
             }
 
@@ -1865,7 +1933,7 @@ function MapPage() {
                 ...plotData,
                 id: plotId,
                 farmerName: plotData.farmerName || 'ไม่ระบุชื่อ',
-                address: address || 'ไม่ระบุสถานที่', // Save address
+                address: address, // Save address
                 carbon: parseFloat(plotData.carbon || 0),
                 areaRai: parseFloat(plotData.areaRai || 0),
                 areaSqm: plotData.areaSqm,
@@ -2560,7 +2628,10 @@ function MapPage() {
                 accumulatedPlots={pendingPlots}
                 currentFormattedAddress={(() => {
                     const loc = coordinates.locationName;
-                    if (!loc || loc === 'ประเทศไทย') return 'ไม่ระบุสถานที่';
+                    if (!loc || loc === 'ประเทศไทย') {
+                        // Return coordinates if no specific location selected
+                        return `พิกัด: ${coordinates.lat}, ${coordinates.lng}`;
+                    }
                     const parts = loc.split(' > ');
                     if (parts.length === 3) return `ต.${parts[2]} อ.${parts[1]} จ.${parts[0]}`;
                     if (parts.length === 2) return `อ.${parts[1]} จ.${parts[0]}`;
