@@ -2229,6 +2229,9 @@ function MapPage() {
 
             if (popupRef.current) popupRef.current.remove();
             console.log('Plot deleted:', plotId);
+
+            // Ensure modal is closed if it was editing this plot
+            setWorkflowModal({ isOpen: false, mode: null, isEditing: false, initialData: null });
         } catch (err) {
             console.error('Delete error:', err);
         }
@@ -3121,8 +3124,13 @@ function MapPage() {
                                             const features = draw.current.getAll().features;
                                             const ids = features.map(f => f.id);
                                             draw.current.delete(ids);
-                                            setActiveTool(null);
+                                            draw.current.changeMode('simple_select');
                                         }
+                                        // Reset all related states
+                                        setDigitizeMode(false);
+                                        setActiveTool(null);
+                                        setWorkflowModal({ isOpen: false, mode: null, isEditing: false, initialData: null });
+                                        setPreviewPlots([]);
                                         setDeleteConfirm({ show: false, plotId: null, plotName: '', isDraw: false });
                                     } else {
                                         confirmDeleteSavedPlot(deleteConfirm.plotId);
