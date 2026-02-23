@@ -2203,6 +2203,20 @@ function MapPage() {
             setSavedPlots(prev => prev.filter(p => p.id !== plotId));
             setPendingPlots(prev => prev.filter(p => p.id !== plotId));
 
+            // Clean up draw tool & editing state if we're deleting the plot being edited
+            if (editingGeomPlot && editingGeomPlot.id === plotId) {
+                if (draw.current) {
+                    draw.current.deleteAll();
+                }
+                setEditingGeomPlot(null);
+                editGeomOriginalRef.current = null;
+                setDigitizeMode(false);
+                setActiveTool(null);
+            }
+
+            // Also clean up previewPlots
+            setPreviewPlots(prev => prev.filter(p => p.id !== plotId));
+
             // Try delete from API (import dynamically to avoid circular deps)
             try {
                 const apiModule = await import('../services/api');

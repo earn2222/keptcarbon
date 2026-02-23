@@ -1064,8 +1064,8 @@ export default function WorkflowModal({
                                 <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-emerald-200/60">
                                     <TreeDeciduous size={28} className="text-white" />
                                 </div>
-                                <h2 className="text-lg font-bold text-slate-800 tracking-tight">ข้อมูลแปลงยางพารา</h2>
-                                <p className="text-[11px] font-medium text-slate-400 mt-0.5">กรอกข้อมูลด้านล่าง • ระบบจะเลื่อนอัตโนมัติ</p>
+                                <h2 className="text-lg font-bold text-slate-800 tracking-tight">{isEditing ? 'แก้ไขข้อมูลแปลง' : 'ข้อมูลแปลงยางพารา'}</h2>
+                                <p className="text-[11px] font-medium text-slate-400 mt-0.5">{isEditing ? 'แก้ไขข้อมูลด้านล่าง • กดบันทึกเมื่อเสร็จสิ้น' : 'กรอกข้อมูลด้านล่าง • ระบบจะเลื่อนอัตโนมัติ'}</p>
                             </div>
 
                             {/* Area Display with Toggle */}
@@ -1186,18 +1186,7 @@ export default function WorkflowModal({
                                 </div>
                             )}
 
-                            {/* Edit mode: delete button */}
-                            {isEditing && (
-                                <div className="flex gap-2 pt-1">
-                                    <button
-                                        onClick={() => { if (window.confirm("ยืนยันการลบแปลงนี้?")) { onDeletePlot(formData.id); onClose(); } }}
-                                        className="w-11 h-11 bg-red-50 hover:bg-red-100 text-red-500 rounded-xl flex items-center justify-center transition-all border border-red-100"
-                                        title="ลบแปลง"
-                                    >
-                                        <Trash2 size={18} />
-                                    </button>
-                                </div>
-                            )}
+
 
                             {/* ===== METHODS SECTION (auto-revealed) ===== */}
                             {farmerComplete && (
