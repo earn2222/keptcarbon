@@ -204,6 +204,11 @@ function MapPage() {
     // Draw state
     const draw = useRef(null)
 
+    // Delete/Edit confirmation
+    const [deleteConfirm, setDeleteConfirm] = useState({ show: false, plotId: null, plotName: '', isDraw: false })
+    const [editingGeomPlot, setEditingGeomPlot] = useState(null) // plot being geometry-edited
+    const editGeomOriginalRef = useRef(null) // backup original geometry
+
     const [userProfile, setUserProfile] = useState(null)
     const [selectedProvince, setSelectedProvince] = useState('')
     const [provinceSearch, setProvinceSearch] = useState('')
@@ -708,9 +713,17 @@ function MapPage() {
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
                                 ข้อมูลรายแปลง
                             </div>
-                            <button id="open-edit-btn-${plotData.id}" class="m-edit-btn" style="width: 28px; height: 28px; border-radius: 50%; background: #f1f5f9; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #64748b; transition: all 0.2s; flex-shrink: 0;" title="แก้ไขข้อมูล">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
-                            </button>
+                            <div style="display:flex; gap:5px; align-items:center;">
+                                <button id="edit-geom-btn-${plotData.id}" style="width:28px;height:28px;border-radius:50%;background:#eff6ff;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#3b82f6;transition:all 0.2s;flex-shrink:0;" title="แก้ไขรูปร่างแปลง">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+                                </button>
+                                <button id="open-edit-btn-${plotData.id}" class="m-edit-btn" style="width: 28px; height: 28px; border-radius: 50%; background: #f1f5f9; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #64748b; transition: all 0.2s; flex-shrink: 0;" title="แก้ไขข้อมูล">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                                </button>
+                                <button id="delete-plot-btn-${plotData.id}" class="m-delete-btn" style="width:28px;height:28px;border-radius:50%;background:#fff1f2;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#ef4444;transition:all 0.2s;flex-shrink:0;" title="ลบแปลง">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>
+                                </button>
+                            </div>
                         </div>
                         
                         <!-- Farmer Name with Icon -->
@@ -844,8 +857,9 @@ function MapPage() {
 
                 popupRef.current = popup;
 
-                // Handle button click in popup
+                // Handle button clicks in popup
                 setTimeout(() => {
+                    // Edit info button
                     const btn = document.getElementById(`open-edit-btn-${plotData.id}`);
                     if (btn) {
                         btn.onclick = (event) => {
@@ -857,6 +871,26 @@ function MapPage() {
                                 isEditing: true
                             });
                             popup.remove();
+                        };
+                    }
+
+                    // Edit geometry button
+                    const editGeomBtn = document.getElementById(`edit-geom-btn-${plotData.id}`);
+                    if (editGeomBtn) {
+                        editGeomBtn.onclick = (event) => {
+                            event.stopPropagation();
+                            popup.remove();
+                            handleEditPlotGeometry(plotData);
+                        };
+                    }
+
+                    // Delete button
+                    const deleteBtn = document.getElementById(`delete-plot-btn-${plotData.id}`);
+                    if (deleteBtn) {
+                        deleteBtn.onclick = (event) => {
+                            event.stopPropagation();
+                            popup.remove();
+                            setDeleteConfirm({ show: true, plotId: plotData.id, plotName: plotData.farmerName || 'ไม่ระบุชื่อ', isDraw: false });
                         };
                     }
                 }, 50);
@@ -2042,28 +2076,153 @@ function MapPage() {
             return;
         }
 
-        // Confirmation dialog
-        const confirmed = window.confirm(
-            `คุณต้องการลบแปลงทั้งหมด ${features.length} แปลงใช่หรือไม่?\n\nการกระทำนี้ไม่สามารถย้อนกลับได้`
-        );
+        setDeleteConfirm({
+            show: true,
+            plotId: '__draw__',
+            plotName: `แปลงที่กำลังวาด (${features.length} แปลง)`,
+            isDraw: true
+        });
+    };
 
-        if (confirmed) {
+    // Confirm and execute delete of a saved plot
+    const confirmDeleteSavedPlot = async (plotId) => {
+        try {
+            setSavedPlots(prev => prev.filter(p => p.id !== plotId));
+            setPendingPlots(prev => prev.filter(p => p.id !== plotId));
+
+            // Try delete from API (import dynamically to avoid circular deps)
             try {
-                const ids = features.map(f => f.id);
-                draw.current.delete(ids);
-                setActiveTool(null);
-                console.log(`Deleted ${ids.length} plot(s)`);
-            } catch (err) {
-                console.error('Error deleting plots:', err);
-                alert('เกิดข้อผิดพลาดในการลบแปลง');
+                const apiModule = await import('../services/api');
+                if (apiModule.deletePlot) {
+                    await apiModule.deletePlot(plotId);
+                }
+            } catch (apiErr) {
+                console.warn('API delete failed (local state already updated):', apiErr);
             }
+
+            if (popupRef.current) popupRef.current.remove();
+            console.log('Plot deleted:', plotId);
+        } catch (err) {
+            console.error('Delete error:', err);
         }
+        setDeleteConfirm({ show: false, plotId: null, plotName: '', isDraw: false });
+    };
+
+    // Edit plot geometry – load shape into draw tool
+    const handleEditPlotGeometry = (plotData) => {
+        if (!draw.current || !plotData.geometry) {
+            alert('ไม่พบรูปร่างแปลงหรือเครื่องมือวาดยังไม่พร้อม');
+            return;
+        }
+
+        try {
+            // Clear existing draw features
+            draw.current.deleteAll();
+
+            // Add the plot geometry to draw tool
+            const featureIds = draw.current.add({
+                type: 'Feature',
+                geometry: plotData.geometry,
+                properties: {}
+            });
+
+            // Enter direct_select mode on the feature
+            if (featureIds && featureIds[0]) {
+                try {
+                    draw.current.changeMode('direct_select', { featureId: featureIds[0] });
+                } catch (e) {
+                    draw.current.changeMode('simple_select');
+                }
+            }
+
+            // Save original for potential cancel
+            editGeomOriginalRef.current = { ...plotData };
+            setEditingGeomPlot(plotData);
+            setDigitizeMode(true);
+            setActiveTool('edit');
+
+            // Show original plot as "active" (highlighted) while editing, via previewPlots
+            setPreviewPlots(prev => {
+                const filtered = prev.filter(p => p.id !== plotData.id);
+                return [...filtered, { ...plotData, isPreview: true, isActive: true }];
+            });
+
+            // Zoom into the plot
+            handleZoomToPlot(plotData.geometry);
+        } catch (err) {
+            console.error('Edit geometry error:', err);
+        }
+    };
+
+    // Save the geometry edits back to state & API
+    const saveEditedGeometry = async () => {
+        if (!draw.current || !editingGeomPlot) return;
+
+        try {
+            const data = draw.current.getAll();
+            if (data.features.length === 0) {
+                alert('ไม่พบรูปร่างแปลง กรุณาวาดใหม่');
+                return;
+            }
+
+            const newGeometry = data.features[0].geometry;
+            const areaSqm = turf.area(data.features[0]);
+            const areaRai = (areaSqm / 1600).toFixed(2);
+
+            const updatedPlot = {
+                ...editingGeomPlot,
+                geometry: newGeometry,
+                areaSqm: areaSqm.toFixed(2),
+                areaRai: areaRai,
+            };
+
+            // Update in saved state
+            setSavedPlots(prev => prev.map(p => p.id === editingGeomPlot.id ? updatedPlot : p));
+
+            // Try update via API
+            try {
+                const apiModule = await import('../services/api');
+                if (apiModule.createPlot) {
+                    await apiModule.createPlot(updatedPlot);
+                }
+            } catch (apiErr) {
+                console.warn('API geometry update failed (local state updated):', apiErr);
+            }
+
+            // Exit edit mode
+            draw.current.deleteAll();
+            draw.current.changeMode('simple_select');
+            setEditingGeomPlot(null);
+            editGeomOriginalRef.current = null;
+            setPreviewPlots([]);
+            setDigitizeMode(false);
+            setActiveTool(null);
+
+            console.log('Geometry updated:', updatedPlot);
+        } catch (err) {
+            console.error('Save geometry error:', err);
+            alert('เกิดข้อผิดพลาดในการบันทึกรูปร่าง');
+        }
+    };
+
+    // Cancel geometry edit – restore original
+    const cancelEditGeometry = () => {
+        if (draw.current) {
+            draw.current.deleteAll();
+            draw.current.changeMode('simple_select');
+        }
+        setEditingGeomPlot(null);
+        editGeomOriginalRef.current = null;
+        setPreviewPlots([]);
+        setDigitizeMode(false);
+        setActiveTool(null);
     };
 
     // Auto-activate draw tool when digitize mode starts
     useEffect(() => {
         if (digitizeMode && draw.current) {
-            setActiveTool('draw');
+            // Don't override if we're in geometry edit mode (already set to 'edit')
+            if (!editingGeomPlot) setActiveTool('draw');
         } else {
             setActiveTool(null);
         }
@@ -2586,39 +2745,212 @@ function MapPage() {
             {/* Sidebar removed as requested */}
 
 
-            {/* DIGITIZING HUD & TOOLBAR */}
-            {
-                digitizeMode && (
-                    <>
-                        {/* 1. TOP INSTRUCTION GUIDE - Multi-mode */}
-                        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[110] animate-slide-down">
-                            <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-full border border-slate-200/50 shadow-lg flex items-center gap-2.5">
-                                <div className="w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0">
-                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            {/* ==========================================
+                LEFT FLOATING TOOLBAR
+            ========================================== */}
+            <div
+                className="absolute left-3 z-[100] flex flex-col gap-2"
+                style={{ top: '50%', transform: 'translateY(-50%)' }}
+            >
+                {digitizeMode && !editingGeomPlot ? (
+                    /* DIGITIZE MODE - only Draw + Delete */
+                    <div className="flex flex-col gap-2" style={{ animation: 'slideInRight 0.3s cubic-bezier(0.34,1.56,0.64,1)' }}>
+
+                        {/* Draw Tool */}
+                        <button
+                            id="toolbar-draw"
+                            onClick={() => switchTool('draw')}
+                            title="วาดแปลง"
+                            className="flex items-center justify-center backdrop-blur-xl border shadow-lg transition-all duration-200 active:scale-90"
+                            style={{
+                                width: 44, height: 44, borderRadius: 14,
+                                background: activeTool === 'draw' ? 'rgba(16,185,129,0.9)' : 'rgba(0,0,0,0.35)',
+                                border: activeTool === 'draw' ? '1px solid rgba(52,211,153,0.6)' : '1px solid rgba(255,255,255,0.14)',
+                                color: activeTool === 'draw' ? '#fff' : 'rgba(255,255,255,0.85)',
+                                boxShadow: activeTool === 'draw' ? '0 4px 20px rgba(16,185,129,0.4)' : '0 4px 16px rgba(0,0,0,0.3)'
+                            }}
+                        >
+                            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M2.5 21.5l1.5-5L17 3a2.121 2.121 0 013 3L6.5 19l-4 2.5z" />
+                            </svg>
+                        </button>
+
+                        {/* Delete drawn plot */}
+                        <button
+                            id="toolbar-delete"
+                            onClick={handleDeletePlot}
+                            title="ลบแปลงที่วาด"
+                            className="flex items-center justify-center backdrop-blur-xl border shadow-lg transition-all duration-200 active:scale-90"
+                            style={{
+                                width: 44, height: 44, borderRadius: 14,
+                                background: 'rgba(0,0,0,0.35)',
+                                border: '1px solid rgba(255,255,255,0.14)',
+                                color: 'rgba(248,113,113,0.95)',
+                                boxShadow: '0 4px 16px rgba(0,0,0,0.3)'
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.85)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.border = '1px solid rgba(239,68,68,0.5)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.35)'; e.currentTarget.style.color = 'rgba(248,113,113,0.95)'; e.currentTarget.style.border = '1px solid rgba(255,255,255,0.14)'; }}
+                        >
+                            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <polyline points="3 6 5 6 21 6" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2" />
+                            </svg>
+                        </button>
+                    </div>
+                ) : editingGeomPlot ? (
+                    /* EDIT GEOMETRY MODE - Save + Cancel */
+                    <div className="flex flex-col gap-2" style={{ animation: 'slideInRight 0.3s cubic-bezier(0.34,1.56,0.64,1)' }}>
+                        <button
+                            id="toolbar-save-geom"
+                            onClick={saveEditedGeometry}
+                            title="บันทึกรูปร่าง"
+                            className="flex items-center justify-center shadow-lg transition-all duration-200 active:scale-90"
+                            style={{
+                                width: 44, height: 44, borderRadius: 14,
+                                background: 'rgba(16,185,129,0.9)',
+                                border: '1px solid rgba(52,211,153,0.5)',
+                                color: '#fff',
+                                boxShadow: '0 4px 20px rgba(16,185,129,0.35)'
+                            }}
+                        >
+                            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                        </button>
+                        <button
+                            id="toolbar-cancel-geom"
+                            onClick={cancelEditGeometry}
+                            title="ยกเลิก"
+                            className="flex items-center justify-center backdrop-blur-xl border shadow-lg transition-all duration-200 active:scale-90"
+                            style={{
+                                width: 44, height: 44, borderRadius: 14,
+                                background: 'rgba(0,0,0,0.35)',
+                                border: '1px solid rgba(255,255,255,0.14)',
+                                color: 'rgba(255,255,255,0.75)'
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(51,65,85,0.85)'; e.currentTarget.style.color = '#fff'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.35)'; e.currentTarget.style.color = 'rgba(255,255,255,0.75)'; }}
+                        >
+                            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                ) : null}
+            </div>
+
+            {/* TOP HUD (Digitize mode active indicator) */}
+            {digitizeMode && (
+                <div className="fixed top-4 left-1/2 z-[110] pointer-events-none" style={{ transform: 'translateX(-50%)', animation: 'slideDown 0.3s cubic-bezier(0.34,1.56,0.64,1)' }}>
+                    <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-full border border-slate-200/50 shadow-lg flex items-center gap-2.5 whitespace-nowrap">
+                        <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                            style={{ background: editingGeomPlot ? 'rgba(59,130,246,0.12)' : 'rgba(16,185,129,0.1)', color: editingGeomPlot ? '#3b82f6' : '#10b981' }}>
+                            <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M2.5 21.5l1.5-5L17 3a2.121 2.121 0 013 3L6.5 19l-4 2.5z" />
+                            </svg>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-slate-700 leading-none">
+                                {editingGeomPlot ? `แก้ไขรูปร่าง: ${editingGeomPlot.farmerName || ''}` : 'โหมดวาดแปลง'}
+                            </span>
+                            <span className="text-[9px] text-slate-400">
+                                {editingGeomPlot ? '· ลากจุดยอดเพื่อปรับรูปร่าง' : '· คลิกบนแผนที่เพื่อวาดรูปทรง'}
+                            </span>
+                            {pendingPlots.length > 0 && !editingGeomPlot && (
+                                <div className="ml-1 pl-2 border-l border-slate-200 flex items-center gap-1">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    <span className="text-[10px] font-bold text-emerald-600">{pendingPlots.length} แปลง</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ==========================================
+                DELETE CONFIRMATION MODAL
+            ========================================== */}
+            {deleteConfirm.show && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+                    style={{ background: 'rgba(2,6,23,0.7)', backdropFilter: 'blur(12px)' }}>
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden"
+                        style={{ animation: 'popIn 0.35s cubic-bezier(0.34,1.56,0.64,1)' }}>
+                        {/* Red gradient header */}
+                        <div style={{ background: 'linear-gradient(135deg, #ef4444 0%, #e11d48 100%)', padding: '20px 24px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <div style={{ width: 42, height: 42, borderRadius: 14, background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth={2.5}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                     </svg>
                                 </div>
-                                <div className="text-slate-700 flex items-center gap-2">
-                                    <div className="flex flex-col">
-                                        <span className="text-xs font-bold leading-none tracking-tight">โหมดวาดแปลง</span>
-                                        <span className="text-[9px] text-slate-400 mt-0.5">คลิกบนแผนที่เพื่อวาดรูปทรง</span>
-                                    </div>
-                                    {pendingPlots.length > 0 && (
-                                        <div className="ml-2 pl-3 border-l border-slate-200 flex items-center gap-1.5">
-                                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                            <span className="text-[10px] font-black text-emerald-600 tracking-wider">คำนวณแล้ว {pendingPlots.length} แปลง</span>
-                                        </div>
-                                    )}
+                                <div>
+                                    <div style={{ color: 'white', fontWeight: 800, fontSize: 15, lineHeight: 1.3 }}>ยืนยันการลบแปลง</div>
+                                    <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11, marginTop: 2 }}>การกระทำนี้ไม่สามารถย้อนกลับได้</div>
                                 </div>
                             </div>
                         </div>
 
+                        {/* Body */}
+                        <div style={{ padding: '20px 24px' }}>
+                            <p style={{ color: '#475569', fontSize: 14, lineHeight: 1.6, margin: 0 }}>
+                                คุณต้องการลบแปลง{' '}
+                                <strong style={{ color: '#0f172a' }}>&ldquo;{deleteConfirm.plotName}&rdquo;</strong>
+                                {' '}ใช่หรือไม่?
+                            </p>
+                            <div style={{ marginTop: 12, background: '#fff1f2', borderRadius: 12, padding: '10px 12px', display: 'flex', alignItems: 'flex-start', gap: 8, border: '1px solid #fee2e2' }}>
+                                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#f87171" strokeWidth={2} style={{ marginTop: 1, flexShrink: 0 }}>
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="12" y1="8" x2="12" y2="12" />
+                                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                                </svg>
+                                <p style={{ color: '#dc2626', fontSize: 11, margin: 0, lineHeight: 1.5 }}>
+                                    ข้อมูลพิกัด รูปร่างแปลง และคาร์บอนที่คำนวณไว้จะถูกลบทั้งหมด
+                                </p>
+                            </div>
+                        </div>
 
-
-
-                    </>
-                )
-            }
+                        {/* Action buttons */}
+                        <div style={{ padding: '0 24px 24px 24px', display: 'flex', gap: 10 }}>
+                            <button
+                                onClick={() => setDeleteConfirm({ show: false, plotId: null, plotName: '', isDraw: false })}
+                                style={{
+                                    flex: 1, padding: '12px 0', borderRadius: 16, background: '#f1f5f9',
+                                    border: 'none', cursor: 'pointer', color: '#475569', fontSize: 13,
+                                    fontWeight: 700, transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#e2e8f0'}
+                                onMouseLeave={e => e.currentTarget.style.background = '#f1f5f9'}
+                            >
+                                ยกเลิก
+                            </button>
+                            <button
+                                onClick={() => {
+                                    if (deleteConfirm.isDraw) {
+                                        if (draw.current) {
+                                            const features = draw.current.getAll().features;
+                                            const ids = features.map(f => f.id);
+                                            draw.current.delete(ids);
+                                            setActiveTool(null);
+                                        }
+                                        setDeleteConfirm({ show: false, plotId: null, plotName: '', isDraw: false });
+                                    } else {
+                                        confirmDeleteSavedPlot(deleteConfirm.plotId);
+                                    }
+                                }}
+                                style={{
+                                    flex: 1, padding: '12px 0', borderRadius: 16,
+                                    background: 'linear-gradient(135deg, #ef4444 0%, #e11d48 100%)',
+                                    border: 'none', cursor: 'pointer', color: '#fff', fontSize: 13,
+                                    fontWeight: 700, transition: 'all 0.2s',
+                                    boxShadow: '0 4px 15px rgba(239,68,68,0.3)'
+                                }}
+                            >
+                                ลบแปลง
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Workflow Modal Integration */}
             <WorkflowModal
@@ -2663,6 +2995,21 @@ function MapPage() {
                 }
                 .animate-bounce-subtle {
                     animation: bounce-subtle 2s ease-in-out infinite;
+                }
+
+                @keyframes slideInRight {
+                    from { opacity: 0; transform: translateX(-16px); }
+                    to   { opacity: 1; transform: translateX(0); }
+                }
+
+                @keyframes slideDown {
+                    from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+                    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+                }
+
+                @keyframes popIn {
+                    from { opacity: 0; transform: scale(0.88) translateY(16px); }
+                    to   { opacity: 1; transform: scale(1) translateY(0); }
                 }
                 .user-marker {
                     position: relative;
@@ -2793,6 +3140,17 @@ function MapPage() {
                     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
                 }
                 .m-edit-btn:active {
+                    transform: scale(0.95);
+                }
+
+                /* Delete Button */
+                .m-delete-btn:hover {
+                    background: #fee2e2 !important;
+                    color: #dc2626 !important;
+                    transform: scale(1.1);
+                    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+                }
+                .m-delete-btn:active {
                     transform: scale(0.95);
                 }
 

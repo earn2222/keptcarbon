@@ -608,8 +608,6 @@ export default function WorkflowModal({
             satData: satData,
             avgCarbon: result.avgCarbon,
             bestCarbon: result.bestCarbon,
-            minCarbon: result.minCarbon,
-            minCarbon: result.minCarbon,
             savedAt: new Date().toISOString(),
             address: formData.address || currentFormattedAddress // Add address
         };
