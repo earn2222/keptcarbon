@@ -2076,12 +2076,23 @@ function MapPage() {
             return;
         }
 
-        setDeleteConfirm({
-            show: true,
-            plotId: '__draw__',
-            plotName: `แปลงที่กำลังวาด (${features.length} แปลง)`,
-            isDraw: true
-        });
+        if (editingGeomPlot) {
+            // Delete the formal saved plot we are currently editing
+            setDeleteConfirm({
+                show: true,
+                plotId: editingGeomPlot.id,
+                plotName: editingGeomPlot.farmerName || 'เครื่องหมายที่คุณกำลังแก้ไข',
+                isDraw: false
+            });
+        } else {
+            // Delete temp draw features
+            setDeleteConfirm({
+                show: true,
+                plotId: '__draw__',
+                plotName: `แปลงที่กำลังวาด (${features.length} แปลง)`,
+                isDraw: true
+            });
+        }
     };
 
     // Confirm and execute delete of a saved plot
@@ -2752,9 +2763,17 @@ function MapPage() {
                 className="absolute left-3 z-[100] flex flex-col gap-2"
                 style={{ top: '50%', transform: 'translateY(-50%)' }}
             >
-                {digitizeMode && !editingGeomPlot ? (
-                    /* DIGITIZE MODE - only Draw + Delete */
+                {digitizeMode ? (
+                    /* DIGITIZE / EDIT MODE TOOLBAR */
                     <div className="flex flex-col gap-2" style={{ animation: 'slideInRight 0.3s cubic-bezier(0.34,1.56,0.64,1)' }}>
+
+                        {/* Mode indicator (only when editing) */}
+                        {editingGeomPlot && (
+                            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 backdrop-blur-xl rounded-full shadow-lg border border-white/10 mb-1 bg-blue-500/80">
+                                <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                                <span className="text-white text-[10px] font-bold tracking-widest uppercase whitespace-nowrap">แก้ไขรูปร่าง</span>
+                            </div>
+                        )}
 
                         {/* Draw Tool */}
                         <button
@@ -2775,11 +2794,30 @@ function MapPage() {
                             </svg>
                         </button>
 
-                        {/* Delete drawn plot */}
+                        {/* Edit Vertices Tool (The Pencil icon you missed!) */}
+                        <button
+                            id="toolbar-edit"
+                            onClick={() => switchTool('edit')}
+                            title="แก้ไขจุดยอด"
+                            className="flex items-center justify-center backdrop-blur-xl border shadow-lg transition-all duration-200 active:scale-90"
+                            style={{
+                                width: 44, height: 44, borderRadius: 14,
+                                background: activeTool === 'edit' ? 'rgba(59,130,246,0.9)' : 'rgba(0,0,0,0.35)',
+                                border: activeTool === 'edit' ? '1px solid rgba(96,165,250,0.6)' : '1px solid rgba(255,255,255,0.14)',
+                                color: activeTool === 'edit' ? '#fff' : 'rgba(255,255,255,0.85)',
+                                boxShadow: activeTool === 'edit' ? '0 4px 20px rgba(59,130,246,0.4)' : '0 4px 16px rgba(0,0,0,0.3)'
+                            }}
+                        >
+                            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                        </button>
+
+                        {/* Delete Tool */}
                         <button
                             id="toolbar-delete"
                             onClick={handleDeletePlot}
-                            title="ลบแปลงที่วาด"
+                            title="ลบแปลง"
                             className="flex items-center justify-center backdrop-blur-xl border shadow-lg transition-all duration-200 active:scale-90"
                             style={{
                                 width: 44, height: 44, borderRadius: 14,
@@ -2796,14 +2834,14 @@ function MapPage() {
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2" />
                             </svg>
                         </button>
-                    </div>
-                ) : editingGeomPlot ? (
-                    /* EDIT GEOMETRY MODE - Save + Cancel */
-                    <div className="flex flex-col gap-2" style={{ animation: 'slideInRight 0.3s cubic-bezier(0.34,1.56,0.64,1)' }}>
+
+                        <div style={{ height: 1, background: 'rgba(255,255,255,0.1)', margin: '2px 4px' }} />
+
+                        {/* Confirm / Save */}
                         <button
-                            id="toolbar-save-geom"
-                            onClick={saveEditedGeometry}
-                            title="บันทึกรูปร่าง"
+                            id="toolbar-confirm"
+                            onClick={editingGeomPlot ? saveEditedGeometry : finishDigitizing}
+                            title={editingGeomPlot ? 'บันทึกรูปร่าง' : 'ยืนยันการวาด'}
                             className="flex items-center justify-center shadow-lg transition-all duration-200 active:scale-90"
                             style={{
                                 width: 44, height: 44, borderRadius: 14,
@@ -2817,9 +2855,11 @@ function MapPage() {
                                 <polyline points="20 6 9 17 4 12" />
                             </svg>
                         </button>
+
+                        {/* Cancel */}
                         <button
-                            id="toolbar-cancel-geom"
-                            onClick={cancelEditGeometry}
+                            id="toolbar-cancel"
+                            onClick={editingGeomPlot ? cancelEditGeometry : cancelDigitizing}
                             title="ยกเลิก"
                             className="flex items-center justify-center backdrop-blur-xl border shadow-lg transition-all duration-200 active:scale-90"
                             style={{
