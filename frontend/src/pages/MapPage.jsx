@@ -192,7 +192,7 @@ function MapPage() {
     const [showLayerPanel, setShowLayerPanel] = useState(false)
     const [showSearchPanel, setShowSearchPanel] = useState(false)
     const [showFABMenu, setShowFABMenu] = useState(false)
-    const [workflowModal, setWorkflowModal] = useState({ isOpen: false, mode: null })
+    const [workflowModal, setWorkflowModal] = useState({ isOpen: false, mode: null, isEditing: false, initialData: null })
     const [digitizeMode, setDigitizeMode] = useState(false)
     const [activeTool, setActiveTool] = useState(null)
     const [savedPlots, setSavedPlots] = useState([])
@@ -561,6 +561,7 @@ function MapPage() {
                     setWorkflowModal({
                         isOpen: true,
                         mode: 'draw',
+                        isEditing: false,
                         initialData: {
                             geometry: currentFeature.geometry,
                             areaSqm: areaSqm.toFixed(2),
@@ -2025,6 +2026,107 @@ function MapPage() {
     };
 
 
+    // Open info modal to edit farmer/plot details during drawing/editing
+    // Works in ALL states: editing existing plot, polygon drawn, or no polygon yet
+    const openInfoModal = () => {
+        // Case 1: Editing an existing plot's geometry
+        if (editingGeomPlot) {
+            let geometry = editingGeomPlot.geometry;
+            let areaSqm = 0, rai = 0, ngan = 0, sqWah = '0.0';
+
+            // Try to use the current draw state (may have modified vertices)
+            if (draw.current) {
+                const data = draw.current.getAll();
+                if (data.features.length > 0) {
+                    try {
+                        const currentFeature = data.features[0];
+                        areaSqm = turf.area(currentFeature);
+                        const areaRaiTotal = areaSqm / 1600;
+                        rai = Math.floor(areaRaiTotal);
+                        ngan = Math.floor((areaRaiTotal - rai) * 4);
+                        sqWah = ((areaRaiTotal - rai - ngan / 4) * 400).toFixed(1);
+                        geometry = currentFeature.geometry;
+                    } catch (e) { /* use fallback geometry */ }
+                }
+            }
+
+            // Fallback: calculate area from the saved plot's original geometry
+            if (areaSqm === 0 && geometry) {
+                try {
+                    areaSqm = turf.area(turf.feature(geometry));
+                    const areaRaiTotal = areaSqm / 1600;
+                    rai = Math.floor(areaRaiTotal);
+                    ngan = Math.floor((areaRaiTotal - rai) * 4);
+                    sqWah = ((areaRaiTotal - rai - ngan / 4) * 400).toFixed(1);
+                } catch (e) { }
+            }
+
+            setWorkflowModal({
+                isOpen: true,
+                mode: 'draw',
+                isEditing: true,
+                initialData: {
+                    ...editingGeomPlot,
+                    geometry,
+                    areaSqm: areaSqm.toFixed(2),
+                    areaRai: rai,
+                    areaNgan: ngan,
+                    areaSqWah: sqWah
+                }
+            });
+            return;
+        }
+
+        // Cases 2 & 3: New plot digitizing (polygon may or may not be drawn yet)
+        if (draw.current) {
+            const data = draw.current.getAll();
+
+            if (data.features.length > 0) {
+                // Case 2: Polygon exists — calculate area and open modal
+                try {
+                    const currentFeature = data.features[0];
+                    const areaSqm = turf.area(currentFeature);
+                    const areaRaiTotal = areaSqm / 1600;
+                    const rai = Math.floor(areaRaiTotal);
+                    const ngan = Math.floor((areaRaiTotal - rai) * 4);
+                    const sqWah = ((areaRaiTotal - rai - ngan / 4) * 400).toFixed(1);
+
+                    setWorkflowModal({
+                        isOpen: true,
+                        mode: 'draw',
+                        isEditing: false,
+                        initialData: {
+                            geometry: currentFeature.geometry,
+                            areaSqm: areaSqm.toFixed(2),
+                            areaRai: rai,
+                            areaNgan: ngan,
+                            areaSqWah: sqWah
+                        }
+                    });
+                } catch (e) {
+                    // If area calculation fails (e.g. incomplete polygon shape)
+                    // Still open the modal so user can fill in info
+                    setWorkflowModal({
+                        isOpen: true,
+                        mode: 'draw',
+                        isEditing: false,
+                        initialData: { areaRai: 0, areaNgan: 0, areaSqWah: '0.0', areaSqm: '0' }
+                    });
+                }
+            } else {
+                // Case 3: No polygon yet — open modal to pre-fill farmer/plot info
+                // Geometry will be obtained from the draw tool when the user finishes drawing
+                setWorkflowModal({
+                    isOpen: true,
+                    mode: 'draw',
+                    isEditing: false,
+                    initialData: { areaRai: 0, areaNgan: 0, areaSqWah: '0.0', areaSqm: '0' }
+                });
+            }
+        }
+    };
+
+
     // ==========================================
     // DRAWING TOOLBAR TOOL MANAGEMENT
     // ==========================================
@@ -2813,6 +2915,41 @@ function MapPage() {
                             </svg>
                         </button>
 
+                        {/* Edit Info Tool */}
+                        <button
+                            id="toolbar-info"
+                            onClick={openInfoModal}
+                            title="แก้ไขข้อมูลแปลง (ชื่อเกษตรกร, ปีที่ปลูก, พันธุ์ยาง)"
+                            className="flex items-center justify-center backdrop-blur-xl border shadow-lg transition-all duration-200 active:scale-90"
+                            style={{
+                                width: 44, height: 44, borderRadius: 14,
+                                background: workflowModal.isOpen ? 'rgba(245,158,11,0.9)' : 'rgba(0,0,0,0.35)',
+                                border: workflowModal.isOpen ? '1px solid rgba(251,191,36,0.6)' : '1px solid rgba(255,255,255,0.14)',
+                                color: workflowModal.isOpen ? '#fff' : 'rgba(251,191,36,0.9)',
+                                boxShadow: workflowModal.isOpen ? '0 4px 20px rgba(245,158,11,0.4)' : '0 4px 16px rgba(0,0,0,0.3)'
+                            }}
+                            onMouseEnter={e => {
+                                if (!workflowModal.isOpen) {
+                                    e.currentTarget.style.background = 'rgba(245,158,11,0.85)';
+                                    e.currentTarget.style.color = '#fff';
+                                    e.currentTarget.style.border = '1px solid rgba(251,191,36,0.5)';
+                                    e.currentTarget.style.boxShadow = '0 4px 20px rgba(245,158,11,0.3)';
+                                }
+                            }}
+                            onMouseLeave={e => {
+                                if (!workflowModal.isOpen) {
+                                    e.currentTarget.style.background = 'rgba(0,0,0,0.35)';
+                                    e.currentTarget.style.color = 'rgba(251,191,36,0.9)';
+                                    e.currentTarget.style.border = '1px solid rgba(255,255,255,0.14)';
+                                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.3)';
+                                }
+                            }}
+                        >
+                            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </button>
+
                         {/* Delete Tool */}
                         <button
                             id="toolbar-delete"
@@ -2997,6 +3134,7 @@ function MapPage() {
                 isOpen={workflowModal.isOpen}
                 mode={workflowModal.mode}
                 initialData={workflowModal.initialData}
+                isEditing={workflowModal.isEditing}
                 accumulatedPlots={pendingPlots}
                 currentFormattedAddress={(() => {
                     const loc = coordinates.locationName;
@@ -3009,7 +3147,7 @@ function MapPage() {
                     if (parts.length === 2) return `อ.${parts[1]} จ.${parts[0]}`;
                     return `จ.${parts[0]}`;
                 })()}
-                onClose={() => setWorkflowModal({ isOpen: false, mode: null })}
+                onClose={() => setWorkflowModal({ isOpen: false, mode: null, isEditing: false, initialData: null })}
                 onSave={handleCoreSave}
                 onAddAnother={handleCoreAddAnother}
                 onDeletePlot={(id) => {
