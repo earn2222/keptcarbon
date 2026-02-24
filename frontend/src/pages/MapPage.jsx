@@ -229,6 +229,126 @@ function MapPage() {
     const [coordLat, setCoordLat] = useState('')
     const [coordLng, setCoordLng] = useState('')
 
+    // ==========================================
+    // INLINE MEASUREMENT MARKERS (imperative, maplibregl.Marker)
+    // ==========================================
+    const segmentMarkersRef = useRef([])    // completed segment labels
+    const liveSegmentMarkerRef = useRef(null) // cursor live segment label
+    const areaMarkerRef = useRef(null)        // area label at polygon centroid
+    const lastVertexCountRef = useRef(0)      // tracks when to rebuild segment markers
+
+    // ==========================================
+    // UTILITIES
+    // ==========================================
+    const calcThaiArea = useCallback((areaSqm) => {
+        const areaRaiTotal = areaSqm / 1600;
+        const rai = Math.floor(areaRaiTotal);
+        const ngan = Math.floor((areaRaiTotal - rai) * 4);
+        const sqWah = parseFloat(((areaRaiTotal - rai - ngan / 4) * 400).toFixed(2));
+        return { rai, ngan, sqWah };
+    }, []);
+
+    const updateArea = useCallback((e) => {
+        if (!draw.current) return;
+        try {
+            lastVertexCountRef.current = -1;
+        } catch (err) {
+            console.error('Error in updateArea:', err);
+        }
+    }, []);
+
+    const clearDrawMarkers = useCallback(() => {
+        if (segmentMarkersRef.current) {
+            segmentMarkersRef.current.forEach(m => {
+                if (m && typeof m.remove === 'function') m.remove();
+            });
+            segmentMarkersRef.current = [];
+        }
+        if (liveSegmentMarkerRef.current) {
+            if (typeof liveSegmentMarkerRef.current.remove === 'function') liveSegmentMarkerRef.current.remove();
+            liveSegmentMarkerRef.current = null;
+        }
+        if (areaMarkerRef.current) {
+            if (typeof areaMarkerRef.current.remove === 'function') areaMarkerRef.current.remove();
+            areaMarkerRef.current = null;
+        }
+        lastVertexCountRef.current = 0;
+    }, []);
+
+    const startDigitizing = useCallback(() => {
+        if (!draw.current) {
+            alert('เครื่องมือวาดกำลังโหลด กรุณารอสักครู่...');
+            return;
+        }
+        setDigitizeMode(true);
+        setActiveTool('draw');
+        draw.current.changeMode('draw_polygon');
+    }, []);
+
+    const cancelDigitizing = useCallback(() => {
+        if (draw.current) {
+            draw.current.deleteAll();
+            draw.current.changeMode('simple_select');
+        }
+        setDigitizeMode(false);
+        setActiveTool('select');
+        clearDrawMarkers();
+    }, [clearDrawMarkers]);
+
+    const finishDigitizing = useCallback(async () => {
+        if (!draw.current) return;
+        const data = draw.current.getAll();
+        if (data.features.length === 0) return;
+
+        const currentFeature = data.features[0];
+        const areaSqm = turf.area(currentFeature);
+        const { rai, ngan, sqWah } = calcThaiArea(areaSqm);
+
+        clearDrawMarkers();
+        setDigitizeMode(false);
+        setActiveTool('select');
+
+        setWorkflowModal({
+            isOpen: true,
+            mode: 'draw',
+            isEditing: false,
+            initialData: {
+                geometry: currentFeature.geometry,
+                areaSqm: areaSqm.toFixed(2),
+                areaRai: rai,
+                areaNgan: ngan,
+                areaSqWah: sqWah
+            }
+        });
+    }, [calcThaiArea, clearDrawMarkers]);
+
+    const sm = useCallback(() => window.innerWidth < 640, []);
+    const fmtDist = useCallback((m) => m >= 1000
+        ? `${(m / 1000).toFixed(2)} กม.`
+        : `${m.toFixed(1)} ม.`, []);
+
+    const makeSegEl = useCallback(() => {
+        const mob = sm()
+        const el = document.createElement('div')
+        el.style.cssText = [
+            'background:rgba(0,0,0,0.38)',
+            'backdrop-filter:blur(8px)',
+            '-webkit-backdrop-filter:blur(8px)',
+            'color:rgba(255,255,255,0.92)',
+            mob ? 'padding:2px 6px' : 'padding:3px 9px',
+            'border-radius:20px',
+            mob ? 'font-size:9.5px' : 'font-size:10.5px',
+            'font-weight:600',
+            'white-space:nowrap',
+            'pointer-events:none',
+            'font-family:system-ui,-apple-system,sans-serif',
+            'letter-spacing:0.1px',
+            'border:1px solid rgba(255,255,255,0.20)',
+            'line-height:1.6'
+        ].join(';')
+        return el
+    }, [sm]);
+
     useEffect(() => {
         const profile = localStorage.getItem('userProfile')
         if (profile) {
@@ -330,7 +450,8 @@ function MapPage() {
 
         if (map.current) return
 
-        // Create map with Globe 3D projection (MapLibre)
+        // Create map with Globe 3D projection (MapLibre) - VER: GLOBE_FIX_01
+        console.log('🚀 Initializing MapPage with Globe Projection (VER: GLOBE_FIX_01)');
         map.current = new maplibregl.Map({
             container: mapContainer.current,
             style: {
@@ -358,16 +479,19 @@ function MapPage() {
                 glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf'
             },
             center: [100.5018, 13.7563], // Bangkok
-            zoom: 2, // Start zoomed out to see the globe
+            zoom: 2.0, // Start zoomed out for space view
             pitch: 0,
             bearing: 0,
             maxPitch: 85,
             antialias: true,
-            projection: { type: 'globe' } // Explicit object configuration
+            projection: { type: 'globe' }, // Match Dashboard object format
+            renderWorldCopies: false // Prevent tiling in space view
         })
 
-        // Force projection and set atmosphere on style load
+        // Initial style load
         map.current.on('style.load', () => {
+            console.log('✨ Map style loaded - Forcing Globe');
+            // Force projection on style load just in case (Matching Dashboard)
             map.current.setProjection({ type: 'globe' });
         });
 
@@ -410,8 +534,11 @@ function MapPage() {
 
         // Map Load Event
         map.current.on('load', () => {
-            console.log('🌍 Map loaded successfully with Globe 3D projection!');
-            setMapLoaded(true)
+            console.log('🌍 Map loaded successfully - Ensuring Globe');
+            setMapLoaded(true);
+
+            // Re-confirm globe projection on load just in case (Matching Dashboard)
+            map.current.setProjection({ type: 'globe' });
 
             // Set Atmosphere to match standard map feel (dark but not pitch black)
             if (map.current.setFog) {
@@ -420,12 +547,17 @@ function MapPage() {
                     'color': 'rgb(255, 255, 255)',
                     'high-color': '#245cdf',
                     'horizon-blend': 0.1,
-                    'space-color': '#111827', // Gray 900 (Softer than black)
-                    'star-intensity': 0.15 // Subtle stars
+                    'space-color': '#111827', // Gray 900 (Matching Dashboard)
+                    'star-intensity': 0.15
                 });
             }
 
-            startIntroAnimation()
+            // Start intro animation once stable
+            setTimeout(() => {
+                if (map.current) {
+                    startIntroAnimation();
+                }
+            }, 300)
 
             // Initialize Draw Control
             if (!draw.current) {
@@ -553,10 +685,7 @@ function MapPage() {
                 if (data.features.length > 0) {
                     const currentFeature = data.features[0];
                     const areaSqm = turf.area(currentFeature);
-                    const areaRaiTotal = areaSqm / 1600;
-                    const rai = Math.floor(areaRaiTotal);
-                    const ngan = Math.floor((areaRaiTotal - rai) * 4);
-                    const sqWah = ((areaRaiTotal - rai - ngan / 4) * 400).toFixed(1);
+                    const { rai, ngan, sqWah } = calcThaiArea(areaSqm);
 
                     setWorkflowModal({
                         isOpen: true,
@@ -570,13 +699,78 @@ function MapPage() {
                             areaSqWah: sqWah
                         }
                     });
-
-                    // Exit draw mode to prevent accidental edits while modal is open
-                    // setTimeout(() => draw.current.changeMode('simple_select'), 100);
                 }
             })
             map.current.on('draw.update', updateArea)
             map.current.on('draw.delete', updateArea)
+
+
+
+
+
+
+
+
+            map.current.on('mousemove', (e) => {
+                if (!draw.current) return
+                try {
+                    const mode = draw.current.getMode()
+                    if (mode !== 'draw_polygon') return
+
+                    const data = draw.current.getAll()
+                    let ring = []
+                    let vertexCount = 0
+                    let feature = null
+
+                    if (data.features.length > 0) {
+                        feature = data.features[0]
+                        if (feature.geometry && feature.geometry.type === 'Polygon') {
+                            ring = feature.geometry.coordinates[0]
+                            vertexCount = Math.max(0, ring.length - 1)
+                        }
+                    }
+
+                    // ── Rebuild SEGMENT chips only when vertex count changes ──
+                    if (vertexCount !== lastVertexCountRef.current) {
+                        lastVertexCountRef.current = vertexCount
+
+                        segmentMarkersRef.current.forEach(m => m.remove())
+                        segmentMarkersRef.current = []
+
+                        // Include closing segment (last→first) when polygon has ≥3 vertices
+                        const segmentCount = vertexCount >= 3 ? vertexCount : vertexCount - 1
+                        for (let i = 0; i < segmentCount; i++) {
+                            const p1 = ring[i]
+                            const p2 = ring[i + 1]
+
+                            // Strict validation to prevent MapLibre errors
+                            if (!p1 || !p2 || !Array.isArray(p1) || !Array.isArray(p2)) continue
+                            if (p1.length < 2 || p2.length < 2) continue
+
+                            const midLng = (p1[0] + p2[0]) / 2
+                            const midLat = (p1[1] + p2[1]) / 2
+                            if (isNaN(midLng) || isNaN(midLat) || midLng === null || midLat === null) continue
+
+                            let dist = 0
+                            try {
+                                dist = turf.distance(turf.point(p1), turf.point(p2), { units: 'kilometers' }) * 1000
+                            } catch (e) { continue }
+
+                            if (isNaN(dist) || dist === null) continue
+
+                            const el = makeSegEl()
+                            el.textContent = fmtDist(dist)
+                            segmentMarkersRef.current.push(
+                                new maplibregl.Marker({ element: el, anchor: 'center' })
+                                    .setLngLat([midLng, midLat])
+                                    .addTo(map.current)
+                            )
+                        }
+                    }
+                } catch (err) {
+                    console.warn('Marker update skipped:', err)
+                }
+            })
         })
 
         // Update coordinates on move
@@ -594,55 +788,49 @@ function MapPage() {
         map.current.on('moveend', async () => {
             const center = map.current.getCenter();
             try {
-                // Use OpenStreetMap Nominatim API (Free, requires attribution)
-                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${center.lat}&lon=${center.lng}&zoom=14&addressdetails=1&accept-language=th`);
+                // Nominatim often has CORS issues on localhost. Use silent fail logic.
+                const response = await fetch(
+                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${center.lat}&lon=${center.lng}&zoom=14&addressdetails=1&accept-language=th`,
+                    {
+                        headers: { 'Accept-Language': 'th' },
+                        signal: AbortSignal.timeout(3000) // Don't hang forever
+                    }
+                ).catch(() => null);
+
+                if (!response || !response.ok) throw new Error('SILENT_GEODECODE_FAIL');
                 const data = await response.json();
 
                 if (data && data.address) {
                     const addr = data.address;
-                    // Extract Thai admin levels with more fallbacks
                     const subdistrict = addr.suburb || addr.quarter || addr.neighbourhood || addr.village || addr.hamlet || '';
                     const district = addr.city_district || addr.district || addr.county || addr.town || addr.city || addr.municipality || '';
                     const province = addr.state || addr.province || addr.region || '';
-                    const country = addr.country || '';
 
-                    // Refined Location Construction Logic
-                    let displayLoc = coordinates.locationName;
+                    if (province) {
+                        let parts = [province];
+                        if (district && district !== province) parts.push(district);
+                        if (subdistrict && subdistrict !== district) parts.push(subdistrict);
 
-                    if (country === 'ประเทศไทย' || province) {
-                        // Start building from Province
-                        if (province) {
-                            let parts = [province];
-
-                            if (district && district !== province) {
-                                // Clean up 'อำเภอ' prefix if redundant or ensure it matches style
-                                parts.push(district);
-                            }
-
-                            if (subdistrict && subdistrict !== district && subdistrict !== province) {
-                                parts.push(subdistrict);
-                            }
-
-                            displayLoc = parts.join(' > ');
-                        } else {
-                            displayLoc = 'ประเทศไทย';
-                        }
-                    } else {
-                        // Global fallback
-                        if (data.display_name) {
-                            displayLoc = data.display_name.split(',').slice(0, 2).join(', ');
-                        }
-                    }
-
-                    // Update state if changed
-                    if (displayLoc && displayLoc !== coordinates.locationName) {
-                        setCoordinates(prev => ({ ...prev, locationName: displayLoc }));
+                        setCoordinates(prev => ({ ...prev, locationName: parts.join(' > ') }));
                     }
                 }
-            } catch (error) {
-                console.error("Reverse Geocode Error:", error);
+            } catch (err) {
+                // FALLBACK: Silent fallback for geocode fails
+                if (err.message !== 'SILENT_GEODECODE_FAIL') {
+                    // console.debug('Reverse lookup unavailable');
+                }
+
+                setCoordinates(prev => {
+                    if (!map.current) return prev;
+                    const center = map.current.getCenter();
+                    return {
+                        ...prev,
+                        locationName: `${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`
+                    };
+                });
             }
-        });
+        })
+
 
         // Click handler for plots
         map.current.on('click', 'saved-plots-layer', (e) => {
@@ -1012,21 +1200,21 @@ function MapPage() {
                 paint: {
                     'fill-color': [
                         'case',
-                        ['get', 'isActive'], '#ef4444', // Red for currently processing
-                        ['get', 'isPreview'], '#3b82f6',
-                        ['get', 'isPending'], '#fbbf24',
+                        ['to-boolean', ['get', 'isActive']], '#ef4444',
+                        ['to-boolean', ['get', 'isPreview']], '#3b82f6',
+                        ['to-boolean', ['get', 'isPending']], '#fbbf24',
                         '#10b981'
                     ],
                     'fill-opacity': [
                         'case',
-                        ['get', 'isActive'], 0.5,
+                        ['to-boolean', ['get', 'isActive']], 0.5,
                         0.3
                     ],
                     'fill-outline-color': [
                         'case',
-                        ['get', 'isActive'], '#b91c1c',
-                        ['get', 'isPreview'], '#2563eb',
-                        ['get', 'isPending'], '#d97706',
+                        ['to-boolean', ['get', 'isActive']], '#b91c1c',
+                        ['to-boolean', ['get', 'isPreview']], '#2563eb',
+                        ['to-boolean', ['get', 'isPending']], '#d97706',
                         '#059669'
                     ]
                 }
@@ -1039,14 +1227,14 @@ function MapPage() {
                 paint: {
                     'line-color': [
                         'case',
-                        ['get', 'isActive'], '#dc2626',
-                        ['get', 'isPreview'], '#2563eb',
-                        ['get', 'isPending'], '#d97706',
+                        ['to-boolean', ['get', 'isActive']], '#dc2626',
+                        ['to-boolean', ['get', 'isPreview']], '#2563eb',
+                        ['to-boolean', ['get', 'isPending']], '#d97706',
                         '#059669'
                     ],
                     'line-width': [
                         'case',
-                        ['get', 'isActive'], 3,
+                        ['to-boolean', ['get', 'isActive']], 3,
                         2
                     ]
                 }
@@ -1282,27 +1470,37 @@ function MapPage() {
             return;
         }
 
-        // Start from space view
-        map.current.easeTo({
-            center: [100.5018, 13.7563],
-            zoom: 1.5,
-            pitch: 0,
-            bearing: 0,
-            duration: 0
-        })
+        // Start from space view - Using jumpTo for immediate stable state
+        try {
+            map.current.jumpTo({
+                center: [100.5018, 13.7563],
+                zoom: 1.5,
+                pitch: 0,
+                bearing: 0
+            })
+        } catch (e) {
+            console.warn('Initial jumpTo skipped:', e)
+        }
 
         // After a tiny delay, zoom to Thailand
-        setTimeout(() => {
-            map.current.flyTo({
-                center: [100.5018, 13.7563],
-                zoom: 6,
-                pitch: 45,
-                bearing: 15,
-                duration: 3500,
-                essential: true,
-                curve: 1.5
-            })
-        }, 100)
+        const timer = setTimeout(() => {
+            if (!map.current) return;
+            try {
+                map.current.flyTo({
+                    center: [100.5018, 13.7563],
+                    zoom: 6,
+                    pitch: 45,
+                    bearing: 15,
+                    duration: 3500,
+                    essential: true,
+                    curve: 1.5
+                })
+            } catch (e) {
+                console.warn('Intro animation flyTo skipped:', e)
+            }
+        }, 300)
+
+        return () => clearTimeout(timer)
     }, [])
 
     // ==========================================
@@ -1754,116 +1952,8 @@ function MapPage() {
     }, [clearBoundaryLayers])
 
     // ==========================================
-    // COORDINATE SEARCH
-    // ==========================================
-    const handleCoordSearch = useCallback(() => {
-        const latitude = parseFloat(coordLat)
-        const longitude = parseFloat(coordLng)
-        if (isNaN(latitude) || isNaN(longitude)) { alert('กรุณากรอกพิกัดให้ถูกต้อง'); return }
-        if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) { alert('พิกัดไม่ถูกต้อง (Lat: -90~90, Lng: -180~180)'); return }
-        clearBoundaryLayers()
-        map.current.flyTo({ center: [longitude, latitude], zoom: 14, pitch: 45, duration: 2000 })
-        if (userMarker.current) {
-            userMarker.current.setLngLat([longitude, latitude])
-        } else {
-            const el = document.createElement('div')
-            el.className = 'user-marker'
-            el.innerHTML = `<div class="user-marker-pulse" style="background:rgba(239,68,68,0.3)"></div><div class="user-marker-dot" style="background:linear-gradient(135deg,#ef4444,#dc2626)"></div>`
-            userMarker.current = new maplibregl.Marker({ element: el }).setLngLat([longitude, latitude]).addTo(map.current)
-        }
-    }, [coordLat, coordLng, clearBoundaryLayers])
-
-    // ==========================================
-    // DIGITIZE LOGIC
-    // ==========================================
-    const startDigitizing = () => {
-        console.log('Attempting to start digitizing...', {
-            drawExists: !!draw.current,
-            mapExists: !!map.current,
-            mapLoaded
-        });
-
-        if (!draw.current) {
-            alert('เครื่องมือวาดกำลังโหลด กรุณารอสักครู่...');
-            return;
-        }
-
-        try {
-            setDigitizeMode(true);
-            console.log('Setting mode to draw_polygon');
-            draw.current.changeMode('draw_polygon');
-            console.log('Draw mode changed successfully');
-        } catch (err) {
-            console.error('Failed to start drawing:', err);
-            alert('เกิดข้อผิดพลาดในการเปิดเครื่องมือวาด กรุณาลองใหม่อีกครั้ง');
-        }
-    }
-
-    const cancelDigitizing = () => {
-        if (!draw.current) return
-        try {
-            draw.current.changeMode('simple_select')
-            draw.current.deleteAll()
-            setDigitizeMode(false)
-            console.log('Digitizing cancelled');
-        } catch (err) {
-            console.error('Error cancelling:', err);
-        }
-    }
-
-    const finishDigitizing = () => {
-        if (!draw.current) {
-            alert('ไม่พบเครื่องมือวาด');
-            return;
-        }
-
-        try {
-            const data = draw.current.getAll()
-
-            if (data.features.length > 0) {
-                const currentFeature = data.features[0];
-                const areaSqm = turf.area(currentFeature);
-                const areaRaiTotal = areaSqm / 1600;
-                const rai = Math.floor(areaRaiTotal);
-                const ngan = Math.floor((areaRaiTotal - rai) * 4);
-                const sqWah = ((areaRaiTotal - rai - ngan / 4) * 400).toFixed(1);
-
-                setWorkflowModal({
-                    isOpen: true,
-                    mode: 'draw',
-                    initialData: {
-                        geometry: currentFeature.geometry,
-                        areaSqm: areaSqm.toFixed(2),
-                        areaRai: rai,
-                        areaNgan: ngan,
-                        areaSqWah: sqWah
-                    }
-                });
-                console.log('Digitizing finished, current plot area calculated');
-            } else {
-                alert('กรุณาวาดพื้นที่บนแผนที่ก่อน');
-            }
-        } catch (err) {
-            console.error('Error finishing digitizing:', err);
-            alert('เกิดข้อผิดพลาดในการคำนวณพื้นที่');
-        }
-    }
-
-    function updateArea(e) {
-        if (!draw.current) return;
-        try {
-            const data = draw.current.getAll()
-            if (data.features.length > 0) {
-                // Can show live area HUD here if needed
-                console.log('Area updated:', turf.area(data.features[0]));
-            }
-        } catch (err) {
-            console.error('Error updating area:', err);
-        }
-    }
-
-    // ==========================================
     // CORE WORKFLOW HANDLERS (New Implementation)
+    // ==========================================
     // ==========================================
     const handleCoreSave = async (plotData, isBatchSave = false) => {
         try {
@@ -2379,7 +2469,7 @@ function MapPage() {
     }
 
     return (
-        <div className="relative w-full h-screen bg-slate-900 overflow-hidden">
+        <div className="relative w-full h-screen bg-black overflow-hidden">
             {/* ==========================================
                 MAP CONTAINER
             ========================================== */}
@@ -2901,33 +2991,35 @@ function MapPage() {
                             title="วาดแปลง"
                             className="flex items-center justify-center backdrop-blur-xl border shadow-lg transition-all duration-200 active:scale-90"
                             style={{
-                                width: 44, height: 44, borderRadius: 14,
-                                background: activeTool === 'draw' ? 'rgba(16,185,129,0.9)' : 'rgba(0,0,0,0.35)',
-                                border: activeTool === 'draw' ? '1px solid rgba(52,211,153,0.6)' : '1px solid rgba(255,255,255,0.14)',
+                                width: 'clamp(36px, 5vw, 44px)',
+                                height: 'clamp(36px, 5vw, 44px)',
+                                borderRadius: 13,
+                                background: activeTool === 'draw' ? 'rgba(16,185,129,0.9)' : 'rgba(0,0,0,0.4)',
+                                border: activeTool === 'draw' ? '1px solid rgba(52,211,153,0.6)' : '1px solid rgba(255,255,255,0.15)',
                                 color: activeTool === 'draw' ? '#fff' : 'rgba(255,255,255,0.85)',
                                 boxShadow: activeTool === 'draw' ? '0 4px 20px rgba(16,185,129,0.4)' : '0 4px 16px rgba(0,0,0,0.3)'
                             }}
                         >
-                            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M2.5 21.5l1.5-5L17 3a2.121 2.121 0 013 3L6.5 19l-4 2.5z" />
                             </svg>
                         </button>
 
-                        {/* Edit Vertices Tool (The Pencil icon you missed!) */}
+                        {/* Edit Vertices Tool */}
                         <button
                             id="toolbar-edit"
                             onClick={() => switchTool('edit')}
                             title="แก้ไขจุดยอด"
                             className="flex items-center justify-center backdrop-blur-xl border shadow-lg transition-all duration-200 active:scale-90"
                             style={{
-                                width: 44, height: 44, borderRadius: 14,
-                                background: activeTool === 'edit' ? 'rgba(59,130,246,0.9)' : 'rgba(0,0,0,0.35)',
-                                border: activeTool === 'edit' ? '1px solid rgba(96,165,250,0.6)' : '1px solid rgba(255,255,255,0.14)',
+                                width: 'clamp(36px,5vw,44px)', height: 'clamp(36px,5vw,44px)', borderRadius: 13,
+                                background: activeTool === 'edit' ? 'rgba(59,130,246,0.9)' : 'rgba(0,0,0,0.4)',
+                                border: activeTool === 'edit' ? '1px solid rgba(96,165,250,0.6)' : '1px solid rgba(255,255,255,0.15)',
                                 color: activeTool === 'edit' ? '#fff' : 'rgba(255,255,255,0.85)',
                                 boxShadow: activeTool === 'edit' ? '0 4px 20px rgba(59,130,246,0.4)' : '0 4px 16px rgba(0,0,0,0.3)'
                             }}
                         >
-                            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                         </button>
@@ -2936,33 +3028,19 @@ function MapPage() {
                         <button
                             id="toolbar-info"
                             onClick={openInfoModal}
-                            title="แก้ไขข้อมูลแปลง (ชื่อเกษตรกร, ปีที่ปลูก, พันธุ์ยาง)"
+                            title="แก้ไขข้อมูลแปลง"
                             className="flex items-center justify-center backdrop-blur-xl border shadow-lg transition-all duration-200 active:scale-90"
                             style={{
-                                width: 44, height: 44, borderRadius: 14,
-                                background: workflowModal.isOpen ? 'rgba(245,158,11,0.9)' : 'rgba(0,0,0,0.35)',
-                                border: workflowModal.isOpen ? '1px solid rgba(251,191,36,0.6)' : '1px solid rgba(255,255,255,0.14)',
+                                width: 'clamp(36px,5vw,44px)', height: 'clamp(36px,5vw,44px)', borderRadius: 13,
+                                background: workflowModal.isOpen ? 'rgba(245,158,11,0.9)' : 'rgba(0,0,0,0.4)',
+                                border: workflowModal.isOpen ? '1px solid rgba(251,191,36,0.6)' : '1px solid rgba(255,255,255,0.15)',
                                 color: workflowModal.isOpen ? '#fff' : 'rgba(251,191,36,0.9)',
                                 boxShadow: workflowModal.isOpen ? '0 4px 20px rgba(245,158,11,0.4)' : '0 4px 16px rgba(0,0,0,0.3)'
                             }}
-                            onMouseEnter={e => {
-                                if (!workflowModal.isOpen) {
-                                    e.currentTarget.style.background = 'rgba(245,158,11,0.85)';
-                                    e.currentTarget.style.color = '#fff';
-                                    e.currentTarget.style.border = '1px solid rgba(251,191,36,0.5)';
-                                    e.currentTarget.style.boxShadow = '0 4px 20px rgba(245,158,11,0.3)';
-                                }
-                            }}
-                            onMouseLeave={e => {
-                                if (!workflowModal.isOpen) {
-                                    e.currentTarget.style.background = 'rgba(0,0,0,0.35)';
-                                    e.currentTarget.style.color = 'rgba(251,191,36,0.9)';
-                                    e.currentTarget.style.border = '1px solid rgba(255,255,255,0.14)';
-                                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.3)';
-                                }
-                            }}
+                            onMouseEnter={e => { if (!workflowModal.isOpen) { e.currentTarget.style.background = 'rgba(245,158,11,0.85)'; e.currentTarget.style.color = '#fff'; } }}
+                            onMouseLeave={e => { if (!workflowModal.isOpen) { e.currentTarget.style.background = 'rgba(0,0,0,0.4)'; e.currentTarget.style.color = 'rgba(251,191,36,0.9)'; } }}
                         >
-                            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                         </button>
@@ -2974,16 +3052,16 @@ function MapPage() {
                             title="ลบแปลง"
                             className="flex items-center justify-center backdrop-blur-xl border shadow-lg transition-all duration-200 active:scale-90"
                             style={{
-                                width: 44, height: 44, borderRadius: 14,
-                                background: 'rgba(0,0,0,0.35)',
-                                border: '1px solid rgba(255,255,255,0.14)',
+                                width: 'clamp(36px,5vw,44px)', height: 'clamp(36px,5vw,44px)', borderRadius: 13,
+                                background: 'rgba(0,0,0,0.4)',
+                                border: '1px solid rgba(255,255,255,0.15)',
                                 color: 'rgba(248,113,113,0.95)',
                                 boxShadow: '0 4px 16px rgba(0,0,0,0.3)'
                             }}
                             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.85)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.border = '1px solid rgba(239,68,68,0.5)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.35)'; e.currentTarget.style.color = 'rgba(248,113,113,0.95)'; e.currentTarget.style.border = '1px solid rgba(255,255,255,0.14)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.4)'; e.currentTarget.style.color = 'rgba(248,113,113,0.95)'; e.currentTarget.style.border = '1px solid rgba(255,255,255,0.15)'; }}
                         >
-                            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <polyline points="3 6 5 6 21 6" />
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2" />
                             </svg>
@@ -2998,14 +3076,14 @@ function MapPage() {
                             title={editingGeomPlot ? 'บันทึกรูปร่าง' : 'ยืนยันการวาด'}
                             className="flex items-center justify-center shadow-lg transition-all duration-200 active:scale-90"
                             style={{
-                                width: 44, height: 44, borderRadius: 14,
-                                background: 'rgba(16,185,129,0.9)',
+                                width: 'clamp(36px,5vw,44px)', height: 'clamp(36px,5vw,44px)', borderRadius: 13,
+                                background: 'rgba(16,185,129,0.92)',
                                 border: '1px solid rgba(52,211,153,0.5)',
                                 color: '#fff',
-                                boxShadow: '0 4px 20px rgba(16,185,129,0.35)'
+                                boxShadow: '0 4px 20px rgba(16,185,129,0.4)'
                             }}
                         >
-                            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                 <polyline points="20 6 9 17 4 12" />
                             </svg>
                         </button>
@@ -3017,15 +3095,15 @@ function MapPage() {
                             title="ยกเลิก"
                             className="flex items-center justify-center backdrop-blur-xl border shadow-lg transition-all duration-200 active:scale-90"
                             style={{
-                                width: 44, height: 44, borderRadius: 14,
-                                background: 'rgba(0,0,0,0.35)',
-                                border: '1px solid rgba(255,255,255,0.14)',
+                                width: 'clamp(36px,5vw,44px)', height: 'clamp(36px,5vw,44px)', borderRadius: 13,
+                                background: 'rgba(0,0,0,0.4)',
+                                border: '1px solid rgba(255,255,255,0.15)',
                                 color: 'rgba(255,255,255,0.75)'
                             }}
                             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(51,65,85,0.85)'; e.currentTarget.style.color = '#fff'; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.35)'; e.currentTarget.style.color = 'rgba(255,255,255,0.75)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.4)'; e.currentTarget.style.color = 'rgba(255,255,255,0.75)'; }}
                         >
-                            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
@@ -3033,33 +3111,41 @@ function MapPage() {
                 ) : null}
             </div>
 
-            {/* TOP HUD (Digitize mode active indicator) */}
+            {/* TOP HUD (Digitize mode active indicator) — responsive */}
             {digitizeMode && (
-                <div className="fixed top-4 left-1/2 z-[110] pointer-events-none" style={{ transform: 'translateX(-50%)', animation: 'slideDown 0.3s cubic-bezier(0.34,1.56,0.64,1)' }}>
-                    <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-full border border-slate-200/50 shadow-lg flex items-center gap-2.5 whitespace-nowrap">
-                        <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                            style={{ background: editingGeomPlot ? 'rgba(59,130,246,0.12)' : 'rgba(16,185,129,0.1)', color: editingGeomPlot ? '#3b82f6' : '#10b981' }}>
-                            <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <div
+                    className="fixed top-3 sm:top-4 left-1/2 z-[110] pointer-events-none"
+                    style={{ transform: 'translateX(-50%)', animation: 'slideDown 0.3s cubic-bezier(0.34,1.56,0.64,1)' }}
+                >
+                    <div className="bg-white/92 backdrop-blur-md rounded-full border border-slate-200/60 shadow-lg flex items-center gap-2 whitespace-nowrap"
+                        style={{ padding: 'clamp(5px,1.2vw,8px) clamp(10px,2.5vw,18px)' }}
+                    >
+                        <div
+                            className="w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                            style={{ background: editingGeomPlot ? 'rgba(59,130,246,0.12)' : 'rgba(16,185,129,0.1)', color: editingGeomPlot ? '#3b82f6' : '#10b981' }}
+                        >
+                            <svg width="9" height="9" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M2.5 21.5l1.5-5L17 3a2.121 2.121 0 013 3L6.5 19l-4 2.5z" />
                             </svg>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-slate-700 leading-none">
-                                {editingGeomPlot ? `แก้ไขรูปร่าง: ${editingGeomPlot.farmerName || ''}` : 'โหมดวาดแปลง'}
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] sm:text-xs font-bold text-slate-700 leading-none">
+                                {editingGeomPlot ? `แก้ไขรูปร่าง` : 'โหมดวาดแปลง'}
                             </span>
-                            <span className="text-[9px] text-slate-400">
+                            <span className="hidden sm:inline text-[9px] text-slate-400">
                                 {editingGeomPlot ? '· ลากจุดยอดเพื่อปรับรูปร่าง' : '· คลิกบนแผนที่เพื่อวาดรูปทรง'}
                             </span>
                             {pendingPlots.length > 0 && !editingGeomPlot && (
-                                <div className="ml-1 pl-2 border-l border-slate-200 flex items-center gap-1">
+                                <div className="ml-1 pl-1.5 border-l border-slate-200 flex items-center gap-1">
                                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                    <span className="text-[10px] font-bold text-emerald-600">{pendingPlots.length} แปลง</span>
+                                    <span className="text-[9px] sm:text-[10px] font-bold text-emerald-600">{pendingPlots.length} แปลง</span>
                                 </div>
                             )}
                         </div>
                     </div>
                 </div>
             )}
+
 
             {/* ==========================================
                 DELETE CONFIRMATION MODAL
