@@ -313,19 +313,19 @@ function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget
             style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
             onClick={() => zoomTo(p)}>
             {/* Row 1: Name + Carbon */}
-            <div className="flex items-start justify-between gap-2">
-                <div>
-                    <p className="text-white font-bold text-xs leading-tight">{p.farmerName}</p>
-                    <p className="text-slate-500 text-[9px] mt-0.5">SKT-PLOT-{p.id}</p>
+            <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                    <p className="text-white font-bold text-sm leading-tight truncate pc-title">{p.farmerName}</p>
+                    <p className="text-slate-500 text-[10px] mt-1 pc-subtitle">SKT-PLOT-{p.id}</p>
                 </div>
-                <div className="text-right flex-shrink-0">
-                    <span className="text-emerald-400 font-black text-sm">{(p.carbon || 0).toFixed(2)}</span>
-                    <span className="text-slate-500 text-[9px] block">TCO₂E</span>
+                <div className="text-right flex-shrink-0 pl-2">
+                    <span className="text-emerald-400 font-black text-base pc-value">{(p.carbon || 0).toFixed(2)}</span>
+                    <span className="text-slate-500 text-[10px] block pc-subtitle">TCO₂E</span>
                 </div>
             </div>
             {/* Row 2: Badges */}
-            <div className="flex flex-wrap gap-1 mt-2">
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>
+            <div className="flex flex-wrap gap-1.5 mt-2.5">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md pc-badge" style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>
                     {formatArea(p.area)}
                 </span>
             </div>
@@ -434,26 +434,26 @@ function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget
             )}
 
             {/* Row 3: Value + Actions */}
-            <div className="flex items-center justify-between mt-2.5 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            <div className="flex items-center justify-between mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                 <div>
-                    <p className="text-[9px] text-slate-500 uppercase font-bold tracking-wider">มูลค่าประเมิน</p>
-                    <p className="text-emerald-400 font-black text-sm">฿{value.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                    <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider pc-label">มูลค่าประเมิน</p>
+                    <p className="text-emerald-400 font-black text-sm pc-value">฿{value.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
                     <button onClick={e => { e.stopPropagation(); setExpanded(!expanded) }}
-                        className="action-btn w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-300"
+                        className="action-btn w-8 h-8 pc-action rounded-lg flex items-center justify-center transition-all duration-300"
                         style={{ background: expanded ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)', color: expanded ? '#10b981' : '#cbd5e1' }} title={expanded ? 'ย่อรายละเอียด' : 'ดูรายละเอียดข้อมูล'}>
-                        <ChevIco cls={`w-3.5 h-3.5 transform transition-transform ${expanded ? 'rotate-180' : ''}`} />
+                        <ChevIco cls={`w-4 h-4 transform transition-transform ${expanded ? 'rotate-180' : ''}`} />
                     </button>
                     <button onClick={e => { e.stopPropagation(); handleEditPlot(p) }}
-                        className="action-btn w-7 h-7 rounded-lg flex items-center justify-center"
+                        className="action-btn w-8 h-8 pc-action rounded-lg flex items-center justify-center"
                         style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }} title="แก้ไขแปลง">
-                        <EditIco cls="w-3.5 h-3.5" />
+                        <EditIco cls="w-4 h-4" />
                     </button>
                     <button onClick={e => { e.stopPropagation(); setDeleteTarget(p) }}
-                        className="action-btn w-7 h-7 rounded-lg flex items-center justify-center"
+                        className="action-btn w-8 h-8 pc-action rounded-lg flex items-center justify-center"
                         style={{ background: 'rgba(239,68,68,0.12)', color: '#f87171' }} title="ลบแปลง">
-                        <TrashIco cls="w-3.5 h-3.5" />
+                        <TrashIco cls="w-4 h-4" />
                     </button>
                 </div>
             </div>
@@ -702,13 +702,24 @@ export default function PersonalDashboardPage() {
         @media (max-width: 768px) {
           .desktop-nav { display: none !important; }
           .mobile-nav { display: flex !important; }
-          .main-grid { flex-direction: column !important; padding-bottom: 60px; }
-          .left-panel { max-height: none !important; width: 100% !important; flex: 1; border-right: none !important; }
-          .map-panel { flex: none !important; height: 40vh !important; order: -1; border-bottom: 1px solid rgba(255,255,255,0.06); }
+          .pd-root { height: auto !important; min-height: 100dvh; overflow-y: auto !important; }
+          .content-area { overflow: visible !important; padding-bottom: 70px; }
+          .main-grid { flex-direction: column !important; flex: none !important; overflow: visible !important; padding-bottom: 0px !important; }
+          .left-panel { max-height: none !important; width: 100% !important; flex: none !important; border-right: none !important; overflow: visible !important; }
+          .plot-list-container { overflow: visible !important; }
+          .map-panel { flex: none !important; height: 35vh !important; min-height: 250px; order: -1; border-bottom: 1px solid rgba(255,255,255,0.06); }
           .stat-cards-container { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; margin-top: 8px; width: 100%; }
           .stat-card { width: 100% !important; padding: 12px 10px !important; }
           .stat-card-title { font-size: 8px !important; }
           .stat-card-value { font-size: 1.1rem !important; }
+          .plot-card { padding: 16px !important; gap: 6px; }
+          .plot-card .pc-title { font-size: 1.1rem !important; margin-bottom: 2px; }
+          .plot-card .pc-subtitle { font-size: 0.75rem !important; }
+          .plot-card .pc-value { font-size: 1.25rem !important; }
+          .plot-card .pc-badge { font-size: 0.7rem !important; padding: 4px 8px !important; }
+          .plot-card .pc-label { font-size: 0.7rem !important; }
+          .plot-card .pc-action { width: 36px !important; height: 36px !important; }
+          .plot-card .pc-action svg { width: 18px !important; height: 18px !important; }
         }
       `}</style>
 
@@ -738,7 +749,7 @@ export default function PersonalDashboardPage() {
             </aside>
 
             {/* ── MAIN AREA ── */}
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-hidden content-area">
 
                 {/* TOP BAR */}
                 <header className="flex-shrink-0 flex items-center justify-between px-5 py-3" style={{ background: '#161b27', borderBottom: '1px solid rgba(255,255,255,0.06)', minHeight: 56 }}>
@@ -830,7 +841,7 @@ export default function PersonalDashboardPage() {
                             </div>
                         </div>
                         {/* Plot cards list */}
-                        <div className="flex-1 overflow-y-auto scrollbar px-3 py-2 flex flex-col gap-2">
+                        <div className="flex-1 overflow-y-auto scrollbar px-3 py-2 flex flex-col gap-2 plot-list-container">
                             {loading ? (
                                 <div className="flex flex-col items-center justify-center h-full gap-2 text-slate-600">
                                     <div className="w-8 h-8 border-2 border-emerald-700 border-t-emerald-400 rounded-full animate-spin" />
