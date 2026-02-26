@@ -3,919 +3,860 @@ import { useHistory } from 'react-router-dom'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import * as turf from '@turf/turf'
-import { getPlots } from '../services/api'
+import { getPlots, deletePlot } from '../services/api'
 
-// ==========================================
-// ICONS
-// ==========================================
-const HomeIcon = ({ className = "w-6 h-6" }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+// ─── ICONS ───────────────────────────────────────────────────────────────────
+const Ico = ({ d, d2, s = 1.8, cls = 'w-5 h-5' }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={s} stroke="currentColor" className={cls}>
+        <path strokeLinecap="round" strokeLinejoin="round" d={d} />
+        {d2 && <path strokeLinecap="round" strokeLinejoin="round" d={d2} />}
     </svg>
 )
+const HomeIco = p => <Ico {...p} d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+const MapIco = p => <Ico {...p} d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z" />
+const UserIco = p => <Ico {...p} d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+const DashIco = p => <Ico {...p} d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+const HistIco = p => <Ico {...p} d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+const LeafIco = p => <Ico {...p} d="M20.354 15.354A9 9 0 0 1 8.646 3.646 9.003 9.003 0 0 0 12 21a9.003 9.003 0 0 0 8.354-5.646Z" />
+const TrashIco = p => <Ico {...p} d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+const EditIco = p => <Ico {...p} d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
+const PinIco = p => <Ico {...p} d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" d2="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+const SearchIco = p => <Ico {...p} d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 15.803 7.5 7.5 0 0 0 15.803 15.803Z" />
+const XIco = p => <Ico {...p} d="M6 18 18 6M6 6l12 12" />
+const LogoutIco = p => <Ico {...p} d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+const CamIco = p => <Ico {...p} d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" d2="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
+const ChevIco = p => <Ico {...p} d="m19 9-7 7-7-7" />
 
-const MapIcon = ({ className = "w-6 h-6" }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z" />
-    </svg>
-)
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+const CARBON_PRICE = 250
 
-const DashboardIcon = ({ className = "w-6 h-6" }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
-    </svg>
-)
-
-const UserIcon = ({ className = "w-6 h-6" }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-    </svg>
-)
-
-const HistoryIcon = ({ className = "w-6 h-6" }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-    </svg>
-)
-
-const LeafIcon = ({ className = "w-6 h-6" }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 0 1 8.646 3.646 9.003 9.003 0 0 0 12 21a9.003 9.003 0 0 0 8.354-5.646Z" />
-    </svg>
-)
-
-const MapPinIcon = ({ className = "w-6 h-6" }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
-    </svg>
-)
-
-const LogoutIcon = ({ className = "w-6 h-6" }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
-    </svg>
-)
-
-// Helper for Area Formatting
 const formatArea = (rai) => {
-    if (!rai) return '0 ไร่ 0 งาน 0 ตร.ว.';
-
-    // Ensure rai is valid number
-    const rVal = parseFloat(rai);
-    if (isNaN(rVal)) return '0 ไร่ 0 งาน 0 ตร.ว.';
-
-    const r = Math.floor(rVal);
-    const nganDouble = (rVal - r) * 4;
-    const n = Math.floor(nganDouble);
-    // 1 Ngan = 100 Sq.Wah. Residual of Ngan * 100 = Sq.Wah
-    const wah = ((nganDouble - n) * 100);
-
-    // Check if format needs rounding (e.g. 50.00 -> 50)
-    return `${r} ไร่ ${n} งาน ${Math.round(wah)} ตร.ว.`;
+    const rVal = parseFloat(rai) || 0
+    const r = Math.floor(rVal)
+    const ng = (rVal - r) * 4
+    const n = Math.floor(ng)
+    const w = Math.round((ng - n) * 100)
+    return `${r} ไร่ ${n} งาน ${w} ตารางวา`
 }
 
-// Get calculation method details
-const getMethodDetails = (method) => {
-    // Satellite methods
-    if (method === 'ndvi' || method?.includes('NDVI')) {
-        return {
-            type: 'ดาวเทียม',
-            name: 'ข้อมูลจากดาวเทียม (NDVI)',
-            formula: 'AGB = 34.2 × NDVI + 5.8',
-            description: 'ใช้ดัชนีพืชพรรณจากดาวเทียม'
-        };
-    }
-    if (method === 'tcari' || method?.includes('TCARI')) {
-        return {
-            type: 'ดาวเทียม',
-            name: 'ข้อมูลจากดาวเทียม (TCARI)',
-            formula: 'AGB = 13.57 × TCARI + 7.45',
-            description: 'ใช้ดัชนีคลอโรฟิลล์จากดาวเทียม'
-        };
-    }
-
-    // Allometric / Equation 2
-    if (method === 'allometric' || method === 'field2' || method?.includes('สมการที่ 2')) {
-        return {
-            type: 'ภาคสนาม',
-            name: 'ข้อมูลภาคสนาม',
-            formula: method === 'allometric' ? 'W = 0.0336 × (D²H)^0.931' : 'AGB = 0.062 × DBH^2.23',
-            description: 'ใช้เส้นรอบวงลำต้น'
-        };
-    }
-
-    // Default: Field Method
-    return {
-        type: 'ภาคสนาม',
-        name: 'ข้อมูลภาคสนาม',
-        formula: 'AGB = 0.118 × DBH^2.53',
-        description: 'ใช้เส้นรอบวงลำต้น'
-    };
+const getMethodInfo = (method) => {
+    if (!method) return { name: 'ภาคสนาม', formula: 'AGB = 0.118 × DBH^2.53', badge: 'ภาคสนาม' }
+    const m = String(method).toLowerCase()
+    if (m.includes('ndvi')) return { name: 'NDVI', formula: 'AGB = 34.2 × NDVI + 5.8', badge: 'ดาวเทียม' }
+    if (m.includes('tcari')) return { name: 'TCARI', formula: 'AGB = 13.57 × TCARI + 7.45', badge: 'ดาวเทียม' }
+    if (m.includes('allometric') || m.includes('field2')) return { name: 'Allometric', formula: 'W = 0.0336 × (D²H)^0.931', badge: 'ภาคสนาม' }
+    if (m.includes('eq2')) return { name: 'สมการที่ 2', formula: 'AGB = 0.062 × DBH^2.23', badge: 'ภาคสนาม' }
+    return { name: 'ภาคสนาม', formula: 'AGB = 0.118 × DBH^2.53', badge: 'ภาคสนาม' }
 }
 
-// ==========================================
-// PERSONAL DASHBOARD PAGE
-// ==========================================
-function PersonalDashboardPage() {
-    const history = useHistory()
-    const mapContainer = useRef(null)
-    const map = useRef(null)
-    const [mapLoaded, setMapLoaded] = useState(false)
-    const [plots, setPlots] = useState([])
-    const [carbonPrice, setCarbonPrice] = useState(250)
-    const [stats, setStats] = useState({
-        plots: 0,
-        area: 0,
-        carbon: 0,
-        totalValue: 0
+// ─── PROFILE MODAL ────────────────────────────────────────────────────────────
+function ProfileModal({ profile, onSave, onClose }) {
+    const [form, setForm] = useState({
+        name: profile?.name || '',
+        email: profile?.email || '',
+        phone: profile?.phone || '',
+        picture: profile?.picture || '',
     })
+    const fileRef = useRef()
 
-    const [userProfile, setUserProfile] = useState(null)
-    const [isNavExpanded, setIsNavExpanded] = useState(false)
-    const [isStatsExpanded, setIsStatsExpanded] = useState(false)
-
-    useEffect(() => {
-        const profile = localStorage.getItem('userProfile')
-        if (profile) {
-            try {
-                setUserProfile(JSON.parse(profile))
-            } catch (e) {
-                console.error('Failed to parse user profile', e)
-            }
-        }
-    }, [])
-
-    const handleNavClick = (path) => {
-        history.push(path)
+    const handleFile = (e) => {
+        const file = e.target.files[0]
+        if (!file) return
+        const reader = new FileReader()
+        reader.onload = ev => setForm(f => ({ ...f, picture: ev.target.result }))
+        reader.readAsDataURL(file)
     }
 
-    const handleLogout = () => {
-        if (window.confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
-            localStorage.removeItem('userProfile')
-            // localStorage.removeItem('token') // หากมีการใช้ token
-            history.push('/login')
-        }
-    }
-
-    // Fetch and process user plots
-    useEffect(() => {
-        const fetchPersonalData = async () => {
-            try {
-                const response = await getPlots()
-                // ตรวจสอบว่า response เป็น Array หรือไม่ (บางทีอาจจะอยู่ใน response.data)
-                const allPlots = Array.isArray(response) ? response : (response?.data || []);
-
-                if (!Array.isArray(allPlots)) {
-                    console.error("API Error: Plots data is not an array", response);
-                    setPlots([]);
-                    return;
-                }
-
-                const myPlots = allPlots.map(p => {
-                    try {
-                        let geometry = p.geometry;
-                        if (typeof geometry === 'string') {
-                            try { geometry = JSON.parse(geometry); } catch (e) { console.warn('Dashboard: GeoJSON Parse Error', e) }
-                        }
-
-                        // ตรวจสอบ latitude/longitude กรณีไม่มี geometry
-                        if (!geometry && (p.lat || p.lng)) {
-                            geometry = {
-                                type: 'Point',
-                                coordinates: [parseFloat(p.lng || 0), parseFloat(p.lat || 0)]
-                            };
-                        }
-
-                        return {
-                            ...p,
-                            geometry,
-                            farmerName: p.name || p.farmer_name || 'ไม่ระบุชื่อ',
-                            area: parseFloat(p.area_rai) || 0,
-                            carbon: parseFloat(p.carbon_tons) || 0,
-                            age: p.tree_age ? parseInt(String(p.tree_age).replace(/[^\d]/g, '')) || 0 : 0,
-                            plantingYearBE: p.planting_year ? parseInt(String(p.planting_year).replace(/[^\d]/g, '')) + 543 : '-',
-                            variety: p.notes && String(p.notes).includes('พันธุ์:') ? String(p.notes).split('พันธุ์:')[1]?.trim() : (p.variety || 'RRIM 600'),
-                            methodTitle: p.method ? getMethodDetails(p.method).name : 'ไม่ระบุ',
-                            methodFormula: p.method ? getMethodDetails(p.method).formula : '-',
-                            date: p.created_at || new Date().toISOString()
-                        }
-                    } catch (err) {
-                        console.warn("Error processing plot:", p, err);
-                        return null;
-                    }
-                }).filter(p => p && p.geometry); // Filter valid plots only
-
-                setPlots(myPlots)
-
-                const totalPlots = myPlots.length
-                const totalArea = myPlots.reduce((sum, p) => sum + p.area, 0)
-                const totalCarbon = myPlots.reduce((sum, p) => sum + p.carbon, 0)
-                const totalValue = totalCarbon * carbonPrice
-
-                setStats({
-                    plots: totalPlots,
-                    area: totalArea,
-                    carbon: totalCarbon,
-                    totalValue: totalValue
-                })
-
-            } catch (err) {
-                console.error("Failed to fetch personal plots", err)
-                setPlots([]) // Reset valid plots on error
-            }
-        }
-        fetchPersonalData()
-    }, [])
-
-    // Initialize Map
-    useEffect(() => {
-        if (map.current) return
-
-        if (!mapContainer.current) return;
-
-        map.current = new maplibregl.Map({
-            container: mapContainer.current,
-            style: {
-                version: 8,
-                sources: {
-                    'satellite': {
-                        type: 'raster',
-                        tiles: [
-                            'https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-                            'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-                        ],
-                        tileSize: 256,
-                        attribution: '© Google'
-                    }
-                },
-                layers: [
-                    {
-                        id: 'satellite-layer',
-                        type: 'raster',
-                        source: 'satellite',
-                        minzoom: 0,
-                        maxzoom: 22
-                    }
-                ]
-            },
-            center: [100.5018, 13.7563],
-            zoom: 5,
-            attributionControl: false
-        })
-
-        map.current.on('load', () => setMapLoaded(true))
-    }, [])
-
-    // Add Plots to Map
-    useEffect(() => {
-        if (!map.current || !mapLoaded || plots.length === 0) return;
-
-        const sourceId = 'personal-plots';
-        const geojson = {
-            type: 'FeatureCollection',
-            features: plots.map(p => ({
-                type: 'Feature',
-                geometry: p.geometry,
-                properties: {
-                    id: p.id,
-                    carbon: p.carbon,
-                    area: p.area,
-                    farmerName: p.farmerName,
-                    formattedArea: formatArea(p.area),
-                    age: p.age
-                }
-            }))
-        }
-
-        if (map.current.getSource(sourceId)) {
-            map.current.getSource(sourceId).setData(geojson)
-        } else {
-            map.current.addSource(sourceId, { type: 'geojson', data: geojson })
-            map.current.addLayer({
-                id: 'plot-fill',
-                type: 'fill',
-                source: sourceId,
-                paint: {
-                    'fill-color': '#10b981',
-                    'fill-opacity': 0.5
-                }
-            })
-            map.current.addLayer({
-                id: 'plot-line',
-                type: 'line',
-                source: sourceId,
-                paint: {
-                    'line-color': '#ffffff',
-                    'line-width': 2
-                }
-            })
-
-            // Interaction: Click to show popup
-            map.current.on('click', 'plot-fill', (e) => {
-                const feature = e.features[0];
-                const props = feature.properties;
-                const coordinates = e.lngLat;
-
-                // Calculate estimated value
-                const estimatedValue = (parseFloat(props.carbon) || 0) * carbonPrice;
-
-                // Create HTML Content for Popup with Valuation
-                const htmlContent = `
-                    <div style="font-family: 'Inter', sans-serif; min-width: 240px; padding: 4px;">
-                        <h4 style="font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 2px;">${props.farmerName}</h4>
-                        <p style="font-size: 11px; color: #64748b; margin-bottom: 8px;">แปลง ID: ${props.id}</p>
-                        
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; background: #f8fafc; padding: 8px; border-radius: 8px;">
-                            <div>
-                                <span style="display: block; font-size: 10px; color: #94a3b8;">พื้นที่</span>
-                                <span style="display: block; font-size: 12px; font-weight: 600; color: #475569;">${props.formattedArea}</span>
-                            </div>
-                            <div>
-                                <span style="display: block; font-size: 10px; color: #94a3b8;">คาร์บอน</span>
-                                <span style="display: block; font-size: 12px; font-weight: 600; color: #10b981;">${props.carbon} tCO₂e</span>
-                            </div>
-                        </div>
-
-                        <!-- Valuation Section -->
-                        <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); padding: 12px; border-radius: 12px; margin-bottom: 12px; border: 1px solid #a7f3d0;">
-                            <div style="display: flex; align-items: center; justify-content: space-between;">
-                                <div style="display: flex; align-items: center; gap: 6px;">
-                                    <div style="width: 20px; height: 20px; background: #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px;">฿</div>
-                                    <span style="font-size: 10px; font-weight: 700; color: #047857;">มูลค่าประเมิน</span>
-                                </div>
-                                <span style="font-size: 16px; font-weight: 900; color: #059669; letter-spacing: -0.5px;">฿${estimatedValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                            </div>
-                            <div style="font-size: 9px; color: #059669; text-align: right; margin-top: 4px; opacity: 0.8;">@ ฿${carbonPrice}/ตัน</div>
-                        </div>
-
-                        <button 
-                            onclick="window.location.href='/map?editPlotId=${props.id}'"
-                            style="width: 100%; background: #10b981; color: white; border: none; padding: 8px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);"
-                        >
-                            <span>✏️</span> แก้ไขข้อมูลแปลง
-                        </button>
-                    </div>
-                `;
-
-                new maplibregl.Popup({ closeButton: false, maxWidth: '300px', className: 'custom-popup' })
-                    .setLngLat(coordinates)
-                    .setHTML(htmlContent)
-                    .addTo(map.current);
-            });
-
-            // Interaction: Cursor pointer
-            map.current.on('mouseenter', 'plot-fill', () => {
-                map.current.getCanvas().style.cursor = 'pointer';
-            });
-            map.current.on('mouseleave', 'plot-fill', () => {
-                map.current.getCanvas().style.cursor = '';
-            });
-
-            const bounds = new maplibregl.LngLatBounds()
-            plots.forEach(p => {
-                if (p.geometry.type === 'Polygon') {
-                    p.geometry.coordinates[0].forEach(coord => bounds.extend(coord))
-                } else if (p.geometry.type === 'Point') {
-                    bounds.extend(p.geometry.coordinates)
-                }
-            })
-            if (!bounds.isEmpty()) map.current.fitBounds(bounds, { padding: 50 })
-        }
-    }, [mapLoaded, plots])
-
-    const zoomToPlot = (plot) => {
-        if (!map.current) return
-        if (plot.geometry.type === 'Point') {
-            map.current.flyTo({ center: plot.geometry.coordinates, zoom: 16 })
-        } else {
-            const bbox = turf.bbox(plot.geometry);
-            map.current.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding: 50 });
-        }
-    }
-
-    // ==========================================
-    // RENDER
-    // ==========================================
     return (
-        <div className="relative w-full min-h-screen bg-[#f8f9fa] flex flex-col font-sans overflow-x-hidden">
-
-            <style>{`
-        @keyframes nav-item-pop-vertical {
-            0% { transform: scale(0) translateX(-20px); opacity: 0; }
-            70% { transform: scale(1.1) translateX(2px); opacity: 1; }
-            100% { transform: scale(1) translateX(0); opacity: 1; }
-        }
-        .nav-pop-v-1 { animation: nav-item-pop-vertical 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.05s forwards; opacity: 0; }
-        .nav-pop-v-2 { animation: nav-item-pop-vertical 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.10s forwards; opacity: 0; }
-        .nav-pop-v-3 { animation: nav-item-pop-vertical 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s forwards; opacity: 0; }
-        .nav-pop-v-4 { animation: nav-item-pop-vertical 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.20s forwards; opacity: 0; }
-        .nav-pop-v-5 { animation: nav-item-pop-vertical 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s forwards; opacity: 0; }
-        
-        /* Airy Mobile Dock Animations */
-        @keyframes active-spring {
-            0% { transform: translateY(0); }
-            50% { transform: translateY(-3px); }
-            100% { transform: translateY(0); }
-        }
-        .active-tab-spring {
-            animation: active-spring 3s ease-in-out infinite;
-        }
-
-        @keyframes dot-pop {
-            0% { transform: scale(0); opacity: 0; }
-            50% { transform: scale(1.5); opacity: 1; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        .indicator-dot {
-            animation: dot-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
-
-        .minimalist-glass {
-            background: rgba(255, 255, 255, 0.6);
-            backdrop-filter: blur(15px) saturate(180%);
-            -webkit-backdrop-filter: blur(15px) saturate(180%);
-            border: 0.5px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
-        }
-    `}</style>
-
-            {/* MAIN CONTENT */}
-            <main className="flex-1 w-full max-w-7xl mx-auto p-4 lg:p-8 pt-12 pb-32 flex flex-col gap-8">
-
-                {/* Header Section */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="pl-20 md:pl-0">
-                        <h1 className="text-3xl font-bold text-slate-800">แดชบอร์ดส่วนตัว</h1>
-                        <p className="text-sm text-slate-500 font-medium mt-1">จัดการแปลงและดูสถิติข้อมูลคาร์บอนเครดิตของคุณ</p>
-                    </div>
+        <div className="fixed inset-0 z-[9000] flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}>
+            <div className="w-full max-w-md rounded-2xl overflow-hidden shadow-2xl" style={{ background: '#1a2332', border: '1px solid rgba(16,185,129,0.3)' }}>
+                <div className="flex items-center justify-between px-6 py-4" style={{ background: 'rgba(16,185,129,0.15)', borderBottom: '1px solid rgba(16,185,129,0.2)' }}>
+                    <h2 className="text-white font-bold text-base">แก้ไขโปรไฟล์</h2>
+                    <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all">
+                        <XIco cls="w-4 h-4" />
+                    </button>
                 </div>
-
-                {/* DESKTOP STATS SECTION (Hidden on Mobile) */}
-                <div className="hidden md:grid grid-cols-4 gap-4 relative z-[100]">
-                    {/* Plots */}
-                    <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-xl transition-all duration-500 hover:-translate-y-1">
-                        <div className="absolute right-0 top-0 w-24 h-24 bg-emerald-50 rounded-bl-full -mr-4 -mt-4 transition-transform duration-500 group-hover:scale-110"></div>
-                        <div className="relative z-10">
-                            <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 mb-3 shadow-sm group-hover:rotate-12 transition-transform duration-300">
-                                <MapIcon className="w-5 h-5" />
-                            </div>
-                            <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">จำนวนแปลง</p>
-                            <h3 className="text-3xl font-black text-slate-800 mt-1">{stats.plots} <span className="text-xs font-bold text-slate-400">แปลง</span></h3>
+                <div className="p-6 flex flex-col items-center gap-4">
+                    <div className="relative">
+                        <div className="w-20 h-20 rounded-full border-2 overflow-hidden flex items-center justify-center" style={{ borderColor: 'rgba(16,185,129,0.5)', background: 'rgba(16,185,129,0.1)' }}>
+                            {form.picture ? <img src={form.picture} alt="" className="w-full h-full object-cover" />
+                                : <UserIco cls="w-10 h-10 text-emerald-400" />}
                         </div>
-                    </div>
-
-                    {/* Area */}
-                    <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-xl transition-all duration-500 hover:-translate-y-1">
-                        <div className="absolute right-0 top-0 w-24 h-24 bg-blue-50 rounded-bl-full -mr-4 -mt-4 transition-transform duration-500 group-hover:scale-110"></div>
-                        <div className="relative z-10">
-                            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 mb-3 shadow-sm group-hover:-rotate-12 transition-transform duration-300">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                            </div>
-                            <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">พื้นที่รวม</p>
-                            <h3 className="text-3xl font-black text-slate-800 mt-1">{stats.area.toLocaleString()} <span className="text-xs font-bold text-slate-400">ไร่</span></h3>
-                        </div>
-                    </div>
-
-                    {/* Carbon */}
-                    <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-xl transition-all duration-500 hover:-translate-y-1">
-                        <div className="absolute right-0 top-0 w-24 h-24 bg-green-50 rounded-bl-full -mr-4 -mt-4 transition-transform duration-500 group-hover:scale-110"></div>
-                        <div className="relative z-10">
-                            <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center text-green-600 mb-3 shadow-sm group-hover:scale-110 transition-transform duration-300">
-                                <LeafIcon className="w-5 h-5" />
-                            </div>
-                            <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">คาร์บอนรวม</p>
-                            <h3 className="text-3xl font-black text-slate-800 mt-1">{stats.carbon.toLocaleString(undefined, { maximumFractionDigits: 0 })} <span className="text-xs font-bold text-slate-400">ตัน</span></h3>
-                        </div>
-                    </div>
-
-                    {/* Total Value */}
-                    <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-3xl p-5 shadow-lg relative overflow-hidden group hover:shadow-2xl transition-all duration-500 hover:-translate-y-1">
-                        <div className="absolute right-0 top-0 w-24 h-24 bg-white/10 rounded-bl-full -mr-4 -mt-4 transition-transform duration-500 group-hover:scale-110"></div>
-                        <div className="relative z-10">
-                            <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center text-white mb-3 shadow-sm group-hover:scale-110 transition-transform duration-300">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M10.5 2.25a.75.75 0 0 1 .75.75v2.25a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75ZM13.5 2.25a.75.75 0 0 1 .75.75v2.25a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75ZM7.5 4.5a.75.75 0 0 1 .75.75v14.25a.75.75 0 0 1-1.5 0V5.25A.75.75 0 0 1 7.5 4.5ZM16.5 4.5a.75.75 0 0 1 .75.75v14.25a.75.75 0 0 1-1.5 0V5.25a.75.75 0 0 1 .75-.75ZM4.5 9v9.75a3 3 0 0 0 3 3h9a3 3 0 0 0 3-3V9a3 3 0 0 0-3-3h-9a3 3 0 0 0-3 3Z" /></svg>
-                            </div>
-                            <p className="text-white/90 text-xs font-bold uppercase tracking-wider">มูลค่าประเมินรวม</p>
-                            <h3 className="text-3xl font-black text-white mt-1">฿{stats.totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</h3>
-                            <p className="text-white/70 text-[10px] mt-1">@ ฿{carbonPrice.toLocaleString()}/ตัน</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* MAP & LIST SECTION */}
-                <div className="grid lg:grid-cols-3 gap-6 h-[500px] lg:h-[600px] relative z-20">
-                    <div className="lg:col-span-3 bg-white rounded-[2.5rem] shadow-lg border border-slate-100 overflow-hidden relative group h-full">
-                        <div ref={mapContainer} className="absolute inset-0 w-full h-full" />
-
-                        {/* Status Label (Desktop Only) */}
-                        <div className="hidden md:block absolute top-4 left-4 bg-white/90 backdrop-blur px-4 py-2 rounded-xl text-xs font-bold text-slate-700 shadow-sm border border-white/50 z-10">
-                            แผนที่สังเขปแปลง
-                        </div>
-
-                        {/* MOBILE FLOATING STATS DOCK */}
-                        <div className="md:hidden absolute top-4 left-1/2 -translate-x-1/2 w-[90%] z-[50]">
-                            <div className={`
-                                minimalist-glass rounded-[1.5rem] p-3 transition-all duration-500 ease-out overflow-hidden
-                                ${isStatsExpanded ? 'h-auto scale-100' : 'h-[56px] scale-95 opacity-90'}
-                            `}>
-                                {/* Summary Bar */}
-                                <div
-                                    className="flex items-center justify-between cursor-pointer h-[32px]"
-                                    onClick={() => setIsStatsExpanded(!isStatsExpanded)}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex items-center gap-1">
-                                            <LeafIcon className="w-3 h-3 text-emerald-600" />
-                                            <span className="text-xs font-black text-slate-700">{stats.carbon.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                                        </div>
-                                        <div className="w-[1px] h-3 bg-slate-300/50"></div>
-                                        <div className="flex items-center gap-1">
-                                            <MapIcon className="w-3 h-3 text-blue-600" />
-                                            <span className="text-xs font-black text-slate-700">{stats.area.toLocaleString()}</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-white/50 w-6 h-6 rounded-full flex items-center justify-center text-slate-400 transition-transform duration-300" style={{ transform: isStatsExpanded ? 'rotate(180deg)' : 'none' }}>
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                    </div>
-                                </div>
-
-                                {/* Expanded Details */}
-                                {isStatsExpanded && (
-                                    <div className="mt-3 pt-3 border-t border-slate-200/50 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                                        <div className="flex justify-between items-center px-1">
-                                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">จำนวนแปลง</span>
-                                            <span className="text-xs font-black text-slate-700">{stats.plots} แปลง</span>
-                                        </div>
-                                        <div className="flex justify-between items-center px-1">
-                                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">พื้นที่รวม</span>
-                                            <span className="text-xs font-black text-slate-700">{stats.area.toLocaleString()} ไร่</span>
-                                        </div>
-                                        <div className="flex justify-between items-center px-1">
-                                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">คาร์บอนรวม</span>
-                                            <span className="text-xs font-black text-emerald-600">{stats.carbon.toLocaleString(undefined, { maximumFractionDigits: 1 })} tCO₂e</span>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* DETAILED DATA TABLE SECTION */}
-                <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-6 lg:p-8 shadow-xl border border-white/50 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none"></div>
-
-                    <div className="flex items-center justify-between mb-8 relative z-10">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-sm">
-                                <LeafIcon className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <h3 className="text-lg lg:text-xl font-bold text-slate-800">ข้อมูลรายละเอียดรายแปลง</h3>
-                                <p className="text-[10px] lg:text-xs text-slate-500 font-medium tracking-tight">5 รายการล่าสุดจากหน้าแผนที่</p>
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => history.push('/dashboard/history')}
-                            className="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 group whitespace-nowrap"
-                        >
-                            <span className="hidden sm:inline">ดูทั้งหมด</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                            </svg>
+                        <button onClick={() => fileRef.current?.click()} className="absolute bottom-0 right-0 w-7 h-7 rounded-full flex items-center justify-center border-2 border-slate-800" style={{ background: '#10b981' }}>
+                            <CamIco cls="w-3.5 h-3.5 text-white" />
                         </button>
+                        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
                     </div>
-
-                    {/* Desktop Table View (Hidden on Mobile) */}
-                    <div className="hidden md:block overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200">
-                        <table className="w-full min-w-[1000px]">
-                            <thead>
-                                <tr className="border-b border-slate-100">
-                                    <th className="py-4 text-left font-bold text-slate-400 uppercase text-[10px] tracking-wider pl-4">Zoom</th>
-                                    <th className="py-4 text-left font-bold text-slate-400 uppercase text-[10px] tracking-wider">ชื่อเกษตรกร</th>
-                                    <th className="py-4 text-left font-bold text-slate-400 uppercase text-[10px] tracking-wider">เนื้อที่ (ไร่-งาน-ตร.ว.)</th>
-                                    <th className="py-4 text-left font-bold text-slate-400 uppercase text-[10px] tracking-wider">อายุ / ปีที่ปลูก</th>
-                                    <th className="py-4 text-left font-bold text-slate-400 uppercase text-[10px] tracking-wider">สายพันธุ์ยาง</th>
-                                    <th className="py-4 text-left font-bold text-slate-400 uppercase text-[10px] tracking-wider">วิธีการคำนวณ</th>
-                                    <th className="py-4 text-right font-bold text-slate-400 uppercase text-[10px] tracking-wider">ปริมาณคาร์บอน</th>
-                                    <th className="py-4 text-right font-bold text-emerald-600 uppercase text-[10px] tracking-wider pr-4">มูลค่าประเมิน</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {plots.slice(0, 5).map((p) => (
-                                    <tr key={p.id} className="group hover:bg-emerald-50/50 transition-all duration-300">
-                                        <td className="py-6 pl-4 w-20 align-top">
-                                            <button
-                                                onClick={() => zoomToPlot(p)}
-                                                className="w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-400 flex items-center justify-center hover:bg-emerald-500 hover:border-emerald-500 hover:text-white transition-all shadow-sm group-hover:scale-110"
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                            </button>
-                                        </td>
-                                        <td className="py-6 align-top">
-                                            <div className="flex flex-col gap-1">
-                                                <span className="font-bold text-slate-800 text-sm whitespace-nowrap">{p.farmerName}</span>
-                                                <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md w-fit">ID: {p.id}</span>
-                                            </div>
-                                        </td>
-                                        {/* Area Column (Restored) */}
-                                        <td className="py-6 font-bold text-slate-700 text-sm align-top whitespace-nowrap">
-                                            {formatArea(p.area)}
-                                        </td>
-                                        {/* Age / Year Column */}
-                                        <td className="py-6 align-top">
-                                            <div className="flex flex-col gap-1">
-                                                <span className="font-bold text-slate-600 text-sm">
-                                                    {p.age} ปี
-                                                </span>
-                                                <span className="text-[11px] text-slate-400">
-                                                    พ.ศ. {p.plantingYearBE}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        {/* Variety Column */}
-                                        <td className="py-6 align-top">
-                                            <span className="text-sm font-bold text-slate-700">{p.variety}</span>
-                                        </td>
-                                        {/* Method Column */}
-                                        <td className="py-6 align-top">
-                                            <div className="flex flex-col gap-1.5">
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-[11px] font-bold text-blue-600 border border-blue-100 w-fit">
-                                                    {p.methodTitle}
-                                                </span>
-                                                <span className="text-[10px] text-slate-400 font-mono bg-slate-50 px-2 py-0.5 rounded border border-slate-100 w-fit">
-                                                    {p.methodFormula}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        {/* Carbon Column */}
-                                        <td className="py-6 text-right align-top">
-                                            <div className="flex flex-col items-end gap-1">
-                                                <span className="font-black text-emerald-600 text-lg leading-none">{p.carbon.toFixed(2)}</span>
-                                                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider bg-slate-100 px-1.5 py-0.5 rounded">tCO₂e</span>
-                                            </div>
-                                        </td>
-                                        {/* Valuation Column */}
-                                        <td className="py-6 pr-4 text-right align-top">
-                                            <div className="inline-flex flex-col items-end gap-1 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-100">
-                                                <span className="font-black text-emerald-600 text-base leading-none">฿{((p.carbon || 0) * carbonPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                                                <span className="text-[8px] text-emerald-500 font-bold uppercase tracking-wider">@ ฿{carbonPrice}/t</span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* Mobile Card Layout (Visible on Mobile Only) */}
-                    <div className="md:hidden flex flex-col gap-4">
-                        {plots.length > 0 ? (
-                            plots.slice(0, 5).map((p) => (
-                                <div key={p.id} className="bg-slate-50/50 rounded-3xl p-5 border border-slate-100/50 flex flex-col gap-4 group active:scale-[0.98] transition-all duration-200">
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <button
-                                                onClick={() => zoomToPlot(p)}
-                                                className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-emerald-500 shadow-sm border border-slate-100 active:bg-emerald-500 active:text-white transition-colors"
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                            </button>
-                                            <div>
-                                                <h4 className="font-bold text-slate-800 text-sm leading-tight">{p.farmerName}</h4>
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5 tracking-wider">Plot ID: {p.id}</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <span className="text-lg font-black text-emerald-600 block leading-none">{p.carbon.toFixed(2)}</span>
-                                            <span className="text-[9px] font-bold text-slate-400 uppercase">tCO₂e</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="bg-white/80 rounded-2xl p-3 border border-white">
-                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">พื้นที่</p>
-                                            <p className="text-[11px] font-bold text-slate-700 leading-tight">{formatArea(p.area)}</p>
-                                        </div>
-                                        <div className="bg-white/80 rounded-2xl p-3 border border-white">
-                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">อายุยาง / ปีที่ปลูก</p>
-                                            <p className="text-[11px] font-bold text-slate-700 leading-tight">{p.age} ปี (พ.ศ. {p.plantingYearBE})</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center justify-between pt-3 border-t border-slate-100/50">
-                                        <div className="flex flex-col gap-0.5">
-                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">วิธีการ</span>
-                                            <span className="text-[10px] font-bold text-blue-500">{p.methodTitle}</span>
-                                        </div>
-                                        <div className="flex flex-col items-end gap-0.5">
-                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">สายพันธุ์</span>
-                                            <span className="text-[10px] font-bold text-slate-700">{p.variety}</span>
-                                        </div>
-                                    </div>
-
-                                    {/* Valuation Section */}
-                                    <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-4">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center text-white text-sm font-bold">฿</div>
-                                                <div>
-                                                    <p className="text-[9px] font-bold text-white/80 uppercase tracking-widest">มูลค่าประเมิน</p>
-                                                    <p className="text-[8px] text-white/70">@ ฿{carbonPrice}/ตัน</p>
-                                                </div>
-                                            </div>
-                                            <div className="text-right">
-                                                <span className="text-xl font-black text-white block leading-none">฿{((p.carbon || 0) * carbonPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="py-12 flex flex-col items-center justify-center text-slate-300 gap-3 opacity-50">
-                                <LeafIcon className="w-10 h-10" />
-                                <span className="text-sm font-medium">ไม่พบข้อมูลแปลง</span>
+                    <div className="w-full flex flex-col gap-3">
+                        {[
+                            { label: 'ชื่อ-นามสกุล', key: 'name', type: 'text', ph: 'กรอกชื่อ' },
+                            { label: 'อีเมล', key: 'email', type: 'email', ph: 'email@example.com' },
+                            { label: 'เบอร์โทร', key: 'phone', type: 'tel', ph: '081-xxx-xxxx' },
+                        ].map(({ label, key, type, ph }) => (
+                            <div key={key}>
+                                <label className="text-xs font-semibold text-slate-400 block mb-1">{label}</label>
+                                <input type={type} value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                                    placeholder={ph}
+                                    className="w-full px-3 py-2.5 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
                             </div>
-                        )}
+                        ))}
                     </div>
+                    <button onClick={() => { onSave(form); onClose() }}
+                        className="w-full py-2.5 rounded-xl text-white font-bold text-sm transition-all hover:opacity-90"
+                        style={{ background: 'linear-gradient(135deg,#10b981,#059669)' }}>
+                        บันทึก
+                    </button>
                 </div>
-            </main>
-
-            {/* ==========================================
-                MAGIC MENU - TOP LEFT
-            ========================================== */}
-            <div
-                className="fixed top-8 left-8 z-[2000] flex items-start"
-                onMouseEnter={() => setIsNavExpanded(true)}
-                onMouseLeave={() => setIsNavExpanded(false)}
-            >
-                <div className={`
-                    glass-pill-v transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]
-                    flex flex-col items-center overflow-hidden
-                    ${isNavExpanded ? 'p-2 gap-2 rounded-[2rem]' : 'p-1 rounded-full'}
-                `}>
-
-                    {/* Collapsed Active Icon / Menu Trigger */}
-                    {/* Collapsed Active Icon / Menu Trigger */}
-                    {!isNavExpanded && (
-                        <div className="w-12 h-12 relative flex items-center justify-center cursor-pointer group">
-                            {/* Glow Effect */}
-                            <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-md group-hover:blur-lg transition-all duration-500 animate-pulse"></div>
-
-                            {/* Profile Image/Icon */}
-                            <div className="relative w-11 h-11 bg-white p-[2px] rounded-full shadow-lg border border-emerald-100 group-hover:scale-105 transition-transform duration-300">
-                                {userProfile?.picture ? (
-                                    <img src={userProfile.picture} alt="Profile" className="w-full h-full rounded-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
-                                        <UserIcon className="w-6 h-6" />
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Expanded Items */}
-                    {isNavExpanded && (
-                        <>
-                            {/* Home */}
-                            <button
-                                onClick={() => handleNavClick('/')}
-                                className="nav-pop-v-1 group relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all hover:bg-emerald-50 text-slate-400 hover:text-emerald-600"
-                            >
-                                <HomeIcon className="w-5 h-5" />
-                                <div className="absolute left-16 px-3 py-1.5 bg-slate-900/90 backdrop-blur-md text-white text-[11px] font-bold rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-[-10px] group-hover:translate-x-0 whitespace-nowrap pointer-events-none shadow-xl border border-white/10 flex items-center gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
-                                    หน้าหลัก
-                                </div>
-                            </button>
-
-                            {/* Map */}
-                            <button
-                                onClick={() => handleNavClick('/map')}
-                                className="nav-pop-v-2 group relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all hover:bg-emerald-50 text-slate-400 hover:text-blue-500"
-                            >
-                                <MapIcon className="w-5 h-5" />
-                                <div className="absolute left-16 px-3 py-1.5 bg-slate-900/90 backdrop-blur-md text-white text-[11px] font-bold rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-[-10px] group-hover:translate-x-0 whitespace-nowrap pointer-events-none shadow-xl border border-white/10 flex items-center gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
-                                    แผนที่สังเขป
-                                </div>
-                            </button>
-
-                            {/* Dashboard */}
-                            <button
-                                onClick={() => handleNavClick('/dashboard')}
-                                className="nav-pop-v-3 group relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all hover:bg-emerald-50 text-slate-400 hover:text-purple-500"
-                            >
-                                <DashboardIcon className="w-5 h-5" />
-                                <div className="absolute left-16 px-3 py-1.5 bg-slate-900/90 backdrop-blur-md text-white text-[11px] font-bold rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-[-10px] group-hover:translate-x-0 whitespace-nowrap pointer-events-none shadow-xl border border-white/10 flex items-center gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-purple-400"></div>
-                                    แดชบอร์ดรวม
-                                </div>
-                            </button>
-
-                            {/* Personal (Active Highlight) */}
-                            <div className="nav-pop-v-4 group relative w-12 h-12 rounded-2xl bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/30 overflow-hidden">
-                                {userProfile?.picture ? (
-                                    <img src={userProfile.picture} alt="Profile" className="w-10 h-10 rounded-md object-cover" />
-                                ) : (
-                                    <UserIcon className="w-8 h-8" />
-                                )}
-                                <div className="absolute left-16 px-3 py-1.5 bg-slate-900/90 backdrop-blur-md text-white text-[11px] font-bold rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-[-10px] group-hover:translate-x-0 whitespace-nowrap pointer-events-none shadow-xl border border-white/10 flex items-center gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
-                                    ส่วนตัว (กำลังดู)
-                                </div>
-                            </div>
-
-                            {/* History */}
-                            <button
-                                onClick={() => handleNavClick('/dashboard/history')}
-                                className="nav-pop-v-5 group relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all hover:bg-emerald-50 text-slate-400 hover:text-orange-500"
-                            >
-                                <HistoryIcon className="w-5 h-5" />
-                                <div className="absolute left-16 px-3 py-1.5 bg-slate-900/90 backdrop-blur-md text-white text-[11px] font-bold rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-[-10px] group-hover:translate-x-0 whitespace-nowrap pointer-events-none shadow-xl border border-white/10 flex items-center gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-orange-400"></div>
-                                    ประวัติประเมิน
-                                </div>
-                            </button>
-
-                            {/* Divider */}
-                            <div className="w-8 h-[1px] bg-slate-100 my-1"></div>
-
-                            {/* Logout */}
-                            <button
-                                onClick={handleLogout}
-                                className="nav-pop-v-5 group relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all hover:bg-rose-50 text-slate-400 hover:text-rose-500"
-                            >
-                                <LogoutIcon className="w-5 h-5" />
-                                <div className="absolute left-16 px-3 py-1.5 bg-slate-900/90 backdrop-blur-md text-white text-[11px] font-bold rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-[-10px] group-hover:translate-x-0 whitespace-nowrap pointer-events-none shadow-xl border border-white/10 flex items-center gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-rose-500"></div>
-                                    ออกจากระบบ
-                                </div>
-                            </button>
-                        </>
-                    )}
-                </div>
-            </div>
-
-            {/* ==========================================
-                MOBILE BOTTOM NAVIGATION (Airy Minimalist Dock)
-            ========================================== */}
-            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[2000] md:hidden w-[85%] max-w-[360px]">
-                <nav className="minimalist-glass flex items-center justify-between px-6 py-4 rounded-[2rem] relative">
-
-                    {/* Home */}
-                    <button
-                        onClick={() => handleNavClick('/')}
-                        className="relative flex flex-col items-center justify-center text-slate-400 active:scale-90 transition-all duration-300"
-                    >
-                        <HomeIcon className="w-5 h-5" />
-                    </button>
-
-                    {/* Map */}
-                    <button
-                        onClick={() => handleNavClick('/map')}
-                        className="relative flex flex-col items-center justify-center text-slate-400 active:scale-90 transition-all duration-300"
-                    >
-                        <MapIcon className="w-5 h-5" />
-                    </button>
-
-                    {/* Personal (Active) */}
-                    <div className="relative flex flex-col items-center justify-center">
-                        <button
-                            className="relative text-emerald-600 active-tab-spring transition-all duration-500"
-                        >
-                            <UserIcon className="w-6 h-6" />
-                        </button>
-                        {/* Minimalist Dot Indicator */}
-                        <div className="absolute -bottom-3 w-1.5 h-1.5 bg-emerald-500 rounded-full indicator-dot"></div>
-                    </div>
-
-                    {/* Dashboard */}
-                    <button
-                        onClick={() => handleNavClick('/dashboard')}
-                        className="relative flex flex-col items-center justify-center text-slate-400 active:scale-90 transition-all duration-300"
-                    >
-                        <DashboardIcon className="w-5 h-5" />
-                    </button>
-
-                    {/* History */}
-                    <button
-                        onClick={() => handleNavClick('/dashboard/history')}
-                        className="relative flex flex-col items-center justify-center text-slate-400 active:scale-90 transition-all duration-300"
-                    >
-                        <HistoryIcon className="w-5 h-5" />
-                    </button>
-
-                </nav>
             </div>
         </div>
     )
 }
 
+// ─── DELETE CONFIRM ───────────────────────────────────────────────────────────
+function DeleteModal({ plot, onConfirm, onClose }) {
+    return (
+        <div className="fixed inset-0 z-[9000] flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}>
+            <div className="w-full max-w-sm rounded-2xl p-6 flex flex-col items-center gap-4 shadow-2xl"
+                style={{ background: '#1a2332', border: '1px solid rgba(239,68,68,0.3)' }}>
+                <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.15)' }}>
+                    <TrashIco cls="w-7 h-7 text-red-400" />
+                </div>
+                <div className="text-center">
+                    <h3 className="text-white font-bold text-base">ยืนยันการลบ?</h3>
+                    <p className="text-slate-400 text-sm mt-1">แปลง <span className="text-white font-semibold">{plot?.farmerName}</span> จะถูกลบถาวร</p>
+                </div>
+                <div className="flex gap-3 w-full">
+                    <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-slate-300 font-semibold text-sm transition-all hover:bg-white/5" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>ยกเลิก</button>
+                    <button onClick={onConfirm} className="flex-1 py-2.5 rounded-xl text-white font-bold text-sm transition-all hover:opacity-90" style={{ background: '#ef4444' }}>ลบแปลง</button>
+                </div>
+            </div>
+        </div>
+    )
+}
 
-export default PersonalDashboardPage
+// ─── PLOT DETAIL MODAL ────────────────────────────────────────────────────────
+function PlotDetailModal({ plot, onClose, onEdit, onDelete }) {
+    if (!plot) return null
+    const method = getMethodInfo(plot.method)
+    const value = (plot.carbon || 0) * CARBON_PRICE
+
+    return (
+        <div className="fixed inset-0 z-[8000] flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}>
+            <div className="w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto"
+                style={{ background: '#1a2332', border: '1px solid rgba(16,185,129,0.25)' }}>
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 py-4" style={{ background: 'rgba(16,185,129,0.12)', borderBottom: '1px solid rgba(16,185,129,0.2)' }}>
+                    <div>
+                        <h2 className="text-white font-bold text-base">{plot.farmerName}</h2>
+                        <p className="text-slate-400 text-xs mt-0.5">ID: {plot.id}</p>
+                    </div>
+                    <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10">
+                        <XIco cls="w-4 h-4" />
+                    </button>
+                </div>
+                {/* Content */}
+                <div className="p-5 flex flex-col gap-4">
+                    {/* Stats row */}
+                    <div className="grid grid-cols-3 gap-3">
+                        {[
+                            { label: 'คาร์บอน', value: `${(plot.carbon || 0).toFixed(2)}`, unit: 'tCO₂e', color: '#10b981' },
+                            { label: 'มวลชีวภาพ', value: plot.agb ? parseFloat(plot.agb).toFixed(2) : '—', unit: 'ตัน', color: '#34d399' },
+                            { label: 'มูลค่า', value: `฿${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, unit: `@฿${CARBON_PRICE}/t`, color: '#10b981' },
+                        ].map(({ label, value: v, unit, color }) => (
+                            <div key={label} className="rounded-xl p-3 text-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                                <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">{label}</p>
+                                <p className="font-black text-sm mt-1" style={{ color }}>{v}</p>
+                                <p className="text-slate-500 text-[9px] mt-0.5">{unit}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Info grid */}
+                    <div className="grid grid-cols-2 gap-2">
+                        {[
+                            { label: 'เนื้อที่', value: formatArea(plot.area) },
+                            { label: 'พันธุ์ยาง', value: plot.variety || 'ไม่ระบุ' },
+                            { label: 'อายุ (ระบุ)', value: plot.manualAge ? `${plot.manualAge} ปี` : '—' },
+                            { label: 'อายุ (คำนวณ)', value: plot.age ? `${plot.age} ปี` : '—' },
+                            { label: 'ปีที่ปลูก', value: `พ.ศ. ${plot.plantingYearBE || '—'}` },
+                            { label: 'วิธีคำนวณ', value: method.name },
+                        ].map(({ label, value: v }) => (
+                            <div key={label} className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                <p className="text-slate-500 text-[9px] font-bold uppercase tracking-wider">{label}</p>
+                                <p className="text-slate-200 text-xs font-semibold mt-0.5">{v}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Location */}
+                    {(plot.subdistrict || plot.district || plot.province || plot.address) && (
+                        <div className="rounded-xl px-4 py-3 flex items-start gap-2" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.15)' }}>
+                            <PinIco cls="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                            <div>
+                                <p className="text-slate-400 text-[10px] font-bold uppercase">ที่ตั้ง</p>
+                                <p className="text-slate-200 text-xs mt-0.5">
+                                    {plot.subdistrict || plot.district || plot.province ?
+                                        [plot.subdistrict && `ต.${plot.subdistrict}`, plot.district && `อ.${plot.district}`, plot.province && `จ.${plot.province}`].filter(Boolean).join(' ')
+                                        : (plot.address || '-')}
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Coordinates */}
+                    {(plot.lat || plot.lng) && (
+                        <div className="rounded-xl px-4 py-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                            <p className="text-slate-500 text-[9px] font-bold uppercase tracking-wider mb-1">พิกัด</p>
+                            <p className="font-mono text-xs text-slate-300">{parseFloat(plot.lat || 0).toFixed(6)}, {parseFloat(plot.lng || 0).toFixed(6)}</p>
+                        </div>
+                    )}
+
+                    {/* Calculation Details */}
+                    <div className="rounded-xl px-4 py-3 flex flex-col gap-3" style={{ background: 'rgba(59,130,246,0.05)', border: '1px solid rgba(59,130,246,0.15)' }}>
+                        <div className="flex items-center justify-between">
+                            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wide">ข้อมูลการคำนวณ</p>
+                            {plot.method && plot.method.includes('+') && (
+                                <span className="text-amber-500/80 text-[9px] px-2 py-0.5 rounded-full bg-amber-500/10 shrink-0 border border-amber-500/20">หลายวิธี</span>
+                            )}
+                        </div>
+
+                        {(plot.dbh || plot.height || plot.ndvi || plot.tcari) && (
+                            <div className="grid grid-cols-2 gap-2">
+                                {plot.dbh && (
+                                    <div className="flex justify-between items-center rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.1)' }}>
+                                        <span className="text-emerald-500/80 text-[10px] font-bold">DBH</span>
+                                        <span className="text-emerald-400 text-xs font-mono">{plot.dbh} <span className="text-[9px] opacity-70">ซม.</span></span>
+                                    </div>
+                                )}
+                                {plot.height && (
+                                    <div className="flex justify-between items-center rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.1)' }}>
+                                        <span className="text-emerald-500/80 text-[10px] font-bold">ความสูง</span>
+                                        <span className="text-emerald-400 text-xs font-mono">{plot.height} <span className="text-[9px] opacity-70">ม.</span></span>
+                                    </div>
+                                )}
+                                {plot.ndvi && (
+                                    <div className="flex justify-between items-center rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.1)' }}>
+                                        <span className="text-blue-400/80 text-[10px] font-bold">NDVI</span>
+                                        <span className="text-blue-400 text-xs font-mono">{plot.ndvi}</span>
+                                    </div>
+                                )}
+                                {plot.tcari && (
+                                    <div className="flex justify-between items-center rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.1)' }}>
+                                        <span className="text-purple-400/80 text-[10px] font-bold">TCARI</span>
+                                        <span className="text-purple-400 text-xs font-mono">{plot.tcari}</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        <div className="flex flex-col gap-1.5 rounded-lg p-2.5" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <span className="text-slate-500 text-[10px] mb-0.5">สูตรที่ใช้คำนวณ:</span>
+                            {plot.actualFormulas ? (
+                                <div className="flex flex-col gap-2">
+                                    {plot.actualFormulas.map((f, i) => (
+                                        <div key={i} className="flex flex-col gap-0.5" style={i > 0 ? { borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '6px' } : {}}>
+                                            <span className="text-slate-400 text-[9px] font-semibold">{f.name || method.name}</span>
+                                            <span className="text-blue-300 font-mono text-[10px] break-words leading-relaxed pl-1.5 border-l-2 border-blue-500/40">{f.formula || method.formula}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col gap-0.5">
+                                    <span className="text-slate-400 text-[9px] font-semibold">{method.name}</span>
+                                    <span className="text-blue-300 font-mono text-[10px] break-words leading-relaxed pl-1.5 border-l-2 border-blue-500/40">{method.formula}</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2 mt-1">
+                        <button onClick={() => { onEdit(plot); onClose() }}
+                            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all hover:opacity-90"
+                            style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b' }}>
+                            <EditIco cls="w-4 h-4" /> แก้ไขแปลง
+                        </button>
+                        <button onClick={() => { onDelete(plot); onClose() }}
+                            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all hover:opacity-90"
+                            style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#f87171' }}>
+                            <TrashIco cls="w-4 h-4" /> ลบแปลง
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+// ─── PLOT CARD ITEM ───────────────────────────────────────────────────────────
+function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget, setDetailPlot }) {
+    const [expanded, setExpanded] = useState(false)
+    const method = getMethodInfo(p.method)
+    const value = (p.carbon || 0) * CARBON_PRICE
+
+    return (
+        <div key={p.id}
+            className={`plot-card rounded-xl p-3 cursor-pointer transition-all duration-200 ${selectedPlot === p.id ? 'active-card' : ''}`}
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
+            onClick={() => zoomTo(p)}>
+            {/* Row 1: Name + Carbon */}
+            <div className="flex items-start justify-between gap-2">
+                <div>
+                    <p className="text-white font-bold text-xs leading-tight">{p.farmerName}</p>
+                    <p className="text-slate-500 text-[9px] mt-0.5">SKT-PLOT-{p.id}</p>
+                </div>
+                <div className="text-right flex-shrink-0">
+                    <span className="text-emerald-400 font-black text-sm">{(p.carbon || 0).toFixed(2)}</span>
+                    <span className="text-slate-500 text-[9px] block">TCO₂E</span>
+                </div>
+            </div>
+            {/* Row 2: Badges */}
+            <div className="flex flex-wrap gap-1 mt-2">
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>
+                    {formatArea(p.area)}
+                </span>
+            </div>
+
+            {/* EXPANDED DETAILS */}
+            {expanded && (
+                <div onClick={e => e.stopPropagation()} className="mt-3 pt-3 flex flex-col gap-1.5" style={{ borderTop: '1px dashed rgba(255,255,255,0.08)' }}>
+                    <div className="flex justify-between items-start gap-2 text-[10px]">
+                        <span className="text-slate-500 flex-shrink-0">ที่ตั้ง:</span>
+                        <span className="text-slate-300 text-right leading-tight break-words">
+                            {p.subdistrict || p.district || p.province ?
+                                [p.subdistrict && `ต.${p.subdistrict}`, p.district && `อ.${p.district}`, p.province && `จ.${p.province}`].filter(Boolean).join(' ')
+                                : (p.address || '-')}
+                        </span>
+                    </div>
+                    <div className="flex justify-between items-start gap-2 text-[10px]">
+                        <span className="text-slate-500 flex-shrink-0">พิกัด:</span>
+                        <span className="text-slate-400 text-right leading-tight font-mono">
+                            {p.lat ? parseFloat(p.lat).toFixed(6) : '-'}, {p.lng ? parseFloat(p.lng).toFixed(6) : '-'}
+                        </span>
+                    </div>
+                    <div className="flex justify-between items-start gap-2 text-[10px]">
+                        <span className="text-slate-500 flex-shrink-0">พันธุ์ยางพารา:</span>
+                        <span className="text-slate-300 text-right font-semibold">{p.variety || 'ไม่ระบุ'}</span>
+                    </div>
+                    <div className="flex justify-between text-[10px]">
+                        <span className="text-slate-500">อายุ (ระบุเอง):</span>
+                        <span className="text-slate-300">{p.manualAge ? `${p.manualAge} ปี` : '-'}</span>
+                    </div>
+                    <div className="flex justify-between text-[10px]">
+                        <span className="text-slate-500">อายุ (คำนวณ):</span>
+                        <span className="text-slate-300">{p.age ? `${p.age} ปี` : '-'}</span>
+                    </div>
+                    <div className="flex justify-between text-[10px]">
+                        <span className="text-slate-500">มวลชีวภาพ (AGB):</span>
+                        <span className="text-emerald-400 font-semibold">{p.agb ? parseFloat(p.agb).toFixed(2) : '-'} <span className="text-slate-500 font-normal">ตัน</span></span>
+                    </div>
+                    <div className="flex flex-col gap-2 mt-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                        <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wide">ข้อมูลการคำนวณ</span>
+
+                        {(p.dbh || p.height || p.ndvi || p.tcari) && (
+                            <div className="grid grid-cols-2 gap-1.5">
+                                {p.dbh && (
+                                    <div className="flex justify-between items-center rounded-md px-2 py-1" style={{ background: 'rgba(16,185,129,0.08)' }}>
+                                        <span className="text-emerald-500/80 text-[9px] font-bold">DBH</span>
+                                        <span className="text-emerald-400 text-[10px] font-mono">{p.dbh} <span className="text-[8px] opacity-70">ซม.</span></span>
+                                    </div>
+                                )}
+                                {p.height && (
+                                    <div className="flex justify-between items-center rounded-md px-2 py-1" style={{ background: 'rgba(16,185,129,0.08)' }}>
+                                        <span className="text-emerald-500/80 text-[9px] font-bold">ความสูง</span>
+                                        <span className="text-emerald-400 text-[10px] font-mono">{p.height} <span className="text-[8px] opacity-70">ม.</span></span>
+                                    </div>
+                                )}
+                                {p.ndvi && (
+                                    <div className="flex justify-between items-center rounded-md px-2 py-1" style={{ background: 'rgba(59,130,246,0.08)' }}>
+                                        <span className="text-blue-400/80 text-[9px] font-bold">NDVI</span>
+                                        <span className="text-blue-400 text-[10px] font-mono">{p.ndvi}</span>
+                                    </div>
+                                )}
+                                {p.tcari && (
+                                    <div className="flex justify-between items-center rounded-md px-2 py-1" style={{ background: 'rgba(168,85,247,0.08)' }}>
+                                        <span className="text-purple-400/80 text-[9px] font-bold">TCARI</span>
+                                        <span className="text-purple-400 text-[10px] font-mono">{p.tcari}</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        <div className="flex flex-col gap-1.5 rounded-md p-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div className="flex justify-between items-center mb-0.5">
+                                <span className="text-slate-500 text-[9px]">สูตรที่ใช้คำนวณ:</span>
+                                {p.actualFormulas && p.actualFormulas.length > 1 && (
+                                    <span className="text-amber-500/80 text-[8px] px-1.5 py-0.5 rounded-sm bg-amber-500/10 shrink-0 border border-amber-500/20">หลายวิธี</span>
+                                )}
+                            </div>
+
+                            {p.actualFormulas ? (
+                                <div className="flex flex-col gap-1.5">
+                                    {p.actualFormulas.map((f, i) => (
+                                        <div key={i} className="flex flex-col gap-0.5">
+                                            <span className="text-slate-400 text-[8px] font-semibold">{f.name || method.name}:</span>
+                                            <span className="text-blue-300 font-mono text-[9px] break-words leading-tight pl-1 border-l border-blue-500/30">{f.formula || method.formula}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col gap-0.5">
+                                    <span className="text-slate-400 text-[8px] font-semibold">{method.name}:</span>
+                                    <span className="text-blue-300 font-mono text-[9px] break-words leading-tight pl-1 border-l border-blue-500/30">{method.formula}</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Row 3: Value + Actions */}
+            <div className="flex items-center justify-between mt-2.5 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                <div>
+                    <p className="text-[9px] text-slate-500 uppercase font-bold tracking-wider">มูลค่าประเมิน</p>
+                    <p className="text-emerald-400 font-black text-sm">฿{value.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                </div>
+                <div className="flex items-center gap-1">
+                    <button onClick={e => { e.stopPropagation(); setExpanded(!expanded) }}
+                        className="action-btn w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-300"
+                        style={{ background: expanded ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)', color: expanded ? '#10b981' : '#cbd5e1' }} title={expanded ? 'ย่อรายละเอียด' : 'ดูรายละเอียดข้อมูล'}>
+                        <ChevIco cls={`w-3.5 h-3.5 transform transition-transform ${expanded ? 'rotate-180' : ''}`} />
+                    </button>
+                    <button onClick={e => { e.stopPropagation(); handleEditPlot(p) }}
+                        className="action-btn w-7 h-7 rounded-lg flex items-center justify-center"
+                        style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }} title="แก้ไขแปลง">
+                        <EditIco cls="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={e => { e.stopPropagation(); setDeleteTarget(p) }}
+                        className="action-btn w-7 h-7 rounded-lg flex items-center justify-center"
+                        style={{ background: 'rgba(239,68,68,0.12)', color: '#f87171' }} title="ลบแปลง">
+                        <TrashIco cls="w-3.5 h-3.5" />
+                    </button>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// ─── MAIN ─────────────────────────────────────────────────────────────────────
+export default function PersonalDashboardPage() {
+    const history = useHistory()
+    const mapRef = useRef(null)
+    const mapContainer = useRef(null)
+    const [mapLoaded, setMapLoaded] = useState(false)
+    const [plots, setPlots] = useState([])
+    const [stats, setStats] = useState({ plots: 0, area: 0, carbon: 0, value: 0 })
+    const [userProfile, setUserProfile] = useState(null)
+    const [search, setSearch] = useState('')
+    const [showProfile, setShowProfile] = useState(false)
+    const [deleteTarget, setDeleteTarget] = useState(null)
+    const [detailPlot, setDetailPlot] = useState(null)
+    const [selectedPlot, setSelectedPlot] = useState(null)
+    const [loading, setLoading] = useState(true)
+    const [activeNav, setActiveNav] = useState('personal')
+
+    // Load profile
+    useEffect(() => {
+        try {
+            const p = localStorage.getItem('userProfile')
+            if (p) setUserProfile(JSON.parse(p))
+        } catch (_) { }
+    }, [])
+
+    // Fetch plots
+    useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true)
+            try {
+                const res = await getPlots()
+                const all = Array.isArray(res) ? res : (res?.data || [])
+                const mapped = all.map(p => {
+                    let geometry = p.geometry
+                    if (typeof geometry === 'string') try { geometry = JSON.parse(geometry) } catch (_) { }
+                    if (!geometry && (p.lat || p.lng)) geometry = { type: 'Point', coordinates: [+p.lng, +p.lat] }
+
+                    // Extract variety from notes
+                    let variety = p.variety || 'RRIM 600'
+                    if (p.notes?.includes('พันธุ์:')) {
+                        variety = p.notes.split('พันธุ์:')[1]?.split('|')[0]?.trim() || variety
+                    }
+
+                    // Extract location
+                    let subdistrict = p.subdistrict || p.tambon || ''
+                    let district = p.district || p.amphoe || ''
+                    let province = p.province || p.changwat || ''
+                    let address = p.address || ''
+                    if (p.notes) {
+                        const locMatch = p.notes.match(/ที่ตั้ง:\s*ต\.([^อ]+)\s*อ\.([^จ]+)\s*จ\.(.+?)(\s*\||$)/)
+                        if (locMatch) {
+                            subdistrict = locMatch[1].trim();
+                            district = locMatch[2].trim();
+                            province = locMatch[3].trim();
+                        } else {
+                            const rawAddress = p.notes.match(/ที่ตั้ง:\s*([^|]+)/)
+                            if (rawAddress) address = rawAddress[1].trim()
+                        }
+                    }
+
+                    const age = p.tree_age ? parseInt(String(p.tree_age).replace(/\D/g, '')) || 0 : 0
+                    let manualAge = p.manual_age || p.manualAge || null
+                    if (p.notes && p.notes.includes('อายุ (ระบุเอง):')) {
+                        manualAge = p.notes.match(/อายุ \(ระบุเอง\):\s*(\d+)/)?.[1] || manualAge
+                    }
+
+                    let agb = p.agb || p.above_ground_biomass || null
+                    if (p.notes && p.notes.includes('AGB:')) {
+                        agb = p.notes.match(/AGB:\s*([\d.]+)/)?.[1] || agb
+                    }
+
+                    let dbh = p.dbh || null;
+                    if (!dbh && p.notes && p.notes.includes('DBH:')) dbh = p.notes.match(/DBH:\s*([\d.]+)/)?.[1] || dbh;
+
+                    let height = p.height || null;
+                    if (!height && p.notes && p.notes.includes('ความสูง:')) height = p.notes.match(/ความสูง:\s*([\d.]+)/)?.[1] || height;
+
+                    let ndvi = p.satData?.ndvi || null;
+                    if (!ndvi && p.notes && p.notes.includes('NDVI:')) ndvi = p.notes.match(/NDVI:\s*([\d.]+)/)?.[1] || ndvi;
+
+                    let tcari = p.satData?.tcari || null;
+                    if (!tcari && p.notes && p.notes.includes('TCARI:')) tcari = p.notes.match(/TCARI:\s*([\d.]+)/)?.[1] || tcari;
+
+                    let actualFormulas = null;
+                    if (p.notes && p.notes.includes('สูตร:')) {
+                        const rawFormulas = p.notes.match(/สูตร:\s*([^|]+)/)?.[1]?.trim() || null;
+                        if (rawFormulas) {
+                            actualFormulas = rawFormulas.split(' ++ ').map(f => {
+                                const [name, ...formParts] = f.split('=');
+                                return { name: name?.trim(), formula: formParts.join('=')?.trim() };
+                            }).filter(f => f.formula);
+                            if (actualFormulas.length === 0) actualFormulas = null;
+                        }
+                    }
+
+                    // Get lat/lng from geometry
+                    let lat = p.lat || null
+                    let lng = p.lng || null
+                    if (!lat && geometry?.type === 'Point') { lat = geometry.coordinates[1]; lng = geometry.coordinates[0] }
+                    if (!lat && geometry?.type === 'Polygon') {
+                        const coords = geometry.coordinates[0]
+                        if (coords?.length) {
+                            lat = coords.reduce((sum, c) => sum + c[1], 0) / coords.length
+                            lng = coords.reduce((sum, c) => sum + c[0], 0) / coords.length
+                        }
+                    }
+
+                    return {
+                        ...p, geometry,
+                        farmerName: p.name || p.farmer_name || 'ไม่ระบุชื่อ',
+                        area: parseFloat(p.area_rai) || 0,
+                        carbon: parseFloat(p.carbon_tons) || 0,
+                        age, manualAge, agb, address, dbh, height, ndvi, tcari, actualFormulas,
+                        plantingYearBE: p.planting_year ? parseInt(String(p.planting_year).replace(/\D/g, '')) + 543 : '—',
+                        variety, subdistrict, district, province, lat, lng
+                    }
+                }).filter(p => p.geometry)
+
+                setPlots(mapped)
+                const totalArea = mapped.reduce((s, p) => s + p.area, 0)
+                const totalCarbon = mapped.reduce((s, p) => s + p.carbon, 0)
+                setStats({ plots: mapped.length, area: totalArea, carbon: totalCarbon, value: totalCarbon * CARBON_PRICE })
+            } catch (e) { console.error(e); setPlots([]) }
+            setLoading(false)
+        }
+        fetchData()
+    }, [])
+
+    // Init Map
+    useEffect(() => {
+        if (mapRef.current || !mapContainer.current) return
+        mapRef.current = new maplibregl.Map({
+            container: mapContainer.current,
+            style: {
+                version: 8,
+                sources: { satellite: { type: 'raster', tiles: ['https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'], tileSize: 256 } },
+                layers: [{ id: 'satellite', type: 'raster', source: 'satellite', minzoom: 0, maxzoom: 22 }]
+            },
+            center: [100.5, 13.75], zoom: 5, attributionControl: false
+        })
+        mapRef.current.on('load', () => setMapLoaded(true))
+    }, [])
+
+    // Add plots to map
+    useEffect(() => {
+        if (!mapRef.current || !mapLoaded || plots.length === 0) return
+        const srcId = 'pd-plots'
+        const geojson = {
+            type: 'FeatureCollection',
+            features: plots.map(p => ({ type: 'Feature', geometry: p.geometry, properties: { id: p.id, name: p.farmerName, carbon: p.carbon, area: p.area } }))
+        }
+        if (mapRef.current.getSource(srcId)) {
+            mapRef.current.getSource(srcId).setData(geojson)
+        } else {
+            mapRef.current.addSource(srcId, { type: 'geojson', data: geojson })
+            mapRef.current.addLayer({ id: 'pd-fill', type: 'fill', source: srcId, paint: { 'fill-color': '#10b981', 'fill-opacity': 0.45 } })
+            mapRef.current.addLayer({ id: 'pd-line', type: 'line', source: srcId, paint: { 'line-color': '#6ee7b7', 'line-width': 2 } })
+            mapRef.current.on('click', 'pd-fill', e => {
+                const id = e.features[0]?.properties?.id
+                const p = plots.find(x => x.id === id)
+                if (p) setDetailPlot(p)
+            })
+            mapRef.current.on('mouseenter', 'pd-fill', () => { mapRef.current.getCanvas().style.cursor = 'pointer' })
+            mapRef.current.on('mouseleave', 'pd-fill', () => { mapRef.current.getCanvas().style.cursor = '' })
+            // Fit bounds
+            const bounds = new maplibregl.LngLatBounds()
+            plots.forEach(p => {
+                if (p.geometry.type === 'Polygon') p.geometry.coordinates[0].forEach(c => bounds.extend(c))
+                else if (p.geometry.type === 'Point') bounds.extend(p.geometry.coordinates)
+            })
+            if (!bounds.isEmpty()) mapRef.current.fitBounds(bounds, { padding: 40 })
+        }
+    }, [mapLoaded, plots])
+
+    const zoomTo = (plot) => {
+        if (!mapRef.current) return
+        setSelectedPlot(plot.id)
+        if (plot.geometry.type === 'Point') mapRef.current.flyTo({ center: plot.geometry.coordinates, zoom: 16 })
+        else { const b = turf.bbox(plot.geometry); mapRef.current.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: 60 }) }
+    }
+
+    const handleSaveProfile = (form) => {
+        const updated = { ...userProfile, ...form }
+        setUserProfile(updated)
+        localStorage.setItem('userProfile', JSON.stringify(updated))
+    }
+
+    const handleDelete = async (plot) => {
+        await deletePlot(plot.id)
+        const next = plots.filter(p => p.id !== plot.id)
+        setPlots(next)
+        const totalCarbon = next.reduce((s, p) => s + p.carbon, 0)
+        setStats({ plots: next.length, area: next.reduce((s, p) => s + p.area, 0), carbon: totalCarbon, value: totalCarbon * CARBON_PRICE })
+        setDeleteTarget(null)
+    }
+
+    const handleEditPlot = (plot) => history.push(`/map?editPlotId=${plot.id}`)
+
+    const filtered = plots.filter(p => {
+        if (!search.trim()) return true
+        const q = search.toLowerCase()
+        return (
+            p.farmerName?.toLowerCase().includes(q) ||
+            p.province?.toLowerCase().includes(q) ||
+            p.district?.toLowerCase().includes(q) ||
+            p.subdistrict?.toLowerCase().includes(q) ||
+            p.variety?.toLowerCase().includes(q) ||
+            String(p.id).includes(q)
+        )
+    })
+
+    const navItems = [
+        { key: 'home', icon: <HomeIco />, label: 'หน้าหลัก', path: '/' },
+        { key: 'map', icon: <MapIco />, label: 'แผนที่', path: '/map' },
+        { key: 'personal', icon: <UserIco />, label: 'ส่วนตัว', path: '/dashboard/personal' },
+        { key: 'dashboard', icon: <DashIco />, label: 'รวม', path: '/dashboard' },
+        { key: 'history', icon: <HistIco />, label: 'ประวัติ', path: '/dashboard/history' },
+    ]
+
+    const avatarLetter = (userProfile?.name || '?')[0].toUpperCase()
+
+    return (
+        <div className="pd-root flex h-screen overflow-hidden" style={{ background: '#0d1117', fontFamily: "'Inter', sans-serif", color: '#e2e8f0' }}>
+            <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        .pd-root * { box-sizing: border-box; }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+        .fade-up { animation: fadeUp 0.35s ease forwards; }
+        @keyframes modalIn { from { opacity:0; transform:scale(0.96) translateY(12px); } to { opacity:1; transform:scale(1) translateY(0); } }
+        .modal-in { animation: modalIn 0.25s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+        .plot-card:hover { background: rgba(16,185,129,0.07) !important; }
+        .plot-card.active-card { border-color: rgba(16,185,129,0.5) !important; background: rgba(16,185,129,0.06) !important; }
+        .scrollbar::-webkit-scrollbar { width: 4px; }
+        .scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .scrollbar::-webkit-scrollbar-thumb { background: rgba(16,185,129,0.3); border-radius: 99px; }
+        .nav-btn:hover { background: rgba(16,185,129,0.12); color: #34d399; }
+        .action-btn { transition: all 0.2s; }
+        .action-btn:hover { filter: brightness(1.3); transform: scale(1.05); }
+        @media (max-width: 768px) {
+          .desktop-nav { display: none !important; }
+          .mobile-nav { display: flex !important; }
+          .main-grid { flex-direction: column !important; }
+          .left-panel { max-height: 45vh !important; }
+        }
+      `}</style>
+
+            {/* ── LEFT SIDEBAR NAV ── */}
+            <aside className="desktop-nav flex-shrink-0 flex flex-col items-center py-6 gap-5" style={{ width: 60, background: '#161b27', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+                {/* Logo */}
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-2" style={{ background: 'linear-gradient(135deg,#10b981,#059669)' }}>
+                    <LeafIco cls="w-5 h-5 text-white" />
+                </div>
+                {/* Nav items */}
+                <div className="flex flex-col items-center gap-1 flex-1">
+                    {navItems.map(item => (
+                        <button key={item.key} onClick={() => history.push(item.path)} title={item.label}
+                            className="nav-btn w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200"
+                            style={{ color: item.key === 'personal' ? '#10b981' : '#64748b', background: item.key === 'personal' ? 'rgba(16,185,129,0.15)' : 'transparent' }}>
+                            {item.icon}
+                        </button>
+                    ))}
+                </div>
+                {/* Logout */}
+                <button onClick={() => { if (window.confirm('ออกจากระบบ?')) { localStorage.removeItem('userProfile'); history.push('/login') } }}
+                    title="ออกจากระบบ"
+                    className="nav-btn w-10 h-10 rounded-xl flex items-center justify-center transition-all"
+                    style={{ color: '#64748b' }}>
+                    <LogoutIco />
+                </button>
+            </aside>
+
+            {/* ── MAIN AREA ── */}
+            <div className="flex-1 flex flex-col overflow-hidden">
+
+                {/* TOP BAR */}
+                <header className="flex-shrink-0 flex items-center justify-between px-5 py-3" style={{ background: '#161b27', borderBottom: '1px solid rgba(255,255,255,0.06)', minHeight: 56 }}>
+                    <div>
+                        <h1 className="text-white font-black text-base leading-tight">แดชบอร์ดส่วนตัว</h1>
+                        <p className="text-slate-500 text-[11px] mt-0.5">ยินดีต้อนรับ, {userProfile?.name || 'ผู้ใช้งาน'}</p>
+                    </div>
+
+                    {/* Profile button */}
+                    <div className="flex items-center gap-3">
+                        <button onClick={() => setShowProfile(true)}
+                            className="flex items-center gap-2 px-3 py-2 rounded-xl transition-all hover:bg-white/5"
+                            style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+                            <div className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-xs font-black" style={{ background: 'linear-gradient(135deg,#10b981,#059669)', color: 'white' }}>
+                                {userProfile?.picture ? <img src={userProfile.picture} alt="" className="w-full h-full object-cover" /> : avatarLetter}
+                            </div>
+                            <span className="text-white text-xs font-semibold hidden sm:block">{userProfile?.name || 'ผู้ใช้งาน'}</span>
+                        </button>
+                        <button onClick={() => setShowProfile(true)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
+                            style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.2)', color: '#10b981' }}>
+                            <EditIco cls="w-3.5 h-3.5" /> แก้ไขโปรไฟล์
+                        </button>
+                    </div>
+                </header>
+
+                {/* PROFILE CARD */}
+                <div className="flex-shrink-0 px-5 py-3" style={{ background: '#1a2030', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div className="flex flex-wrap items-center gap-4">
+                        <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center font-black text-lg flex-shrink-0" style={{ background: 'linear-gradient(135deg,#10b981,#059669)', color: 'white' }}>
+                            {userProfile?.picture ? <img src={userProfile.picture} alt="" className="w-full h-full object-cover" /> : avatarLetter}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <h2 className="text-white font-bold text-sm">{userProfile?.name || 'ยังไม่ได้ตั้งชื่อ'}</h2>
+                            <div className="flex flex-wrap items-center gap-2 mt-1">
+                                {userProfile?.email && (
+                                    <span className="flex items-center gap-1 text-[10px] text-slate-400">
+                                        <span className="text-slate-500">✉</span> {userProfile.email}
+                                    </span>
+                                )}
+                                {userProfile?.phone && (
+                                    <span className="flex items-center gap-1 text-[10px] text-slate-400">
+                                        <span className="text-slate-500">📱</span> {userProfile.phone}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                        {/* Summary badges */}
+                        <div className="flex flex-wrap gap-3">
+                            {[
+                                { label: 'จำนวนแปลงทั้งหมด', value: `${stats.plots} แปลง`, color: '#10b981' },
+                                { label: 'พื้นที่รวมทั้งหมด', value: `${stats.area.toFixed(1)} ไร่`, color: '#38bdf8' },
+                                { label: 'ปริมาณคาร์บอนเครดิต', value: `${stats.carbon.toFixed(2)} tCO₂e`, color: '#10b981' },
+                                { label: 'มูลค่าประเมินรวม', value: `฿${stats.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, color: '#10b981' },
+                            ].map(({ label, value, color }) => (
+                                <div key={label} className="rounded-xl px-4 py-2" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                                    <p className="text-slate-500 text-[9px] font-bold uppercase tracking-wider">{label}</p>
+                                    <p className="font-black text-base mt-0.5" style={{ color }}>{value}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* MAIN GRID */}
+                <div className="flex-1 flex overflow-hidden main-grid">
+
+                    {/* LEFT: Plot List */}
+                    <div className="flex-shrink-0 flex flex-col overflow-hidden left-panel" style={{ width: 300, borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+                        {/* Panel header */}
+                        <div className="flex-shrink-0 flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                            <div className="flex items-center gap-2">
+                                <span className="text-white font-bold text-sm">แปลงของฉัน</span>
+                                <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md" style={{ background: 'rgba(16,185,129,0.2)', color: '#10b981' }}>{filtered.length}</span>
+                            </div>
+                        </div>
+                        {/* Search */}
+                        <div className="flex-shrink-0 px-4 py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                            <div className="relative">
+                                <SearchIco cls="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="ค้นหาที่แปลง หรือ ID..."
+                                    className="w-full pl-8 pr-7 py-2 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }} />
+                                {search && (
+                                    <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white">
+                                        <XIco cls="w-3 h-3" />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                        {/* Plot cards list */}
+                        <div className="flex-1 overflow-y-auto scrollbar px-3 py-2 flex flex-col gap-2">
+                            {loading ? (
+                                <div className="flex flex-col items-center justify-center h-full gap-2 text-slate-600">
+                                    <div className="w-8 h-8 border-2 border-emerald-700 border-t-emerald-400 rounded-full animate-spin" />
+                                    <span className="text-xs">กำลังโหลด...</span>
+                                </div>
+                            ) : filtered.length > 0 ? (
+                                filtered.map((p, i) => (
+                                    <PlotCardItem key={p.id} p={p} selectedPlot={selectedPlot} zoomTo={zoomTo} handleEditPlot={handleEditPlot} setDeleteTarget={setDeleteTarget} setDetailPlot={setDetailPlot} />
+                                ))
+                            ) : (
+                                <div className="flex flex-col items-center justify-center h-full gap-2 text-slate-600">
+                                    <LeafIco cls="w-10 h-10" />
+                                    <span className="text-xs">{search ? 'ไม่พบข้อมูล' : 'ยังไม่มีแปลง'}</span>
+                                    {!search && (
+                                        <button onClick={() => history.push('/map')} className="mt-2 px-4 py-2 rounded-xl text-xs font-bold text-white" style={{ background: '#10b981' }}>
+                                            เพิ่มแปลงใหม่
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* RIGHT: Map */}
+                    <div className="flex-1 relative overflow-hidden">
+                        <div ref={mapContainer} className="absolute inset-0 w-full h-full" />
+                        {/* Map label */}
+                        <div className="absolute top-4 left-4 z-10 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-white" style={{ background: 'rgba(13,17,23,0.75)', border: '1px solid rgba(16,185,129,0.3)', backdropFilter: 'blur(8px)' }}>
+                            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                            แผนที่แสดงตำแหน่งแปลงของคุณ
+                        </div>
+                    </div>
+                </div>
+
+                {/* MOBILE BOTTOM NAV */}
+                <nav className="mobile-nav hidden fixed bottom-0 left-0 right-0 z-[500] items-center justify-around py-3 px-4" style={{ background: '#161b27', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    {navItems.map(item => (
+                        <button key={item.key} onClick={() => history.push(item.path)}
+                            className="flex flex-col items-center gap-0.5 px-2"
+                            style={{ color: item.key === 'personal' ? '#10b981' : '#64748b' }}>
+                            {item.icon}
+                            <span className="text-[9px] font-bold">{item.label}</span>
+                        </button>
+                    ))}
+                </nav>
+            </div>
+
+            {/* ── MODALS ── */}
+            {showProfile && <ProfileModal profile={userProfile} onSave={handleSaveProfile} onClose={() => setShowProfile(false)} />}
+            {deleteTarget && <DeleteModal plot={deleteTarget} onConfirm={() => handleDelete(deleteTarget)} onClose={() => setDeleteTarget(null)} />}
+            {detailPlot && <PlotDetailModal plot={detailPlot} onClose={() => setDetailPlot(null)} onEdit={handleEditPlot} onDelete={p => { setDeleteTarget(p); setDetailPlot(null) }} />}
+        </div>
+    )
+}

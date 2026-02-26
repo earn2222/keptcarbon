@@ -162,8 +162,22 @@ export const createPlot = async (plotData) => {
 
     // Build normalized notes with all metadata
     const noteParts = [`พันธุ์: ${variety}`];
-    if (plotData.dbh) noteParts.push(`DBH: ${plotData.dbh} ซม.`);
-    if (plotData.height) noteParts.push(`ความสูง: ${plotData.height} ม.`);
+    if (plotData.dbh) noteParts.push(`DBH: ${plotData.dbh}`);
+    if (plotData.height) noteParts.push(`ความสูง: ${plotData.height}`);
+    if (plotData.satData?.ndvi) noteParts.push(`NDVI: ${plotData.satData.ndvi}`);
+    if (plotData.satData?.tcari) noteParts.push(`TCARI: ${plotData.satData.tcari}`);
+    if (plotData.manualAge) noteParts.push(`อายุ (ระบุเอง): ${plotData.manualAge}`);
+    if (plotData.agb) noteParts.push(`AGB: ${plotData.agb}`);
+    if (plotData.address) noteParts.push(`ที่ตั้ง: ${plotData.address}`);
+
+    // Save actual formulas used
+    if (methods && methods.length > 0) {
+        const formulaParts = methods.map(m => `${m.name}=${m.formula}`).join(' ++ ');
+        noteParts.push(`สูตร: ${formulaParts}`);
+    } else if (plotData.method) {
+        noteParts.push(`สูตร: ${plotData.method}`);
+    }
+
     if (plotData.notes) noteParts.push(plotData.notes);
     const normalizedNotes = noteParts.join(' | ');
 
