@@ -702,8 +702,13 @@ export default function PersonalDashboardPage() {
         @media (max-width: 768px) {
           .desktop-nav { display: none !important; }
           .mobile-nav { display: flex !important; }
-          .main-grid { flex-direction: column !important; }
-          .left-panel { max-height: 45vh !important; }
+          .main-grid { flex-direction: column !important; padding-bottom: 60px; }
+          .left-panel { max-height: none !important; width: 100% !important; flex: 1; border-right: none !important; }
+          .map-panel { flex: none !important; height: 40vh !important; order: -1; border-bottom: 1px solid rgba(255,255,255,0.06); }
+          .stat-cards-container { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; margin-top: 8px; width: 100%; }
+          .stat-card { width: 100% !important; padding: 12px 10px !important; }
+          .stat-card-title { font-size: 8px !important; }
+          .stat-card-value { font-size: 1.1rem !important; }
         }
       `}</style>
 
@@ -782,16 +787,16 @@ export default function PersonalDashboardPage() {
                             </div>
                         </div>
                         {/* Summary badges */}
-                        <div className="flex flex-wrap gap-3">
+                        <div className="flex flex-wrap gap-3 stat-cards-container">
                             {[
                                 { label: 'จำนวนแปลงทั้งหมด', value: `${stats.plots} แปลง`, color: '#10b981' },
                                 { label: 'พื้นที่รวมทั้งหมด', value: `${stats.area.toFixed(1)} ไร่`, color: '#38bdf8' },
                                 { label: 'ปริมาณคาร์บอนเครดิต', value: `${stats.carbon.toFixed(2)} tCO₂e`, color: '#10b981' },
                                 { label: 'มูลค่าประเมินรวม', value: `฿${stats.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, color: '#10b981' },
                             ].map(({ label, value, color }) => (
-                                <div key={label} className="rounded-xl px-4 py-2" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                                    <p className="text-slate-500 text-[9px] font-bold uppercase tracking-wider">{label}</p>
-                                    <p className="font-black text-base mt-0.5" style={{ color }}>{value}</p>
+                                <div key={label} className="rounded-xl px-4 py-2 stat-card" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                                    <p className="text-slate-500 text-[9px] font-bold uppercase tracking-wider stat-card-title">{label}</p>
+                                    <p className="font-black text-base mt-0.5 stat-card-value" style={{ color }}>{value}</p>
                                 </div>
                             ))}
                         </div>
@@ -850,7 +855,7 @@ export default function PersonalDashboardPage() {
                     </div>
 
                     {/* RIGHT: Map */}
-                    <div className="flex-1 relative overflow-hidden">
+                    <div className="flex-1 relative overflow-hidden map-panel">
                         <div ref={mapContainer} className="absolute inset-0 w-full h-full" />
                         {/* Map label */}
                         <div className="absolute top-4 left-4 z-10 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-white" style={{ background: 'rgba(13,17,23,0.75)', border: '1px solid rgba(16,185,129,0.3)', backdropFilter: 'blur(8px)' }}>
