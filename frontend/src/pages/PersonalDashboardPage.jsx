@@ -712,14 +712,14 @@ export default function PersonalDashboardPage() {
           .stat-card { width: 100% !important; padding: 12px 10px !important; }
           .stat-card-title { font-size: 8px !important; }
           .stat-card-value { font-size: 1.1rem !important; }
-          .plot-card { padding: 16px !important; gap: 6px; }
-          .plot-card .pc-title { font-size: 1.1rem !important; margin-bottom: 2px; }
-          .plot-card .pc-subtitle { font-size: 0.75rem !important; }
-          .plot-card .pc-value { font-size: 1.25rem !important; }
-          .plot-card .pc-badge { font-size: 0.7rem !important; padding: 4px 8px !important; }
-          .plot-card .pc-label { font-size: 0.7rem !important; }
-          .plot-card .pc-action { width: 36px !important; height: 36px !important; }
-          .plot-card .pc-action svg { width: 18px !important; height: 18px !important; }
+          .plot-card { padding: 14px 12px !important; gap: 4px; }
+          .plot-card .pc-title { font-size: 0.95rem !important; margin-bottom: 2px; }
+          .plot-card .pc-subtitle { font-size: 0.65rem !important; }
+          .plot-card .pc-value { font-size: 1.1rem !important; }
+          .plot-card .pc-badge { font-size: 0.6rem !important; padding: 2px 6px !important; }
+          .plot-card .pc-label { font-size: 0.6rem !important; }
+          .plot-card .pc-action { width: 32px !important; height: 32px !important; }
+          .plot-card .pc-action svg { width: 14px !important; height: 14px !important; }
         }
       `}</style>
 
