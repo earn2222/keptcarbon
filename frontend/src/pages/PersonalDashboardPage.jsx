@@ -224,34 +224,44 @@ function PlotDetailModal({ plot, onClose, onEdit, onDelete }) {
                             )}
                         </div>
 
-                        {(plot.dbh || plot.height || plot.ndvi || plot.tcari) && (
-                            <div className="grid grid-cols-2 gap-2">
-                                {plot.dbh && (
-                                    <div className="flex justify-between items-center rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.1)' }}>
-                                        <span className="text-emerald-500/80 text-[10px] font-bold">DBH</span>
-                                        <span className="text-emerald-400 text-xs font-mono">{plot.dbh} <span className="text-[9px] opacity-70">ซม.</span></span>
-                                    </div>
-                                )}
-                                {plot.height && (
-                                    <div className="flex justify-between items-center rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.1)' }}>
-                                        <span className="text-emerald-500/80 text-[10px] font-bold">ความสูง</span>
-                                        <span className="text-emerald-400 text-xs font-mono">{plot.height} <span className="text-[9px] opacity-70">ม.</span></span>
-                                    </div>
-                                )}
-                                {plot.ndvi && (
-                                    <div className="flex justify-between items-center rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.1)' }}>
-                                        <span className="text-blue-400/80 text-[10px] font-bold">NDVI</span>
-                                        <span className="text-blue-400 text-xs font-mono">{plot.ndvi}</span>
-                                    </div>
-                                )}
-                                {plot.tcari && (
-                                    <div className="flex justify-between items-center rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.1)' }}>
-                                        <span className="text-purple-400/80 text-[10px] font-bold">TCARI</span>
-                                        <span className="text-purple-400 text-xs font-mono">{plot.tcari}</span>
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                        {(() => {
+                            const inNdvi = plot.actualFormulas ? plot.actualFormulas.some(f => (f.name || '').toLowerCase().includes('ndvi') || (f.formula || '').toLowerCase().includes('ndvi')) : (method.name || '').toLowerCase().includes('ndvi') || (method.formula || '').toLowerCase().includes('ndvi') || (plot.method || '').toLowerCase().includes('ndvi');
+                            const inTcari = plot.actualFormulas ? plot.actualFormulas.some(f => (f.name || '').toLowerCase().includes('tcari') || (f.formula || '').toLowerCase().includes('tcari')) : (method.name || '').toLowerCase().includes('tcari') || (method.formula || '').toLowerCase().includes('tcari') || (plot.method || '').toLowerCase().includes('tcari');
+
+                            const showNdvi = plot.ndvi && inNdvi;
+                            const showTcari = plot.tcari && inTcari;
+
+                            if (!plot.dbh && !plot.height && !showNdvi && !showTcari) return null;
+
+                            return (
+                                <div className="grid grid-cols-2 gap-2">
+                                    {plot.dbh && (
+                                        <div className="flex justify-between items-center rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.1)' }}>
+                                            <span className="text-emerald-500/80 text-[10px] font-bold">DBH</span>
+                                            <span className="text-emerald-400 text-xs font-mono">{plot.dbh} <span className="text-[9px] opacity-70">ซม.</span></span>
+                                        </div>
+                                    )}
+                                    {plot.height && (
+                                        <div className="flex justify-between items-center rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.1)' }}>
+                                            <span className="text-emerald-500/80 text-[10px] font-bold">ความสูง</span>
+                                            <span className="text-emerald-400 text-xs font-mono">{plot.height} <span className="text-[9px] opacity-70">ม.</span></span>
+                                        </div>
+                                    )}
+                                    {showNdvi && (
+                                        <div className="flex justify-between items-center rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.1)' }}>
+                                            <span className="text-blue-400/80 text-[10px] font-bold">NDVI</span>
+                                            <span className="text-blue-400 text-xs font-mono">{plot.ndvi}</span>
+                                        </div>
+                                    )}
+                                    {showTcari && (
+                                        <div className="flex justify-between items-center rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.1)' }}>
+                                            <span className="text-purple-400/80 text-[10px] font-bold">TCARI</span>
+                                            <span className="text-purple-400 text-xs font-mono">{plot.tcari}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()}
 
                         <div className="flex flex-col gap-1.5 rounded-lg p-2.5" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)' }}>
                             <span className="text-slate-500 text-[10px] mb-0.5">สูตรที่ใช้คำนวณ:</span>
@@ -356,34 +366,44 @@ function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget
                     <div className="flex flex-col gap-2 mt-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
                         <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wide">ข้อมูลการคำนวณ</span>
 
-                        {(p.dbh || p.height || p.ndvi || p.tcari) && (
-                            <div className="grid grid-cols-2 gap-1.5">
-                                {p.dbh && (
-                                    <div className="flex justify-between items-center rounded-md px-2 py-1" style={{ background: 'rgba(16,185,129,0.08)' }}>
-                                        <span className="text-emerald-500/80 text-[9px] font-bold">DBH</span>
-                                        <span className="text-emerald-400 text-[10px] font-mono">{p.dbh} <span className="text-[8px] opacity-70">ซม.</span></span>
-                                    </div>
-                                )}
-                                {p.height && (
-                                    <div className="flex justify-between items-center rounded-md px-2 py-1" style={{ background: 'rgba(16,185,129,0.08)' }}>
-                                        <span className="text-emerald-500/80 text-[9px] font-bold">ความสูง</span>
-                                        <span className="text-emerald-400 text-[10px] font-mono">{p.height} <span className="text-[8px] opacity-70">ม.</span></span>
-                                    </div>
-                                )}
-                                {p.ndvi && (
-                                    <div className="flex justify-between items-center rounded-md px-2 py-1" style={{ background: 'rgba(59,130,246,0.08)' }}>
-                                        <span className="text-blue-400/80 text-[9px] font-bold">NDVI</span>
-                                        <span className="text-blue-400 text-[10px] font-mono">{p.ndvi}</span>
-                                    </div>
-                                )}
-                                {p.tcari && (
-                                    <div className="flex justify-between items-center rounded-md px-2 py-1" style={{ background: 'rgba(168,85,247,0.08)' }}>
-                                        <span className="text-purple-400/80 text-[9px] font-bold">TCARI</span>
-                                        <span className="text-purple-400 text-[10px] font-mono">{p.tcari}</span>
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                        {(() => {
+                            const inNdvi = p.actualFormulas ? p.actualFormulas.some(f => (f.name || '').toLowerCase().includes('ndvi') || (f.formula || '').toLowerCase().includes('ndvi')) : (method.name || '').toLowerCase().includes('ndvi') || (method.formula || '').toLowerCase().includes('ndvi') || (p.method || '').toLowerCase().includes('ndvi');
+                            const inTcari = p.actualFormulas ? p.actualFormulas.some(f => (f.name || '').toLowerCase().includes('tcari') || (f.formula || '').toLowerCase().includes('tcari')) : (method.name || '').toLowerCase().includes('tcari') || (method.formula || '').toLowerCase().includes('tcari') || (p.method || '').toLowerCase().includes('tcari');
+
+                            const showNdvi = p.ndvi && inNdvi;
+                            const showTcari = p.tcari && inTcari;
+
+                            if (!p.dbh && !p.height && !showNdvi && !showTcari) return null;
+
+                            return (
+                                <div className="grid grid-cols-2 gap-1.5">
+                                    {p.dbh && (
+                                        <div className="flex justify-between items-center rounded-md px-2 py-1" style={{ background: 'rgba(16,185,129,0.08)' }}>
+                                            <span className="text-emerald-500/80 text-[9px] font-bold">DBH</span>
+                                            <span className="text-emerald-400 text-[10px] font-mono">{p.dbh} <span className="text-[8px] opacity-70">ซม.</span></span>
+                                        </div>
+                                    )}
+                                    {p.height && (
+                                        <div className="flex justify-between items-center rounded-md px-2 py-1" style={{ background: 'rgba(16,185,129,0.08)' }}>
+                                            <span className="text-emerald-500/80 text-[9px] font-bold">ความสูง</span>
+                                            <span className="text-emerald-400 text-[10px] font-mono">{p.height} <span className="text-[8px] opacity-70">ม.</span></span>
+                                        </div>
+                                    )}
+                                    {showNdvi && (
+                                        <div className="flex justify-between items-center rounded-md px-2 py-1" style={{ background: 'rgba(59,130,246,0.08)' }}>
+                                            <span className="text-blue-400/80 text-[9px] font-bold">NDVI</span>
+                                            <span className="text-blue-400 text-[10px] font-mono">{p.ndvi}</span>
+                                        </div>
+                                    )}
+                                    {showTcari && (
+                                        <div className="flex justify-between items-center rounded-md px-2 py-1" style={{ background: 'rgba(168,85,247,0.08)' }}>
+                                            <span className="text-purple-400/80 text-[9px] font-bold">TCARI</span>
+                                            <span className="text-purple-400 text-[10px] font-mono">{p.tcari}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()}
 
                         <div className="flex flex-col gap-1.5 rounded-md p-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
                             <div className="flex justify-between items-center mb-0.5">
