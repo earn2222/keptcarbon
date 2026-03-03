@@ -406,15 +406,22 @@ function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget
                 </div>
             </div>
 
-            {/* Row 2: Badges + Method indicator */}
-            <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md pc-badge" style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>
-                    {formatArea(p.area)}
-                </span>
-                {multiMethods && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md method-badge-active" style={{ background: 'rgba(59,130,246,0.15)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.2)' }}>
-                        {displayName}
+            {/* Row 2: Badges (Area + Method) - Stacked and centered */}
+            <div className="flex flex-col items-center gap-2 mt-3">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg pc-badge"
+                    style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.2)' }}>
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></div>
+                    <span className="text-[10px] font-bold text-emerald-400 whitespace-nowrap">
+                        {formatArea(p.area)}
                     </span>
+                </div>
+                {multiMethods && (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg method-badge-active"
+                        style={{ background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.2)' }}>
+                        <span className="text-[10px] font-bold text-blue-400 whitespace-nowrap">
+                            {displayName}
+                        </span>
+                    </div>
                 )}
             </div>
 
