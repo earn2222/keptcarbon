@@ -170,9 +170,16 @@ export const createPlot = async (plotData) => {
     if (plotData.agb) noteParts.push(`AGB: ${plotData.agb}`);
     if (plotData.address) noteParts.push(`ที่ตั้ง: ${plotData.address}`);
 
-    // Save actual formulas used
+    // Save actual formulas used (with per-method carbon values)
     if (methods && methods.length > 0) {
-        const formulaParts = methods.map(m => `${m.name}=${m.formula}`).join(' ++ ');
+        const formulaParts = methods.map(m => {
+            let entry = `${m.name}=${m.formula}`;
+            const meta = [];
+            if (m.carbon) meta.push(`carbon:${m.carbon}`);
+            if (m.agb) meta.push(`agb:${m.agb}`);
+            if (meta.length > 0) entry += `[${meta.join(',')}]`;
+            return entry;
+        }).join(' ++ ');
         noteParts.push(`สูตร: ${formulaParts}`);
     } else if (plotData.method) {
         noteParts.push(`สูตร: ${plotData.method}`);

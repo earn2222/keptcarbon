@@ -85,12 +85,48 @@ export const MOCK_PLOTS = [
         },
         created_at: '2023-11-20T14:15:00Z',
         notes: 'พันธุ์: RRIT 251'
+    },
+    {
+        id: 'mock-4',
+        name: 'นายประสิทธิ์ ชูคาร์บอน',
+        farmer_name: 'นายประสิทธิ์ ชูคาร์บอน',
+        farmerName: 'นายประสิทธิ์ ชูคาร์บอน',
+        area_rai: 15.0,
+        areaRai: 15.0,
+        carbon_tons: 102.5,
+        carbon: 102.5,
+        planting_year: 2012,
+        plantingYearBE: 2555,
+        tree_age: new Date().getFullYear() - 2012,
+        age: new Date().getFullYear() - 2012,
+        variety: 'RRIM 600',
+        method: 'eq1+ndvi+tcari',
+        methods: [
+            { method: 'eq1', name: 'สมการ TGO (1)', formula: 'AGB = 0.118 × DBH^2.53', carbon: '102.50', agb: '218.09' },
+            { method: 'ndvi', name: 'NDVI Satellite', formula: 'AGB = 34.2 × NDVI + 5.8', carbon: '87.30', agb: '185.74' },
+            { method: 'tcari', name: 'TCARI Analysis', formula: 'AGB = 13.57 × TCARI + 7.45', carbon: '94.10', agb: '200.21' }
+        ],
+        dbh: 22.5,
+        height: 18.3,
+        satData: { ndvi: 0.82, tcari: 0.65 },
+        geometry: {
+            type: 'Polygon',
+            coordinates: [[
+                [99.3180, 9.1220],
+                [99.3210, 9.1220],
+                [99.3210, 9.1250],
+                [99.3180, 9.1250],
+                [99.3180, 9.1220]
+            ]]
+        },
+        created_at: '2024-06-05T11:00:00Z',
+        notes: 'พันธุ์: RRIM 600 | DBH: 22.5 | ความสูง: 18.3 | NDVI: 0.82 | TCARI: 0.65 | AGB: 218.09 | สูตร: สมการ TGO (1)=AGB = 0.118 × DBH^2.53[carbon:102.50,agb:218.09] ++ NDVI Satellite=AGB = 34.2 × NDVI + 5.8[carbon:87.30,agb:185.74] ++ TCARI Analysis=AGB = 13.57 × TCARI + 7.45[carbon:94.10,agb:200.21]'
     }
 ];
 
 export const MOCK_SUMMARY = {
-    total_plots: 3,
-    total_area_rai: 45.7,
-    total_carbon_tons: 284.3,
-    total_value_baht: 71075
+    total_plots: 4,
+    total_area_rai: 60.7,
+    total_carbon_tons: 386.8,
+    total_value_baht: 96700
 };

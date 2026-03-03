@@ -139,9 +139,22 @@ function DeleteModal({ plot, onConfirm, onClose }) {
 
 // ─── PLOT DETAIL MODAL ────────────────────────────────────────────────────────
 function PlotDetailModal({ plot, onClose, onEdit, onDelete }) {
+    const [methodIdx, setMethodIdx] = useState(0)
     if (!plot) return null
     const method = getMethodInfo(plot.method)
-    const value = (plot.carbon || 0) * CARBON_PRICE
+
+    const multiMethods = (plot.actualFormulas && plot.actualFormulas.length > 1) ? plot.actualFormulas : null
+    const totalMethods = multiMethods ? multiMethods.length : 1
+    const activeMethod = multiMethods ? multiMethods[methodIdx] : null
+
+    const displayCarbon = activeMethod?.carbon ? parseFloat(activeMethod.carbon) : (plot.carbon || 0)
+    const displayAgb = activeMethod?.agb ? parseFloat(activeMethod.agb) : (plot.agb ? parseFloat(plot.agb) : null)
+    const displayName = activeMethod?.name || method.name
+    const displayFormula = activeMethod?.formula || method.formula
+    const displayValue = displayCarbon * CARBON_PRICE
+
+    const prevMethod = () => setMethodIdx(i => (i - 1 + totalMethods) % totalMethods)
+    const nextMethod = () => setMethodIdx(i => (i + 1) % totalMethods)
 
     return (
         <div className="fixed inset-0 z-[8000] flex items-center justify-center p-4"
@@ -158,18 +171,56 @@ function PlotDetailModal({ plot, onClose, onEdit, onDelete }) {
                         <XIco cls="w-4 h-4" />
                     </button>
                 </div>
+
+                {/* Method Navigator — only when multiple methods */}
+                {multiMethods && (
+                    <div className="px-5 py-3" style={{ background: 'rgba(59,130,246,0.06)', borderBottom: '1px solid rgba(59,130,246,0.12)' }}>
+                        <div className="flex items-center justify-between">
+                            <button onClick={prevMethod}
+                                className="w-8 h-8 rounded-lg flex items-center justify-center text-blue-400/70 hover:text-blue-400 hover:bg-blue-400/10 transition-all"
+                                title="วิธีก่อนหน้า">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+                            </button>
+                            <div className="flex-1 text-center">
+                                <p className="text-blue-300 text-[10px] font-bold uppercase tracking-wider">วิธีคำนวณ</p>
+                                <p className="text-white font-bold text-sm mt-0.5">{displayName}</p>
+                                <div className="flex items-center justify-center gap-1.5 mt-2">
+                                    {multiMethods.map((m, i) => (
+                                        <button key={i} onClick={() => setMethodIdx(i)}
+                                            className="transition-all duration-300"
+                                            style={{
+                                                width: i === methodIdx ? 20 : 8,
+                                                height: 8,
+                                                borderRadius: 4,
+                                                background: i === methodIdx ? '#10b981' : 'rgba(255,255,255,0.15)',
+                                                boxShadow: i === methodIdx ? '0 0 10px rgba(16,185,129,0.5)' : 'none',
+                                            }}
+                                            title={m.name} />
+                                    ))}
+                                </div>
+                                <p className="text-slate-500 text-[9px] mt-1">{methodIdx + 1} / {totalMethods} วิธี</p>
+                            </div>
+                            <button onClick={nextMethod}
+                                className="w-8 h-8 rounded-lg flex items-center justify-center text-blue-400/70 hover:text-blue-400 hover:bg-blue-400/10 transition-all"
+                                title="วิธีถัดไป">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 {/* Content */}
                 <div className="p-5 flex flex-col gap-4">
                     {/* Stats row */}
                     <div className="grid grid-cols-3 gap-3">
                         {[
-                            { label: 'คาร์บอน', value: `${(plot.carbon || 0).toFixed(2)}`, unit: 'tCO₂e', color: '#10b981' },
-                            { label: 'มวลชีวภาพ', value: plot.agb ? parseFloat(plot.agb).toFixed(2) : '—', unit: 'ตัน', color: '#34d399' },
-                            { label: 'มูลค่า', value: `฿${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, unit: `@฿${CARBON_PRICE}/t`, color: '#10b981' },
+                            { label: 'คาร์บอน', value: `${displayCarbon.toFixed(2)}`, unit: 'tCO₂e', color: '#10b981' },
+                            { label: 'มวลชีวภาพ', value: displayAgb ? parseFloat(displayAgb).toFixed(2) : '—', unit: 'ตัน', color: '#34d399' },
+                            { label: 'มูลค่า', value: `฿${displayValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, unit: `@฿${CARBON_PRICE}/t`, color: '#10b981' },
                         ].map(({ label, value: v, unit, color }) => (
                             <div key={label} className="rounded-xl p-3 text-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
                                 <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">{label}</p>
-                                <p className="font-black text-sm mt-1" style={{ color }}>{v}</p>
+                                <p className="font-black text-sm mt-1 method-value-transition" style={{ color }}>{v}</p>
                                 <p className="text-slate-500 text-[9px] mt-0.5">{unit}</p>
                             </div>
                         ))}
@@ -183,7 +234,7 @@ function PlotDetailModal({ plot, onClose, onEdit, onDelete }) {
                             { label: 'อายุ (ระบุ)', value: plot.manualAge ? `${plot.manualAge} ปี` : '—' },
                             { label: 'อายุ (คำนวณ)', value: plot.age ? `${plot.age} ปี` : '—' },
                             { label: 'ปีที่ปลูก', value: `พ.ศ. ${plot.plantingYearBE || '—'}` },
-                            { label: 'วิธีคำนวณ', value: method.name },
+                            { label: 'วิธีคำนวณ', value: displayName },
                         ].map(({ label, value: v }) => (
                             <div key={label} className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
                                 <p className="text-slate-500 text-[9px] font-bold uppercase tracking-wider">{label}</p>
@@ -219,8 +270,10 @@ function PlotDetailModal({ plot, onClose, onEdit, onDelete }) {
                     <div className="rounded-xl px-4 py-3 flex flex-col gap-3" style={{ background: 'rgba(59,130,246,0.05)', border: '1px solid rgba(59,130,246,0.15)' }}>
                         <div className="flex items-center justify-between">
                             <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wide">ข้อมูลการคำนวณ</p>
-                            {plot.method && plot.method.includes('+') && (
-                                <span className="text-amber-500/80 text-[9px] px-2 py-0.5 rounded-full bg-amber-500/10 shrink-0 border border-amber-500/20">หลายวิธี</span>
+                            {multiMethods && (
+                                <span className="text-blue-400/80 text-[9px] px-2 py-0.5 rounded-full bg-blue-400/10 shrink-0 border border-blue-400/20">
+                                    วิธีที่ {methodIdx + 1}/{totalMethods}
+                                </span>
                             )}
                         </div>
 
@@ -263,21 +316,19 @@ function PlotDetailModal({ plot, onClose, onEdit, onDelete }) {
                             );
                         })()}
 
+                        {/* Active method formula */}
                         <div className="flex flex-col gap-1.5 rounded-lg p-2.5" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)' }}>
                             <span className="text-slate-500 text-[10px] mb-0.5">สูตรที่ใช้คำนวณ:</span>
-                            {plot.actualFormulas ? (
-                                <div className="flex flex-col gap-2">
-                                    {plot.actualFormulas.map((f, i) => (
-                                        <div key={i} className="flex flex-col gap-0.5" style={i > 0 ? { borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '6px' } : {}}>
-                                            <span className="text-slate-400 text-[9px] font-semibold">{f.name || method.name}</span>
-                                            <span className="text-blue-300 font-mono text-[10px] break-words leading-relaxed pl-1.5 border-l-2 border-blue-500/40">{f.formula || method.formula}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="flex flex-col gap-0.5">
-                                    <span className="text-slate-400 text-[9px] font-semibold">{method.name}</span>
-                                    <span className="text-blue-300 font-mono text-[10px] break-words leading-relaxed pl-1.5 border-l-2 border-blue-500/40">{method.formula}</span>
+                            <div className="flex flex-col gap-0.5">
+                                <span className="text-slate-400 text-[9px] font-semibold">{displayName}</span>
+                                <span className="text-blue-300 font-mono text-[10px] break-words leading-relaxed pl-1.5 border-l-2 border-blue-500/40">{displayFormula}</span>
+                            </div>
+                            {activeMethod?.carbon && (
+                                <div className="flex items-center gap-2 mt-1 pt-1.5" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <span className="text-slate-500 text-[9px]">ผลลัพธ์วิธีนี้:</span>
+                                    <span className="text-emerald-400 text-xs font-bold">{displayCarbon.toFixed(2)} tCO₂e</span>
+                                    <span className="text-slate-600 text-[9px]">•</span>
+                                    <span className="text-emerald-400/70 text-xs font-semibold">฿{displayValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                                 </div>
                             )}
                         </div>
@@ -304,8 +355,22 @@ function PlotDetailModal({ plot, onClose, onEdit, onDelete }) {
 // ─── PLOT CARD ITEM ───────────────────────────────────────────────────────────
 function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget, setDetailPlot }) {
     const [expanded, setExpanded] = useState(false)
+    const [methodIdx, setMethodIdx] = useState(0)
     const method = getMethodInfo(p.method)
-    const value = (p.carbon || 0) * CARBON_PRICE
+
+    const multiMethods = (p.actualFormulas && p.actualFormulas.length > 1) ? p.actualFormulas : null
+    const totalMethods = multiMethods ? multiMethods.length : 1
+
+    // Get current method's data
+    const activeMethod = multiMethods ? multiMethods[methodIdx] : null
+    const displayCarbon = activeMethod?.carbon ? parseFloat(activeMethod.carbon) : (p.carbon || 0)
+    const displayAgb = activeMethod?.agb ? parseFloat(activeMethod.agb) : (p.agb ? parseFloat(p.agb) : null)
+    const displayName = activeMethod?.name || method.name
+    const displayFormula = activeMethod?.formula || method.formula
+    const displayValue = displayCarbon * CARBON_PRICE
+
+    const prevMethod = (e) => { e.stopPropagation(); setMethodIdx(i => (i - 1 + totalMethods) % totalMethods) }
+    const nextMethod = (e) => { e.stopPropagation(); setMethodIdx(i => (i + 1) % totalMethods) }
 
     return (
         <div key={p.id}
@@ -319,16 +384,58 @@ function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget
                     <p className="text-slate-500 text-[10px] mt-1 pc-subtitle">SKT-PLOT-{p.id}</p>
                 </div>
                 <div className="text-right flex-shrink-0 pl-2">
-                    <span className="text-emerald-400 font-black text-base pc-value">{(p.carbon || 0).toFixed(2)}</span>
-                    <span className="text-slate-500 text-[10px] block pc-subtitle">TCO₂E</span>
+                    {multiMethods ? (
+                        <div className="flex items-center gap-1">
+                            <button onClick={prevMethod} className="method-nav-btn w-5 h-5 rounded-full flex items-center justify-center text-emerald-400/60 hover:text-emerald-400 hover:bg-emerald-400/10 transition-all" title="วิธีก่อนหน้า">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+                            </button>
+                            <div className="text-center min-w-[52px]">
+                                <span className="text-emerald-400 font-black text-base pc-value method-value-transition">{displayCarbon.toFixed(2)}</span>
+                                <span className="text-slate-500 text-[10px] block pc-subtitle">TCO₂E</span>
+                            </div>
+                            <button onClick={nextMethod} className="method-nav-btn w-5 h-5 rounded-full flex items-center justify-center text-emerald-400/60 hover:text-emerald-400 hover:bg-emerald-400/10 transition-all" title="วิธีถัดไป">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+                            </button>
+                        </div>
+                    ) : (
+                        <>
+                            <span className="text-emerald-400 font-black text-base pc-value">{displayCarbon.toFixed(2)}</span>
+                            <span className="text-slate-500 text-[10px] block pc-subtitle">TCO₂E</span>
+                        </>
+                    )}
                 </div>
             </div>
-            {/* Row 2: Badges */}
-            <div className="flex flex-wrap gap-1.5 mt-2.5">
+
+            {/* Row 2: Badges + Method indicator */}
+            <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-md pc-badge" style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>
                     {formatArea(p.area)}
                 </span>
+                {multiMethods && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md method-badge-active" style={{ background: 'rgba(59,130,246,0.15)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.2)' }}>
+                        {displayName}
+                    </span>
+                )}
             </div>
+
+            {/* Method dots indicator */}
+            {multiMethods && (
+                <div onClick={e => e.stopPropagation()} className="flex items-center justify-center gap-1.5 mt-2">
+                    {multiMethods.map((_, i) => (
+                        <button key={i} onClick={(e) => { e.stopPropagation(); setMethodIdx(i) }}
+                            className="transition-all duration-300"
+                            style={{
+                                width: i === methodIdx ? 16 : 6,
+                                height: 6,
+                                borderRadius: 3,
+                                background: i === methodIdx ? '#10b981' : 'rgba(255,255,255,0.15)',
+                                boxShadow: i === methodIdx ? '0 0 8px rgba(16,185,129,0.5)' : 'none',
+                            }}
+                            title={multiMethods[i].name} />
+                    ))}
+                    <span className="text-[9px] text-slate-500 ml-1.5">{methodIdx + 1}/{totalMethods} วิธี</span>
+                </div>
+            )}
 
             {/* EXPANDED DETAILS */}
             {expanded && (
@@ -361,7 +468,7 @@ function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget
                     </div>
                     <div className="flex justify-between text-[10px]">
                         <span className="text-slate-500">มวลชีวภาพ (AGB):</span>
-                        <span className="text-emerald-400 font-semibold">{p.agb ? parseFloat(p.agb).toFixed(2) : '-'} <span className="text-slate-500 font-normal">ตัน</span></span>
+                        <span className="text-emerald-400 font-semibold">{displayAgb ? parseFloat(displayAgb).toFixed(2) : '-'} <span className="text-slate-500 font-normal">ตัน</span></span>
                     </div>
                     <div className="flex flex-col gap-2 mt-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
                         <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wide">ข้อมูลการคำนวณ</span>
@@ -405,27 +512,24 @@ function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget
                             );
                         })()}
 
+                        {/* Active method formula */}
                         <div className="flex flex-col gap-1.5 rounded-md p-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
                             <div className="flex justify-between items-center mb-0.5">
                                 <span className="text-slate-500 text-[9px]">สูตรที่ใช้คำนวณ:</span>
-                                {p.actualFormulas && p.actualFormulas.length > 1 && (
-                                    <span className="text-amber-500/80 text-[8px] px-1.5 py-0.5 rounded-sm bg-amber-500/10 shrink-0 border border-amber-500/20">หลายวิธี</span>
+                                {multiMethods && (
+                                    <span className="text-blue-400/80 text-[8px] px-1.5 py-0.5 rounded-sm bg-blue-400/10 shrink-0 border border-blue-400/20">
+                                        วิธีที่ {methodIdx + 1}/{totalMethods}
+                                    </span>
                                 )}
                             </div>
-
-                            {p.actualFormulas ? (
-                                <div className="flex flex-col gap-1.5">
-                                    {p.actualFormulas.map((f, i) => (
-                                        <div key={i} className="flex flex-col gap-0.5">
-                                            <span className="text-slate-400 text-[8px] font-semibold">{f.name || method.name}:</span>
-                                            <span className="text-blue-300 font-mono text-[9px] break-words leading-tight pl-1 border-l border-blue-500/30">{f.formula || method.formula}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="flex flex-col gap-0.5">
-                                    <span className="text-slate-400 text-[8px] font-semibold">{method.name}:</span>
-                                    <span className="text-blue-300 font-mono text-[9px] break-words leading-tight pl-1 border-l border-blue-500/30">{method.formula}</span>
+                            <div className="flex flex-col gap-0.5">
+                                <span className="text-slate-400 text-[8px] font-semibold">{displayName}:</span>
+                                <span className="text-blue-300 font-mono text-[9px] break-words leading-tight pl-1 border-l border-blue-500/30">{displayFormula}</span>
+                            </div>
+                            {activeMethod?.carbon && (
+                                <div className="flex items-center gap-2 mt-1 pt-1" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                                    <span className="text-slate-500 text-[8px]">ผลลัพธ์:</span>
+                                    <span className="text-emerald-400 text-[10px] font-bold">{displayCarbon.toFixed(2)} tCO₂e</span>
                                 </div>
                             )}
                         </div>
@@ -437,7 +541,7 @@ function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget
             <div className="flex items-center justify-between mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                 <div>
                     <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider pc-label">มูลค่าประเมิน</p>
-                    <p className="text-emerald-400 font-black text-sm pc-value">฿{value.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                    <p className="text-emerald-400 font-black text-sm pc-value">฿{displayValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <button onClick={e => { e.stopPropagation(); setExpanded(!expanded) }}
@@ -549,9 +653,47 @@ export default function PersonalDashboardPage() {
                         const rawFormulas = p.notes.match(/สูตร:\s*([^|]+)/)?.[1]?.trim() || null;
                         if (rawFormulas) {
                             actualFormulas = rawFormulas.split(' ++ ').map(f => {
-                                const [name, ...formParts] = f.split('=');
-                                return { name: name?.trim(), formula: formParts.join('=')?.trim() };
+                                // Parse bracket metadata: name=formula[carbon:X,agb:Y]
+                                const bracketMatch = f.match(/^(.+?)(?:\[([^\]]+)\])?$/);
+                                const mainPart = bracketMatch ? bracketMatch[1] : f;
+                                const metaPart = bracketMatch ? bracketMatch[2] : null;
+                                const [name, ...formParts] = mainPart.split('=');
+                                const entry = { name: name?.trim(), formula: formParts.join('=')?.trim() };
+                                if (metaPart) {
+                                    metaPart.split(',').forEach(pair => {
+                                        const [k, v] = pair.split(':');
+                                        if (k && v) entry[k.trim()] = parseFloat(v.trim());
+                                    });
+                                }
+                                return entry;
                             }).filter(f => f.formula);
+                            if (actualFormulas.length === 0) actualFormulas = null;
+                        }
+                    }
+
+                    // Also try to use the raw methods array, which has per-method carbon
+                    let methodsArr = p.methods || null;
+                    if (methodsArr && Array.isArray(methodsArr) && methodsArr.length > 0) {
+                        // If actualFormulas doesn't have carbon values, merge from methods
+                        if (actualFormulas && actualFormulas.length > 0) {
+                            actualFormulas = actualFormulas.map((af, i) => {
+                                if (!af.carbon && methodsArr[i]) {
+                                    af.carbon = parseFloat(methodsArr[i].carbon) || 0;
+                                    af.agb = parseFloat(methodsArr[i].agb) || 0;
+                                }
+                                if (!af.formula && methodsArr[i]?.formula) {
+                                    af.formula = methodsArr[i].formula;
+                                }
+                                return af;
+                            });
+                        } else if (!actualFormulas) {
+                            // Build actualFormulas from methods array
+                            actualFormulas = methodsArr.map(m => ({
+                                name: m.name || getMethodInfo(m.method).name,
+                                formula: m.formula || getMethodInfo(m.method).formula,
+                                carbon: parseFloat(m.carbon) || 0,
+                                agb: parseFloat(m.agb) || 0,
+                            })).filter(f => f.formula);
                             if (actualFormulas.length === 0) actualFormulas = null;
                         }
                     }
@@ -699,6 +841,9 @@ export default function PersonalDashboardPage() {
         .nav-btn:hover { background: rgba(16,185,129,0.12); color: #34d399; }
         .action-btn { transition: all 0.2s; }
         .action-btn:hover { filter: brightness(1.3); transform: scale(1.05); }
+        .method-nav-btn { transition: all 0.2s; }
+        .method-nav-btn:hover { transform: scale(1.15); }
+        .method-badge-active { transition: all 0.3s ease; }
         @media (max-width: 768px) {
           .desktop-nav { display: none !important; }
           .mobile-nav { display: flex !important; }
