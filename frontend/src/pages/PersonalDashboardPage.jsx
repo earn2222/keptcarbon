@@ -371,48 +371,50 @@ function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget
 
     return (
         <div
-            className={`plot-card rounded-2xl cursor-pointer transition-all duration-300 ${isActive ? 'active-card' : ''}`}
+            className={`plot-card rounded-3xl cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 ${isActive ? 'active-card' : ''}`}
             style={{
                 background: isActive ? '#ecfdf5' : '#ffffff',
-                border: isActive ? '1.5px solid #10b981' : '1px solid #e2f5ed',
-                boxShadow: isActive ? '0 0 0 3px rgba(16,185,129,0.12),0 4px 16px rgba(16,185,129,0.1)' : '0 1px 6px rgba(0,0,0,0.04)',
-                overflow: 'hidden'
+                border: isActive ? '2px solid #34d399' : '1px solid #d1fae5',
+                boxShadow: isActive ? '0 8px 24px rgba(16,185,129,0.15), 0 0 0 4px rgba(16,185,129,0.1)' : '0 2px 8px rgba(0,0,0,0.04)',
+                overflow: 'hidden',
+                margin: '2px 4px',
+                flexShrink: 0
             }}
             onClick={() => zoomTo(p)}>
 
             {/* ═══ TOP SECTION ═══ */}
-            <div style={{ padding: '14px 14px 0 14px' }}>
+            <div style={{ padding: '16px 16px 0 16px' }}>
 
                 {/* Row 1: Name + Carbon value */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.3 }}>
+                        <div style={{ fontSize: 14, fontWeight: 900, color: '#064e3b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.3 }}>
                             {p.farmerName}
                         </div>
-                        <div style={{ fontSize: 9, color: '#9ca3af', marginTop: 2, fontWeight: 600 }}>SKT-PLOT-{p.id}</div>
+                        <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2, fontWeight: 700, letterSpacing: '0.05em' }}>SKT-PLOT-{p.id}</div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div className="method-value-transition" style={{ fontSize: 20, fontWeight: 900, color: '#059669', lineHeight: 1 }}>
+                        <div className="method-value-transition" style={{ fontSize: 22, fontWeight: 900, color: '#059669', lineHeight: 1 }}>
                             {displayCarbon.toFixed(2)}
                         </div>
-                        <div style={{ fontSize: 8, color: '#9ca3af', marginTop: 2, fontWeight: 700, letterSpacing: '0.08em' }}>tCO₂e</div>
+                        <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 3, fontWeight: 800, letterSpacing: '0.08em' }}>tCO₂e</div>
                     </div>
                 </div>
 
                 {/* Row 2: Area + Method badge */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12, flexWrap: 'nowrap', overflow: 'hidden' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.2)', flexShrink: 0 }}>
-                        <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#10b981', animation: 'pulse 2s infinite', flexShrink: 0 }} />
-                        <span style={{ fontSize: 10, fontWeight: 700, color: '#34d399', whiteSpace: 'nowrap' }}>{formatArea(p.area)}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'nowrap', overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 20, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', flexShrink: 0 }}>
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', animation: 'pulse 2s infinite', flexShrink: 0 }} />
+                        <span style={{ fontSize: 10, fontWeight: 800, color: '#059669', whiteSpace: 'nowrap' }}>{formatArea(p.area)}</span>
                     </div>
                     {multiMethods ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 20, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)', flexShrink: 0 }}>
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                            <span style={{ fontSize: 9, fontWeight: 700, color: '#818cf8', whiteSpace: 'nowrap' }}>{totalMethods} วิธี</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 20, background: '#f0fdf4', border: '1px solid #a7f3d0', flexShrink: 0 }}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                            <span style={{ fontSize: 10, fontWeight: 800, color: '#10b981', whiteSpace: 'nowrap' }}>{totalMethods} วิธี</span>
                         </div>
                     ) : (
-                        <div style={{ padding: '4px 10px', borderRadius: 20, background: 'rgba(100,116,139,0.1)', border: '1px solid rgba(100,116,139,0.15)', overflow: 'hidden', minWidth: 0 }}>
-                            <span style={{ fontSize: 9, fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', maxWidth: 110 }}>{displayName}</span>
+                        <div style={{ padding: '5px 12px', borderRadius: 20, background: '#f1f5f9', border: '1px solid #e2e8f0', overflow: 'hidden', minWidth: 0 }}>
+                            <span style={{ fontSize: 10, fontWeight: 700, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', maxWidth: 110 }}>{displayName}</span>
                         </div>
                     )}
                 </div>
@@ -422,55 +424,55 @@ function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget
             {multiMethods && (
                 <div
                     onClick={e => e.stopPropagation()}
-                    style={{ margin: '0 10px 10px 10px', borderRadius: 14, overflow: 'hidden', background: '#eff6ff', border: '1px solid #bfdbfe' }}>
+                    style={{ margin: '0 12px 12px 12px', borderRadius: 16, overflow: 'hidden', background: '#f0fdf4', border: '1px solid #a7f3d0', boxShadow: '0 4px 12px rgba(16,185,129,0.08)' }}>
 
                     {/* Method navigator header */}
-                    <div style={{ display: 'flex', alignItems: 'center', padding: '8px 10px', borderBottom: '1px solid #dbeafe', gap: 6, background: '#dbeafe' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', padding: '10px 8px', borderBottom: '1px solid #a7f3d0', gap: 4, background: 'linear-gradient(to right, #ecfdf5, #d1fae5)' }}>
                         {/* Prev btn */}
-                        <button onClick={prevMethod} className="method-nav-btn"
-                            style={{ width: 26, height: 26, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.25)', color: '#818cf8', cursor: 'pointer' }}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+                        <button onClick={prevMethod} className="method-nav-btn hover:scale-105 active:scale-95 transition-all"
+                            style={{ width: 26, height: 26, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: '#ffffff', border: '1px solid #6ee7b7', color: '#059669', cursor: 'pointer', boxShadow: '0 2px 4px rgba(16,185,129,0.1)' }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
                         </button>
 
-                        {/* Method name (center, no-wrap, truncate) */}
-                        <div style={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
-                            <div style={{ fontSize: 11, fontWeight: 800, color: '#1d4ed8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.2 }}>
+                        {/* Method name */}
+                        <div style={{ flex: 1, textAlign: 'center', minWidth: 0, padding: '0 2px' }}>
+                            <div style={{ fontSize: displayName.length > 18 ? 9.5 : 11, fontWeight: 900, color: '#064e3b', whiteSpace: 'nowrap', letterSpacing: '-0.02em', overflow: 'visible' }}>
                                 {displayName}
                             </div>
                             {/* Dot stepper */}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 5 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 4 }}>
                                 {multiMethods.map((_, i) => (
                                     <button key={i} onClick={e => { e.stopPropagation(); setMethodIdx(i) }}
-                                        className="transition-all duration-300"
-                                        style={{ width: i === methodIdx ? 16 : 5, height: 5, borderRadius: 99, background: i === methodIdx ? '#2563eb' : '#bfdbfe', boxShadow: i === methodIdx ? '0 0 6px rgba(37,99,235,0.4)' : 'none', border: 'none', padding: 0, cursor: 'pointer', transition: 'all 0.3s' }} />
+                                        className="transition-all duration-300 hover:scale-125"
+                                        style={{ width: i === methodIdx ? 16 : 6, height: 6, borderRadius: 99, background: i === methodIdx ? '#10b981' : '#6ee7b7', boxShadow: i === methodIdx ? '0 0 8px rgba(16,185,129,0.5)' : 'none', border: 'none', padding: 0, cursor: 'pointer' }} />
                                 ))}
                             </div>
                         </div>
 
                         {/* Counter */}
-                        <span style={{ fontSize: 9, fontWeight: 800, color: '#1d4ed8', background: '#ffffff', border: '1px solid #93c5fd', padding: '2px 7px', borderRadius: 99, flexShrink: 0 }}>
+                        <span style={{ fontSize: 9, fontWeight: 900, color: '#059669', background: '#ffffff', border: '1px solid #34d399', padding: '3px 6px', borderRadius: 99, flexShrink: 0, boxShadow: '0 2px 4px rgba(16,185,129,0.1)' }}>
                             {methodIdx + 1}/{totalMethods}
                         </span>
 
                         {/* Next btn */}
-                        <button onClick={nextMethod} className="method-nav-btn"
-                            style={{ width: 26, height: 26, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.25)', color: '#818cf8', cursor: 'pointer' }}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+                        <button onClick={nextMethod} className="method-nav-btn hover:scale-105 active:scale-95 transition-all"
+                            style={{ width: 26, height: 26, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: '#ffffff', border: '1px solid #6ee7b7', color: '#059669', cursor: 'pointer', boxShadow: '0 2px 4px rgba(16,185,129,0.1)' }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
                         </button>
                     </div>
 
                     {/* Formula + result */}
-                    <div style={{ padding: '10px 12px', background: '#f0f9ff' }}>
-                        <div style={{ borderRadius: 9, padding: '8px 10px', background: '#ffffff', border: '1px solid #dbeafe', marginBottom: 8 }}>
-                            <div style={{ fontSize: 8, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 5, fontWeight: 700 }}>สูตรคำนวณ</div>
-                            <div style={{ fontSize: 10, color: '#1d4ed8', fontFamily: 'monospace', borderLeft: '2px solid #3b82f6', paddingLeft: 8, lineHeight: 1.5, wordBreak: 'break-all' }}>
+                    <div style={{ padding: '12px 14px', background: '#ffffff' }}>
+                        <div style={{ borderRadius: 12, padding: '10px 12px', background: '#f8fffe', border: '1px solid #d1fae5', marginBottom: 10, boxShadow: 'inset 0 1px 3px rgba(16,185,129,0.03)' }}>
+                            <div style={{ fontSize: 9, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6, fontWeight: 800 }}>สูตรคำนวณ</div>
+                            <div style={{ fontSize: 11, color: '#059669', fontFamily: 'monospace', borderLeft: '3px solid #34d399', paddingLeft: 10, lineHeight: 1.5, wordBreak: 'break-all', fontWeight: 600 }}>
                                 {displayFormula || '—'}
                             </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span style={{ fontSize: 9, color: '#6b7280', fontWeight: 600 }}>ผลลัพธ์วิธีนี้</span>
-                            <span className="method-value-transition" style={{ fontSize: 13, fontWeight: 900, color: '#059669' }}>
-                                {displayCarbon.toFixed(2)} <span style={{ fontSize: 9, fontWeight: 600, color: '#16a34a' }}>tCO₂e</span>
+                            <span style={{ fontSize: 10, color: '#64748b', fontWeight: 700 }}>ผลลัพธ์วิธีนี้</span>
+                            <span className="method-value-transition" style={{ fontSize: 14, fontWeight: 900, color: '#059669' }}>
+                                {displayCarbon.toFixed(2)} <span style={{ fontSize: 10, fontWeight: 800, color: '#34d399' }}>tCO₂e</span>
                             </span>
                         </div>
                     </div>
@@ -540,31 +542,31 @@ function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget
             )}
 
             {/* ═══ FOOTER ═══ */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderTop: '1px solid #e2f5ed', background: '#f8fffe' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderTop: '1px solid #d1fae5', background: '#f8fffe' }}>
                 <div>
-                    <div style={{ fontSize: 8, color: '#9ca3af', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.08em' }}>มูลค่าประเมิน</div>
-                    <div className="method-value-transition" style={{ fontSize: 14, fontWeight: 900, color: '#059669', marginTop: 1 }}>
+                    <div style={{ fontSize: 9, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.08em' }}>มูลค่าประเมิน</div>
+                    <div className="method-value-transition" style={{ fontSize: 16, fontWeight: 900, color: '#059669', marginTop: 2 }}>
                         ฿{displayValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <button onClick={e => { e.stopPropagation(); setExpanded(!expanded) }}
-                        className="action-btn"
-                        style={{ width: 30, height: 30, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: expanded ? '#dcfce7' : '#f1f5f9', color: expanded ? '#15803d' : '#64748b', border: expanded ? '1px solid #86efac' : '1px solid #e2e8f0', cursor: 'pointer', transition: 'all 0.25s' }}
+                        className="action-btn hover:scale-105 active:scale-95"
+                        style={{ width: 34, height: 34, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: expanded ? '#dcfce7' : '#f1f5f9', color: expanded ? '#15803d' : '#64748b', border: expanded ? '1px solid #86efac' : '1px solid #e2e8f0', cursor: 'pointer', transition: 'all 0.25s' }}
                         title={expanded ? 'ย่อ' : 'ขยาย'}>
                         <ChevIco cls={`w-4 h-4 transform transition-transform ${expanded ? 'rotate-180' : ''}`} />
                     </button>
                     <button onClick={e => { e.stopPropagation(); handleEditPlot(p) }}
-                        className="action-btn"
-                        style={{ width: 30, height: 30, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a', cursor: 'pointer', transition: 'all 0.25s' }}
+                        className="action-btn hover:scale-105 active:scale-95"
+                        style={{ width: 34, height: 34, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a', cursor: 'pointer', transition: 'all 0.25s' }}
                         title="แก้ไข">
-                        <EditIco cls="w-3.5 h-3.5" />
+                        <EditIco cls="w-4 h-4" />
                     </button>
                     <button onClick={e => { e.stopPropagation(); setDeleteTarget(p) }}
-                        className="action-btn"
-                        style={{ width: 30, height: 30, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff1f2', color: '#e11d48', border: '1px solid #fecdd3', cursor: 'pointer', transition: 'all 0.25s' }}
+                        className="action-btn hover:scale-105 active:scale-95"
+                        style={{ width: 34, height: 34, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff1f2', color: '#e11d48', border: '1px solid #fecdd3', cursor: 'pointer', transition: 'all 0.25s' }}
                         title="ลบ">
-                        <TrashIco cls="w-3.5 h-3.5" />
+                        <TrashIco cls="w-4 h-4" />
                     </button>
                 </div>
             </div>
