@@ -1696,110 +1696,163 @@ export default function WorkflowModal({
                                                 )} />
 
                                                 {/* ── Card Header (always visible) ── */}
-                                                <div className="pl-4 pr-3 pt-3 pb-3">
+                                                {/* ── Card Header (Premium Redesign) ── */}
+                                                <div className="pl-4 pr-3 pt-4 pb-2">
                                                     <div className="flex justify-between items-start">
                                                         {/* Left: Icon + Info */}
                                                         <div
-                                                            className="flex items-start gap-2.5 flex-1 min-w-0 cursor-pointer"
+                                                            className="flex items-start gap-3 flex-1 min-w-0 cursor-pointer group"
                                                             onClick={() => hasMultipleMethods && setExpandedPlotId(isExpanded ? null : plot.id)}
                                                         >
-                                                            <div className="w-9 h-9 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-md shrink-0 border-2 border-white mt-0.5">
-                                                                <TreeDeciduous size={16} strokeWidth={2.5} />
+                                                            <div className="w-11 h-11 bg-emerald-500 text-white rounded-[18px] flex items-center justify-center shadow-lg shadow-emerald-100 shrink-0 border-2 border-white mt-0.5 transition-all group-hover:scale-105 group-hover:rotate-3">
+                                                                <TreeDeciduous size={20} strokeWidth={2.5} />
                                                             </div>
                                                             <div className="min-w-0 flex-1">
-                                                                <div className="flex items-center gap-1.5 flex-wrap">
-                                                                    <h4 className="font-bold text-gray-800 text-sm leading-tight truncate">{plot.farmerName || 'ไม่ระบุชื่อ'}</h4>
+                                                                <div className="flex items-center gap-2 flex-wrap mb-1">
+                                                                    <h4 className="font-black text-gray-900 text-[15px] leading-tight truncate">{plot.farmerName || 'ไม่ระบุชื่อ'}</h4>
                                                                     {hasMultipleMethods && (
-                                                                        <span className="inline-flex items-center gap-0.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[9px] font-black px-1.5 py-0.5 rounded-full shrink-0">
-                                                                            <Calculator size={8} />
-                                                                            {plot.methods.length} วิธี
-                                                                        </span>
+                                                                        <div className="px-1.5 py-0.5 bg-gray-900 rounded-md shadow-sm flex items-center gap-1 shrink-0">
+                                                                            <span className="text-[7px] font-black text-white/50 uppercase tracking-tighter">วิธีคำนวณ</span>
+                                                                            <span className="text-[9px] font-black text-white leading-none">{plot.methods.length}</span>
+                                                                        </div>
                                                                     )}
                                                                 </div>
-                                                                <p className="text-[10px] text-gray-400 font-medium mt-0.5">
-                                                                    พันธุ์ {plot.variety || '-'} • {plot.age || 0} ปี
-                                                                </p>
-                                                                <div className="flex items-center gap-1 mt-0.5">
-                                                                    <Map size={9} className="text-gray-300 shrink-0" />
-                                                                    <span className="text-[9px] text-gray-400 truncate">{plot.address || 'ไม่ระบุสถานที่'}</span>
+                                                                <div className="flex items-center gap-1.5 text-[9px] font-bold mb-1.5">
+                                                                    <span className="text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md uppercase tracking-wider">พันธุ์ {plot.variety || '-'}</span>
+                                                                    <span className="text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded-md">{plot.age || 0} ปี</span>
                                                                 </div>
-                                                                <div className="flex items-center gap-1 mt-0.5">
-                                                                    <Globe size={9} className="text-gray-300 shrink-0" />
-                                                                    <span className="text-[9px] text-gray-400 font-mono">
-                                                                        {(() => {
-                                                                            try {
-                                                                                if (plot.geometry) {
-                                                                                    const center = turf.center(plot.geometry);
-                                                                                    const [lng, lat] = center.geometry.coordinates;
-                                                                                    return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-                                                                                }
-                                                                                return '-';
-                                                                            } catch (e) { return '-'; }
-                                                                        })()}
-                                                                    </span>
+                                                                <div className="space-y-1 opacity-80">
+                                                                    <div className="flex items-center gap-1">
+                                                                        <Map size={9} className="text-gray-400 shrink-0" />
+                                                                        <span className="text-[9px] text-gray-500 font-medium whitespace-nowrap">{plot.address || 'ไม่ระบุสถานที่'}</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1">
+                                                                        <Globe size={9} className="text-gray-400 shrink-0" />
+                                                                        <span className="text-[9px] text-slate-400 font-mono">
+                                                                            {(() => {
+                                                                                try {
+                                                                                    if (plot.geometry) {
+                                                                                        const center = turf.center(plot.geometry);
+                                                                                        const [lng, lat] = center.geometry.coordinates;
+                                                                                        return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+                                                                                    }
+                                                                                    return '-';
+                                                                                } catch (e) { return '-'; }
+                                                                            })()}
+                                                                        </span>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </div>
 
-                                                        {/* Right: Action Buttons + Expand Toggle */}
-                                                        <div className="flex items-center gap-1 shrink-0 ml-1">
-                                                            <button
-                                                                onClick={(e) => { e.stopPropagation(); handleEditAccumulatedPlot(plot); }}
-                                                                className="w-7 h-7 rounded-lg bg-gray-50 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 transition-colors flex items-center justify-center"
-                                                                title="แก้ไข"
-                                                            >
-                                                                <Edit3 size={12} />
-                                                            </button>
-                                                            <button
-                                                                onClick={(e) => { e.stopPropagation(); onDeletePlot(plot.id); }}
-                                                                className="w-7 h-7 rounded-lg bg-gray-50 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors flex items-center justify-center"
-                                                                title="ลบ"
-                                                            >
-                                                                <Trash2 size={12} />
-                                                            </button>
-                                                            {hasMultipleMethods && (
+                                                        {/* Right: Action Buttons */}
+                                                        <div className="flex flex-col gap-1 items-end -mt-1">
+                                                            <div className="flex items-center gap-1 shrink-0">
                                                                 <button
-                                                                    onClick={() => setExpandedPlotId(isExpanded ? null : plot.id)}
-                                                                    className={cn(
-                                                                        "w-7 h-7 rounded-lg transition-all flex items-center justify-center",
-                                                                        isExpanded
-                                                                            ? "bg-emerald-100 text-emerald-600 rotate-180"
-                                                                            : "bg-gray-50 text-gray-400 hover:bg-emerald-50 hover:text-emerald-500"
-                                                                    )}
-                                                                    title={isExpanded ? 'ซ่อนรายละเอียด' : 'ดูผลแต่ละวิธี'}
+                                                                    onClick={(e) => { e.stopPropagation(); handleEditAccumulatedPlot(plot); }}
+                                                                    className="w-8 h-8 rounded-xl bg-slate-50 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 transition-all flex items-center justify-center border border-slate-100/50"
+                                                                    title="แก้ไข"
                                                                 >
-                                                                    <ChevronRight size={13} className="rotate-90 transition-transform duration-300" style={{ transform: isExpanded ? 'rotate(-90deg)' : 'rotate(90deg)' }} />
+                                                                    <Edit3 size={13} />
                                                                 </button>
-                                                            )}
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); onDeletePlot(plot.id); }}
+                                                                    className="w-8 h-8 rounded-xl bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all flex items-center justify-center border border-slate-100/50"
+                                                                    title="ลบ"
+                                                                >
+                                                                    <Trash2 size={13} />
+                                                                </button>
+                                                                {hasMultipleMethods && (
+                                                                    <button
+                                                                        onClick={(e) => { e.stopPropagation(); setExpandedPlotId(isExpanded ? null : plot.id); }}
+                                                                        className={cn(
+                                                                            "w-8 h-8 rounded-xl transition-all flex items-center justify-center border",
+                                                                            isExpanded
+                                                                                ? "bg-emerald-500 text-white border-emerald-400"
+                                                                                : "bg-slate-50 text-slate-400 border-slate-100/50 hover:bg-emerald-50 hover:text-emerald-500"
+                                                                        )}
+                                                                    >
+                                                                        <ChevronRight size={13} className={cn("transition-transform duration-300", isExpanded ? "rotate-[-90deg]" : "rotate-90")} />
+                                                                    </button>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </div>
 
-                                                    {/* Summary Mini-Stats (default / collapsed) */}
+                                                    {/* ── Method Selector Banner (Only when collapsed) ── */}
+                                                    {hasMultipleMethods && !isExpanded && (
+                                                        <div className="mt-4 mb-2">
+                                                            <div className="relative p-[1px] rounded-2xl overflow-hidden bg-gradient-to-r from-emerald-500/20 via-blue-500/10 to-transparent">
+                                                                <div className="bg-white rounded-[15px] px-3 py-2 flex items-center justify-between shadow-sm border border-white/50">
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            const newIdx = activeTabIdx > 0 ? activeTabIdx - 1 : plot.methods.length - 1;
+                                                                            setActiveMethodTabs(prev => ({ ...prev, [plot.id]: newIdx }));
+                                                                        }}
+                                                                        className="w-8 h-8 rounded-xl bg-slate-50 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 transition-all flex items-center justify-center border border-slate-100/50 active:scale-90"
+                                                                    >
+                                                                        <ChevronRight size={14} className="rotate-180" />
+                                                                    </button>
+
+                                                                    <div className="flex-1 px-3 text-center min-w-0">
+                                                                        <div className="flex items-center justify-center gap-1.5 mb-0.5">
+                                                                            <div className="w-5 h-5 rounded-lg flex items-center justify-center text-xs shrink-0" style={{ backgroundColor: `${activeMethod?.color}15`, color: activeMethod?.color }}>
+                                                                                {activeMethod?.icon}
+                                                                            </div>
+                                                                            <span className="text-[11px] font-black text-gray-800 uppercase tracking-tight truncate">
+                                                                                {activeMethod?.name}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="flex items-center justify-center gap-1.5">
+                                                                            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{activeMethod?.desc}</span>
+                                                                            <span className="w-1 h-1 rounded-full bg-slate-200" />
+                                                                            <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">{activeTabIdx + 1}/{plot.methods.length} วิธี</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            const newIdx = activeTabIdx < plot.methods.length - 1 ? activeTabIdx + 1 : 0;
+                                                                            setActiveMethodTabs(prev => ({ ...prev, [plot.id]: newIdx }));
+                                                                        }}
+                                                                        className="w-8 h-8 rounded-xl bg-slate-50 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 transition-all flex items-center justify-center border border-slate-100/50 active:scale-90"
+                                                                    >
+                                                                        <ChevronRight size={14} />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* ── Stats Display (Only when collapsed) ── */}
                                                     {!isExpanded && (
-                                                        <div className="grid grid-cols-3 gap-1.5 mt-2.5">
-                                                            <div className="bg-emerald-50/60 rounded-lg p-1.5 border border-emerald-100/60 text-center">
-                                                                <span className="block text-[7px] font-bold text-emerald-600 uppercase tracking-wider mb-0.5">CO₂e</span>
-                                                                <span className="text-xs font-black text-emerald-700 leading-none">
-                                                                    {parseFloat(plot.carbon || 0).toFixed(2)}
-                                                                </span>
-                                                                {hasMultipleMethods && (
-                                                                    <span className="block text-[7px] text-emerald-500/60 mt-0.5">เฉลี่ย</span>
-                                                                )}
+                                                        <div className="grid grid-cols-3 gap-2.5 mt-2 pb-2">
+                                                            {/* CO2e Stat */}
+                                                            <div className="bg-gradient-to-br from-emerald-50/80 to-white rounded-2xl p-3 border border-emerald-100/50 shadow-[0_4px_12px_-4px_rgba(16,185,129,0.1)] relative overflow-hidden group">
+                                                                <span className="block text-[8px] font-black text-emerald-600 uppercase tracking-widest mb-1.5 opacity-70">CO₂e</span>
+                                                                <div className="flex items-baseline gap-0.5">
+                                                                    <span className="text-xl font-black text-emerald-700 leading-none">{displayCarbon}</span>
+                                                                    <span className="text-[8px] font-bold text-emerald-500/60 uppercase">t</span>
+                                                                </div>
                                                             </div>
-                                                            <div className="bg-blue-50/60 rounded-lg p-1.5 border border-blue-100/60 text-center">
-                                                                <span className="block text-[7px] font-bold text-blue-600 uppercase tracking-wider mb-0.5">AGB</span>
-                                                                <span className="text-xs font-black text-blue-700 leading-none">
-                                                                    {parseFloat(plot.agb || (parseFloat(plot.carbon || 0) / 0.47)).toFixed(2)}
-                                                                </span>
-                                                                {hasMultipleMethods && (
-                                                                    <span className="block text-[7px] text-blue-500/60 mt-0.5">เฉลี่ย</span>
-                                                                )}
+
+                                                            {/* AGB Stat */}
+                                                            <div className="bg-gradient-to-br from-blue-50/80 to-white rounded-2xl p-3 border border-blue-100/50 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.1)] relative overflow-hidden">
+                                                                <span className="block text-[8px] font-black text-blue-600 uppercase tracking-widest mb-1.5 opacity-70">AGB</span>
+                                                                <div className="flex items-baseline gap-0.5">
+                                                                    <span className="text-xl font-black text-blue-700 leading-none">{displayAgb}</span>
+                                                                    <span className="text-[8px] font-bold text-blue-500/60 uppercase">t</span>
+                                                                </div>
                                                             </div>
-                                                            <div className="bg-amber-50/60 rounded-lg p-1.5 border border-amber-100/60 text-center">
-                                                                <span className="block text-[7px] font-bold text-amber-600 uppercase tracking-wider mb-0.5">฿</span>
-                                                                <span className="text-xs font-black text-amber-700 leading-none">
-                                                                    {(parseFloat(plot.carbon || 0) * currentPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                                                                </span>
+
+                                                            {/* Price Stat */}
+                                                            <div className="bg-gradient-to-br from-amber-50/80 to-white rounded-2xl p-3 border border-amber-100/50 shadow-[0_4px_12px_-4px_rgba(245,158,11,0.1)] relative overflow-hidden">
+                                                                <span className="block text-[8px] font-black text-amber-600 uppercase tracking-widest mb-1.5 opacity-70">มูลค่า</span>
+                                                                <div className="flex items-baseline gap-0.5">
+                                                                    <span className="text-[14px] font-black text-amber-700 leading-none">฿{displayPrice}</span>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     )}
