@@ -352,6 +352,32 @@ function PlotDetailModal({ plot, onClose, onEdit, onDelete }) {
         </div>
     )
 }
+// ─── DELETE ALL MODAL ────────────────────────────────────────────────────────
+function DeleteAllModal({ count, onConfirm, onClose }) {
+    return (
+        <div className="fixed inset-0 z-[9000] flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)' }}>
+            <div className="w-full max-w-sm rounded-2xl p-6 flex flex-col items-center gap-4 shadow-2xl"
+                style={{ background: '#fff', border: '2px solid #fecdd3' }}>
+                <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.1)' }}>
+                    <TrashIco cls="w-7 h-7 text-red-500" />
+                </div>
+                <div className="text-center">
+                    <h3 className="font-bold text-base" style={{ color: '#111827' }}>ลบแปลงทั้งหมด?</h3>
+                    <p className="text-sm mt-1" style={{ color: '#6b7280' }}>จะลบ <span className="font-bold" style={{ color: '#ef4444' }}>{count} แปลง</span> ออกอย่างถาวร</p>
+                    <p className="text-xs mt-1" style={{ color: '#9ca3af' }}>ไม่สามารถกู้คืนได้</p>
+                </div>
+                <div className="flex gap-3 w-full">
+                    <button onClick={onClose} className="flex-1 py-2.5 rounded-xl font-semibold text-sm transition-all hover:bg-gray-50"
+                        style={{ border: '1px solid #e5e7eb', color: '#374151' }}>ยกเลิก</button>
+                    <button onClick={onConfirm} className="flex-1 py-2.5 rounded-xl text-white font-bold text-sm transition-all hover:opacity-90"
+                        style={{ background: 'linear-gradient(135deg,#ef4444,#dc2626)' }}>ลบทั้งหมด</button>
+                </div>
+            </div>
+        </div>
+    )
+}
+
 // ─── PLOT CARD ITEM ───────────────────────────────────────────────
 function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget, setDetailPlot }) {
     const [expanded, setExpanded] = useState(false)
@@ -382,191 +408,121 @@ function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget
             }}
             onClick={() => zoomTo(p)}>
 
-            {/* ═══ TOP SECTION ═══ */}
-            <div style={{ padding: '16px 16px 0 16px' }}>
-
-                {/* Row 1: Name + Carbon value */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}>
+            {/* ═══ HEADER SECTION ═══ */}
+            <div style={{ padding: '14px 14px 0 14px' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 14, fontWeight: 900, color: '#064e3b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.3 }}>
-                            {p.farmerName}
-                        </div>
-                        <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2, fontWeight: 700, letterSpacing: '0.05em' }}>SKT-PLOT-{p.id}</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#064e3b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.3, fontFamily: "'Prompt', sans-serif" }}>{p.farmerName}</div>
+                        <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 1, fontWeight: 500, fontFamily: "'Inter', monospace" }}>SKT-PLOT-{p.id}</div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div className="method-value-transition" style={{ fontSize: 22, fontWeight: 900, color: '#059669', lineHeight: 1 }}>
-                            {displayCarbon.toFixed(2)}
-                        </div>
-                        <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 3, fontWeight: 800, letterSpacing: '0.08em' }}>tCO₂e</div>
+                        <div className="method-value-transition" style={{ fontSize: 20, fontWeight: 800, color: '#059669', lineHeight: 1, fontFamily: "'Inter', sans-serif" }}>{displayCarbon.toFixed(2)}</div>
+                        <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 2, fontWeight: 700, letterSpacing: '0.06em' }}>tCO₂e</div>
                     </div>
                 </div>
-
-                {/* Row 2: Area + Method badge */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'nowrap', overflow: 'hidden' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 20, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', flexShrink: 0 }}>
-                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', animation: 'pulse 2s infinite', flexShrink: 0 }} />
-                        <span style={{ fontSize: 10, fontWeight: 800, color: '#059669', whiteSpace: 'nowrap' }}>{formatArea(p.area)}</span>
+                {/* Area + badge row */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12, flexWrap: 'nowrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', flexShrink: 0 }}>
+                        <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#10b981', animation: 'pulse 2s infinite' }} />
+                        <span style={{ fontSize: 10, fontWeight: 700, color: '#059669', whiteSpace: 'nowrap', fontFamily: "'Prompt', sans-serif" }}>{formatArea(p.area)}</span>
                     </div>
                     {multiMethods ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 20, background: '#f0fdf4', border: '1px solid #a7f3d0', flexShrink: 0 }}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                            <span style={{ fontSize: 10, fontWeight: 800, color: '#10b981', whiteSpace: 'nowrap' }}>{totalMethods} วิธี</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 20, background: '#ecfdf5', border: '1px solid #6ee7b7', flexShrink: 0 }}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" /></svg>
+                            <span style={{ fontSize: 10, fontWeight: 700, color: '#059669', whiteSpace: 'nowrap', fontFamily: "'Prompt', sans-serif" }}>{totalMethods} วิธี</span>
                         </div>
                     ) : (
-                        <div style={{ padding: '5px 12px', borderRadius: 20, background: '#f1f5f9', border: '1px solid #e2e8f0', overflow: 'hidden', minWidth: 0 }}>
-                            <span style={{ fontSize: 10, fontWeight: 700, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', maxWidth: 110 }}>{displayName}</span>
+                        <div style={{ padding: '4px 10px', borderRadius: 20, background: '#f1f5f9', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                            <span style={{ fontSize: 10, fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap', display: 'block', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: "'Prompt', sans-serif" }}>{displayName}</span>
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* ═══ MULTI-METHOD CARD (only shown when multiMethods) ═══ */}
+            {/* ═══ MULTI-METHOD TAB SECTION ═══ */}
             {multiMethods && (
-                <div
-                    onClick={e => e.stopPropagation()}
-                    style={{ margin: '0 12px 12px 12px', borderRadius: 16, overflow: 'hidden', background: '#f0fdf4', border: '1px solid #a7f3d0', boxShadow: '0 4px 12px rgba(16,185,129,0.08)' }}>
-
-                    {/* Method navigator header */}
-                    <div style={{ display: 'flex', alignItems: 'center', padding: '10px 8px', borderBottom: '1px solid #a7f3d0', gap: 4, background: 'linear-gradient(to right, #ecfdf5, #d1fae5)' }}>
-                        {/* Prev btn */}
-                        <button onClick={prevMethod} className="method-nav-btn hover:scale-105 active:scale-95 transition-all"
-                            style={{ width: 26, height: 26, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: '#ffffff', border: '1px solid #6ee7b7', color: '#059669', cursor: 'pointer', boxShadow: '0 2px 4px rgba(16,185,129,0.1)' }}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
-                        </button>
-
-                        {/* Method name */}
-                        <div style={{ flex: 1, textAlign: 'center', minWidth: 0, padding: '0 2px' }}>
-                            <div style={{ fontSize: displayName.length > 18 ? 9.5 : 11, fontWeight: 900, color: '#064e3b', whiteSpace: 'nowrap', letterSpacing: '-0.02em', overflow: 'visible' }}>
-                                {displayName}
-                            </div>
-                            {/* Dot stepper */}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 4 }}>
-                                {multiMethods.map((_, i) => (
-                                    <button key={i} onClick={e => { e.stopPropagation(); setMethodIdx(i) }}
-                                        className="transition-all duration-300 hover:scale-125"
-                                        style={{ width: i === methodIdx ? 16 : 6, height: 6, borderRadius: 99, background: i === methodIdx ? '#10b981' : '#6ee7b7', boxShadow: i === methodIdx ? '0 0 8px rgba(16,185,129,0.5)' : 'none', border: 'none', padding: 0, cursor: 'pointer' }} />
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Counter */}
-                        <span style={{ fontSize: 9, fontWeight: 900, color: '#059669', background: '#ffffff', border: '1px solid #34d399', padding: '3px 6px', borderRadius: 99, flexShrink: 0, boxShadow: '0 2px 4px rgba(16,185,129,0.1)' }}>
-                            {methodIdx + 1}/{totalMethods}
-                        </span>
-
-                        {/* Next btn */}
-                        <button onClick={nextMethod} className="method-nav-btn hover:scale-105 active:scale-95 transition-all"
-                            style={{ width: 26, height: 26, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: '#ffffff', border: '1px solid #6ee7b7', color: '#059669', cursor: 'pointer', boxShadow: '0 2px 4px rgba(16,185,129,0.1)' }}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
-                        </button>
+                <div onClick={e => e.stopPropagation()} style={{ margin: '0 10px 10px 10px' }}>
+                    {/* Tab strip */}
+                    <div style={{ display: 'flex', borderRadius: '12px 12px 0 0', overflow: 'hidden', border: '1px solid #a7f3d0', borderBottom: 'none' }}>
+                        {multiMethods.map((m, i) => (
+                            <button key={i}
+                                onClick={e => { e.stopPropagation(); setMethodIdx(i) }}
+                                style={{
+                                    flex: 1, padding: '7px 4px', fontSize: 9.5, fontWeight: 700,
+                                    fontFamily: "'Prompt', sans-serif",
+                                    background: i === methodIdx ? '#10b981' : (i % 2 === 0 ? '#f0fdf4' : '#ecfdf5'),
+                                    color: i === methodIdx ? '#fff' : '#059669',
+                                    border: 'none', borderRight: i < multiMethods.length - 1 ? '1px solid #a7f3d0' : 'none',
+                                    cursor: 'pointer', transition: 'all 0.2s',
+                                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+                                }}>
+                                {m.name || `วิธีที่ ${i + 1}`}
+                            </button>
+                        ))}
                     </div>
-
-                    {/* Formula + result */}
-                    <div style={{ padding: '12px 14px', background: '#ffffff' }}>
-                        <div style={{ borderRadius: 12, padding: '10px 12px', background: '#f8fffe', border: '1px solid #d1fae5', marginBottom: 10, boxShadow: 'inset 0 1px 3px rgba(16,185,129,0.03)' }}>
-                            <div style={{ fontSize: 9, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6, fontWeight: 800 }}>สูตรคำนวณ</div>
-                            <div style={{ fontSize: 11, color: '#059669', fontFamily: 'monospace', borderLeft: '3px solid #34d399', paddingLeft: 10, lineHeight: 1.5, wordBreak: 'break-all', fontWeight: 600 }}>
-                                {displayFormula || '—'}
-                            </div>
+                    {/* Tab content */}
+                    <div style={{ borderRadius: '0 0 12px 12px', border: '1px solid #a7f3d0', background: '#fff', padding: '10px 12px', boxShadow: '0 2px 8px rgba(16,185,129,0.06)' }}>
+                        <div style={{ fontSize: 9, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 5, fontWeight: 700, fontFamily: "'Inter', sans-serif" }}>สูตรคำนวณ</div>
+                        <div style={{ fontSize: 11, color: '#059669', fontFamily: 'monospace', borderLeft: '3px solid #34d399', paddingLeft: 8, lineHeight: 1.5, wordBreak: 'break-all', fontWeight: 600, marginBottom: 8 }}>
+                            {displayFormula || '—'}
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span style={{ fontSize: 10, color: '#64748b', fontWeight: 700 }}>ผลลัพธ์วิธีนี้</span>
-                            <span className="method-value-transition" style={{ fontSize: 14, fontWeight: 900, color: '#059669' }}>
-                                {displayCarbon.toFixed(2)} <span style={{ fontSize: 10, fontWeight: 800, color: '#34d399' }}>tCO₂e</span>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, borderTop: '1px dashed #d1fae5' }}>
+                            <span style={{ fontSize: 10, color: '#64748b', fontWeight: 600, fontFamily: "'Prompt', sans-serif" }}>ผลลัพธ์</span>
+                            <span className="method-value-transition" style={{ fontSize: 13, fontWeight: 800, color: '#059669', fontFamily: "'Inter', sans-serif" }}>
+                                {displayCarbon.toFixed(2)} <span style={{ fontSize: 10, color: '#34d399', fontWeight: 700 }}>tCO₂e</span>
                             </span>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* ═══ EXPANDED DETAILS (unchanged structure) ═══ */}
+            {/* ═══ EXPANDED DETAILS ═══ */}
             {expanded && (
                 <div onClick={e => e.stopPropagation()}
                     style={{ margin: '0 10px', paddingTop: 10, borderTop: '1px dashed #a7f3d0', marginBottom: 4 }}>
                     {[
                         { label: 'ที่ตั้ง', value: p.subdistrict || p.district || p.province ? [p.subdistrict && `ต.${p.subdistrict}`, p.district && `อ.${p.district}`, p.province && `จ.${p.province}`].filter(Boolean).join(' ') : (p.address || '-') },
                         { label: 'พิกัด', value: `${p.lat ? parseFloat(p.lat).toFixed(6) : '-'}, ${p.lng ? parseFloat(p.lng).toFixed(6) : '-'}`, mono: true },
-                        { label: 'พันธุ์ยางพารา', value: p.variety || 'ไม่ระบุ' },
-                        { label: 'อายุ (ระบุเอง)', value: p.manualAge ? `${p.manualAge} ปี` : '-' },
+                        { label: 'พันธุ์ยาง', value: p.variety || 'ไม่ระบุ' },
+                        { label: 'อายุ (ระบุ)', value: p.manualAge ? `${p.manualAge} ปี` : '-' },
                         { label: 'อายุ (คำนวณ)', value: p.age ? `${p.age} ปี` : '-' },
-                        { label: 'มวลชีวภาพ (AGB)', value: displayAgb ? `${parseFloat(displayAgb).toFixed(2)} ตัน` : '-', accent: true },
+                        { label: 'AGB', value: displayAgb ? `${parseFloat(displayAgb).toFixed(2)} ตัน` : '-', accent: true },
                     ].map(({ label, value, mono, accent }) => (
-                        <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
-                            <span style={{ fontSize: 10, color: '#6b7280', flexShrink: 0 }}>{label}:</span>
-                            <span style={{ fontSize: 10, color: accent ? '#059669' : '#374151', textAlign: 'right', fontFamily: mono ? 'monospace' : 'inherit', fontWeight: accent ? 700 : 400, lineHeight: 1.4, wordBreak: 'break-word' }}>{value}</span>
+                        <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 5 }}>
+                            <span style={{ fontSize: 10, color: '#6b7280', flexShrink: 0, fontFamily: "'Prompt', sans-serif" }}>{label}:</span>
+                            <span style={{ fontSize: 10, color: accent ? '#059669' : '#374151', textAlign: 'right', fontFamily: mono ? 'monospace' : "'Prompt', sans-serif", fontWeight: accent ? 700 : 400, wordBreak: 'break-word' }}>{value}</span>
                         </div>
                     ))}
-
-                    {/* Calculation data */}
-                    {(() => {
-                        const inNdvi = p.actualFormulas ? p.actualFormulas.some(f => (f.name || '').toLowerCase().includes('ndvi') || (f.formula || '').toLowerCase().includes('ndvi')) : (method.name || '').toLowerCase().includes('ndvi') || (method.formula || '').toLowerCase().includes('ndvi') || (p.method || '').toLowerCase().includes('ndvi');
-                        const inTcari = p.actualFormulas ? p.actualFormulas.some(f => (f.name || '').toLowerCase().includes('tcari') || (f.formula || '').toLowerCase().includes('tcari')) : (method.name || '').toLowerCase().includes('tcari') || (method.formula || '').toLowerCase().includes('tcari') || (p.method || '').toLowerCase().includes('tcari');
-                        const showNdvi = p.ndvi && inNdvi;
-                        const showTcari = p.tcari && inTcari;
-                        const hasData = p.dbh || p.height || showNdvi || showTcari;
-                        if (!hasData) return null;
-                        return (
-                            <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #d1fae5' }}>
-                                <div style={{ fontSize: 9, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>ข้อมูลการคำนวณ</div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5 }}>
-                                    {p.dbh && (
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: 7, padding: '5px 8px', background: '#dcfce7', border: '1px solid #bbf7d0' }}>
-                                            <span style={{ fontSize: 9, color: '#15803d', fontWeight: 700 }}>DBH</span>
-                                            <span style={{ fontSize: 10, color: '#065f46', fontFamily: 'monospace' }}>{p.dbh} ซม.</span>
-                                        </div>
-                                    )}
-                                    {p.height && (
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: 7, padding: '5px 8px', background: 'rgba(16,185,129,0.07)' }}>
-                                            <span style={{ fontSize: 9, color: '#15803d', fontWeight: 700 }}>สูง</span>
-                                            <span style={{ fontSize: 10, color: '#065f46', fontFamily: 'monospace' }}>{p.height} ม.</span>
-                                        </div>
-                                    )}
-                                    {showNdvi && (
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: 7, padding: '5px 8px', background: '#eff6ff', border: '1px solid #bfdbfe' }}>
-                                            <span style={{ fontSize: 9, color: '#1d4ed8', fontWeight: 700 }}>NDVI</span>
-                                            <span style={{ fontSize: 10, color: '#2563eb', fontFamily: 'monospace' }}>{p.ndvi}</span>
-                                        </div>
-                                    )}
-                                    {showTcari && (
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: 7, padding: '5px 8px', background: '#faf5ff', border: '1px solid #e9d5ff' }}>
-                                            <span style={{ fontSize: 9, color: '#7e22ce', fontWeight: 700 }}>TCARI</span>
-                                            <span style={{ fontSize: 10, color: '#9333ea', fontFamily: 'monospace' }}>{p.tcari}</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        );
-                    })()}
-                    <div style={{ height: 10 }} />
+                    <div style={{ height: 8 }} />
                 </div>
             )}
 
             {/* ═══ FOOTER ═══ */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderTop: '1px solid #d1fae5', background: '#f8fffe' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderTop: '1px solid #d1fae5', background: '#f8fffe' }}>
                 <div>
-                    <div style={{ fontSize: 9, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.08em' }}>มูลค่าประเมิน</div>
-                    <div className="method-value-transition" style={{ fontSize: 16, fontWeight: 900, color: '#059669', marginTop: 2 }}>
+                    <div style={{ fontSize: 9, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.06em', fontFamily: "'Inter', sans-serif" }}>มูลค่าประเมิน</div>
+                    <div className="method-value-transition" style={{ fontSize: 15, fontWeight: 800, color: '#059669', marginTop: 1, fontFamily: "'Inter', sans-serif" }}>
                         ฿{displayValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                     <button onClick={e => { e.stopPropagation(); setExpanded(!expanded) }}
-                        className="action-btn hover:scale-105 active:scale-95"
-                        style={{ width: 34, height: 34, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: expanded ? '#dcfce7' : '#f1f5f9', color: expanded ? '#15803d' : '#64748b', border: expanded ? '1px solid #86efac' : '1px solid #e2e8f0', cursor: 'pointer', transition: 'all 0.25s' }}
+                        className="action-btn"
+                        style={{ width: 32, height: 32, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: expanded ? '#dcfce7' : '#f1f5f9', color: expanded ? '#15803d' : '#64748b', border: expanded ? '1px solid #86efac' : '1px solid #e2e8f0', cursor: 'pointer', transition: 'all 0.2s' }}
                         title={expanded ? 'ย่อ' : 'ขยาย'}>
-                        <ChevIco cls={`w-4 h-4 transform transition-transform ${expanded ? 'rotate-180' : ''}`} />
+                        <ChevIco cls={`w-3.5 h-3.5 transform transition-transform ${expanded ? 'rotate-180' : ''}`} />
                     </button>
                     <button onClick={e => { e.stopPropagation(); handleEditPlot(p) }}
-                        className="action-btn hover:scale-105 active:scale-95"
-                        style={{ width: 34, height: 34, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a', cursor: 'pointer', transition: 'all 0.25s' }}
+                        className="action-btn"
+                        style={{ width: 32, height: 32, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a', cursor: 'pointer', transition: 'all 0.2s' }}
                         title="แก้ไข">
-                        <EditIco cls="w-4 h-4" />
+                        <EditIco cls="w-3.5 h-3.5" />
                     </button>
                     <button onClick={e => { e.stopPropagation(); setDeleteTarget(p) }}
-                        className="action-btn hover:scale-105 active:scale-95"
-                        style={{ width: 34, height: 34, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff1f2', color: '#e11d48', border: '1px solid #fecdd3', cursor: 'pointer', transition: 'all 0.25s' }}
+                        className="action-btn"
+                        style={{ width: 32, height: 32, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff1f2', color: '#e11d48', border: '1px solid #fecdd3', cursor: 'pointer', transition: 'all 0.2s' }}
                         title="ลบ">
-                        <TrashIco cls="w-4 h-4" />
+                        <TrashIco cls="w-3.5 h-3.5" />
                     </button>
                 </div>
             </div>
@@ -586,6 +542,7 @@ export default function PersonalDashboardPage() {
     const [search, setSearch] = useState('')
     const [showProfile, setShowProfile] = useState(false)
     const [deleteTarget, setDeleteTarget] = useState(null)
+    const [deleteAllTarget, setDeleteAllTarget] = useState(false)
     const [detailPlot, setDetailPlot] = useState(null)
     const [selectedPlot, setSelectedPlot] = useState(null)
     const [loading, setLoading] = useState(true)
@@ -808,6 +765,15 @@ export default function PersonalDashboardPage() {
         setDeleteTarget(null)
     }
 
+    const handleDeleteAll = async () => {
+        try {
+            await Promise.all(plots.map(p => deletePlot(p.id)))
+        } catch (e) { console.error(e) }
+        setPlots([])
+        setStats({ plots: 0, area: 0, carbon: 0, value: 0 })
+        setDeleteAllTarget(false)
+    }
+
     const handleEditPlot = (plot) => history.push(`/map?editPlotId=${plot.id}`)
 
     const filtered = plots.filter(p => {
@@ -834,9 +800,9 @@ export default function PersonalDashboardPage() {
     const avatarLetter = (userProfile?.name || '?')[0].toUpperCase()
 
     return (
-        <div className="pd-root flex h-screen overflow-hidden" style={{ background: '#0d1117', fontFamily: "'Inter', sans-serif", color: '#e2e8f0' }}>
+        <div className="pd-root flex h-screen overflow-hidden" style={{ background: '#f8fffe', fontFamily: "'Prompt', 'Inter', sans-serif", color: '#1e293b' }}>
             <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap');
         .pd-root * { box-sizing: border-box; }
         @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
         .fade-up { animation: fadeUp 0.35s ease forwards; }
@@ -976,9 +942,18 @@ export default function PersonalDashboardPage() {
                         {/* Panel header */}
                         <div className="flex-shrink-0 flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid #d1fae5', background: '#ffffff' }}>
                             <div className="flex items-center gap-2">
-                                <span className="font-bold text-sm" style={{ color: '#064e3b' }}>แปลงของฉัน</span>
+                                <span className="font-bold text-sm" style={{ color: '#064e3b', fontFamily: "'Prompt', sans-serif" }}>แปลงของฉัน</span>
                                 <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md" style={{ background: '#d1fae5', color: '#059669' }}>{filtered.length}</span>
                             </div>
+                            {plots.length > 0 && (
+                                <button
+                                    onClick={() => setDeleteAllTarget(true)}
+                                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all hover:opacity-80 active:scale-95"
+                                    style={{ background: '#fff1f2', color: '#e11d48', border: '1px solid #fecdd3', fontFamily: "'Prompt', sans-serif" }}>
+                                    <TrashIco cls="w-3 h-3" />
+                                    ลบทั้งหมด
+                                </button>
+                            )}
                         </div>
                         {/* Search */}
                         <div className="flex-shrink-0 px-4 py-2.5" style={{ borderBottom: '1px solid #e2f5ed', background: '#ffffff' }}>
@@ -1046,6 +1021,7 @@ export default function PersonalDashboardPage() {
             {/* ── MODALS ── */}
             {showProfile && <ProfileModal profile={userProfile} onSave={handleSaveProfile} onClose={() => setShowProfile(false)} />}
             {deleteTarget && <DeleteModal plot={deleteTarget} onConfirm={() => handleDelete(deleteTarget)} onClose={() => setDeleteTarget(null)} />}
+            {deleteAllTarget && <DeleteAllModal count={plots.length} onConfirm={handleDeleteAll} onClose={() => setDeleteAllTarget(false)} />}
             {detailPlot && <PlotDetailModal plot={detailPlot} onClose={() => setDetailPlot(null)} onEdit={handleEditPlot} onDelete={p => { setDeleteTarget(p); setDetailPlot(null) }} />}
         </div>
     )
