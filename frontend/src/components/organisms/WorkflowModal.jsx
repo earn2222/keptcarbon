@@ -1632,26 +1632,32 @@ export default function WorkflowModal({
                             <div className="bg-gradient-to-br from-slate-50 to-emerald-50/40 rounded-2xl p-3 border border-gray-100 shadow-sm">
                                 <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-2 px-1">ภาพรวมทั้งหมด</p>
                                 <div className="grid grid-cols-3 gap-2">
-                                    <div className="bg-white rounded-xl p-2.5 text-center border border-emerald-100 shadow-sm flex flex-col justify-center min-h-[72px]">
-                                        <p className="text-[9px] uppercase font-bold text-emerald-600 tracking-wider mb-1">คาร์บอน</p>
-                                        <span className="text-lg font-black text-emerald-700 tracking-tight leading-none">
-                                            {accumulatedPlots.reduce((sum, p) => sum + parseFloat(p.carbon || 0), 0).toFixed(2)}
-                                        </span>
-                                        <span className="text-[8px] font-bold text-emerald-500/60 mt-0.5">tCO₂e</span>
+                                    <div className="bg-white rounded-2xl p-2.5 md:p-3 text-center border border-emerald-100/50 shadow-sm flex flex-col justify-center min-h-[76px] overflow-hidden group">
+                                        <p className="text-[8px] uppercase font-black text-emerald-600/70 tracking-[0.1em] mb-1.5">คาร์บอน</p>
+                                        <div className="flex flex-col items-baseline justify-center overflow-hidden">
+                                            <span className="text-base md:text-xl font-black text-emerald-700 tracking-tight leading-none truncate w-full">
+                                                {accumulatedPlots.reduce((sum, p) => sum + parseFloat(p.carbon || 0), 0).toLocaleString(undefined, { maximumFractionDigits: 1 })}
+                                            </span>
+                                            <span className="text-[7px] font-bold text-emerald-500/40 uppercase tracking-tighter mt-1 self-center">tCO₂e</span>
+                                        </div>
                                     </div>
-                                    <div className="bg-white rounded-xl p-2.5 text-center border border-blue-100 shadow-sm flex flex-col justify-center min-h-[72px]">
-                                        <p className="text-[9px] uppercase font-bold text-blue-600 tracking-wider mb-1">มวลชีวภาพ</p>
-                                        <span className="text-lg font-black text-blue-700 tracking-tight leading-none">
-                                            {accumulatedPlots.reduce((sum, p) => sum + parseFloat(p.agb || ((parseFloat(p.carbon || 0) / 0.47))), 0).toFixed(2)}
-                                        </span>
-                                        <span className="text-[8px] font-bold text-blue-500/60 mt-0.5">ตัน</span>
+                                    <div className="bg-white rounded-2xl p-2.5 md:p-3 text-center border border-blue-100/50 shadow-sm flex flex-col justify-center min-h-[76px] overflow-hidden group">
+                                        <p className="text-[8px] uppercase font-black text-blue-600/70 tracking-[0.1em] mb-1.5">ชีวมวล</p>
+                                        <div className="flex flex-col items-baseline justify-center overflow-hidden">
+                                            <span className="text-base md:text-xl font-black text-blue-700 tracking-tight leading-none truncate w-full">
+                                                {accumulatedPlots.reduce((sum, p) => sum + parseFloat(p.agb || ((parseFloat(p.carbon || 0) / 0.47))), 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                            </span>
+                                            <span className="text-[7px] font-bold text-blue-500/40 uppercase tracking-tighter mt-1 self-center">ตัน</span>
+                                        </div>
                                     </div>
-                                    <div className="bg-white rounded-xl p-2.5 text-center border border-amber-100 shadow-sm flex flex-col justify-center min-h-[72px]">
-                                        <p className="text-[9px] uppercase font-bold text-amber-600 tracking-wider mb-1">มูลค่ารวม</p>
-                                        <span className="text-lg font-black text-amber-700 tracking-tight leading-none">
-                                            {(accumulatedPlots.reduce((sum, p) => sum + parseFloat(p.carbon || 0), 0) * currentPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                                        </span>
-                                        <span className="text-[8px] font-bold text-amber-500/60 mt-0.5">บาท</span>
+                                    <div className="bg-white rounded-2xl p-2.5 md:p-3 text-center border border-amber-100/50 shadow-sm flex flex-col justify-center min-h-[76px] overflow-hidden group">
+                                        <p className="text-[8px] uppercase font-black text-amber-600/70 tracking-[0.1em] mb-1.5">มูลค่ารวม</p>
+                                        <div className="flex flex-col items-baseline justify-center overflow-hidden">
+                                            <span className="text-base md:text-xl font-black text-amber-700 tracking-tight leading-none truncate w-full">
+                                                {(accumulatedPlots.reduce((sum, p) => sum + parseFloat(p.carbon || 0), 0) * currentPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                            </span>
+                                            <span className="text-[7px] font-bold text-amber-500/40 uppercase tracking-tighter mt-1 self-center">บาท</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1724,11 +1730,20 @@ export default function WorkflowModal({
                                                                 <div className="space-y-1 opacity-80">
                                                                     <div className="flex items-center gap-1">
                                                                         <Map size={9} className="text-gray-400 shrink-0" />
-                                                                        <span className="text-[9px] text-gray-500 font-medium whitespace-nowrap">{plot.address || 'ไม่ระบุสถานที่'}</span>
+                                                                        <span className="text-[8.5px] text-gray-500 font-medium whitespace-nowrap">
+                                                                            {(plot.address || 'ไม่ระบุสถานที่')
+                                                                                .replace(/ตำบล/g, 'ต.')
+                                                                                .replace(/อำเภอ/g, 'อ.')
+                                                                                .replace(/จังหวัด/g, 'จ.')
+                                                                                .replace(/ต\.ต\./g, 'ต.')
+                                                                                .replace(/อ\.อ\./g, 'อ.')
+                                                                                .replace(/จ\.จ\./g, 'จ.')
+                                                                            }
+                                                                        </span>
                                                                     </div>
                                                                     <div className="flex items-center gap-1">
                                                                         <Globe size={9} className="text-gray-400 shrink-0" />
-                                                                        <span className="text-[9px] text-slate-400 font-mono">
+                                                                        <span className="text-[8.5px] text-slate-400 font-mono">
                                                                             {(() => {
                                                                                 try {
                                                                                     if (plot.geometry) {
@@ -1830,28 +1845,28 @@ export default function WorkflowModal({
                                                     {!isExpanded && (
                                                         <div className="grid grid-cols-3 gap-2.5 mt-2 pb-2">
                                                             {/* CO2e Stat */}
-                                                            <div className="bg-gradient-to-br from-emerald-50/80 to-white rounded-2xl p-3 border border-emerald-100/50 shadow-[0_4px_12px_-4px_rgba(16,185,129,0.1)] relative overflow-hidden group">
-                                                                <span className="block text-[8px] font-black text-emerald-600 uppercase tracking-widest mb-1.5 opacity-70">CO₂e</span>
-                                                                <div className="flex items-baseline gap-0.5">
-                                                                    <span className="text-xl font-black text-emerald-700 leading-none">{displayCarbon}</span>
-                                                                    <span className="text-[8px] font-bold text-emerald-500/60 uppercase">t</span>
+                                                            <div className="bg-gradient-to-br from-emerald-50/80 to-white rounded-2xl p-2 border border-emerald-100/50 shadow-[0_4px_12px_-4px_rgba(16,185,129,0.1)] relative overflow-hidden group">
+                                                                <span className="block text-[7px] font-black text-emerald-600 uppercase tracking-widest mb-1 opacity-70">CO₂e</span>
+                                                                <div className="flex items-baseline gap-0.5 min-w-0 overflow-hidden">
+                                                                    <span className="text-[14px] font-black text-emerald-700 leading-none truncate">{displayCarbon}</span>
+                                                                    <span className="text-[6px] font-bold text-emerald-500/60 uppercase shrink-0">t</span>
                                                                 </div>
                                                             </div>
 
                                                             {/* AGB Stat */}
-                                                            <div className="bg-gradient-to-br from-blue-50/80 to-white rounded-2xl p-3 border border-blue-100/50 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.1)] relative overflow-hidden">
-                                                                <span className="block text-[8px] font-black text-blue-600 uppercase tracking-widest mb-1.5 opacity-70">AGB</span>
-                                                                <div className="flex items-baseline gap-0.5">
-                                                                    <span className="text-xl font-black text-blue-700 leading-none">{displayAgb}</span>
-                                                                    <span className="text-[8px] font-bold text-blue-500/60 uppercase">t</span>
+                                                            <div className="bg-gradient-to-br from-blue-50/80 to-white rounded-2xl p-2 border border-blue-100/50 shadow-[0_4px_12px_-4px_rgba(59,130,246,0.1)] relative overflow-hidden">
+                                                                <span className="block text-[7px] font-black text-blue-600 uppercase tracking-widest mb-1 opacity-70">AGB</span>
+                                                                <div className="flex items-baseline gap-0.5 min-w-0 overflow-hidden">
+                                                                    <span className="text-[14px] font-black text-blue-700 leading-none truncate">{displayAgb}</span>
+                                                                    <span className="text-[6px] font-bold text-blue-500/60 uppercase shrink-0">t</span>
                                                                 </div>
                                                             </div>
 
                                                             {/* Price Stat */}
-                                                            <div className="bg-gradient-to-br from-amber-50/80 to-white rounded-2xl p-3 border border-amber-100/50 shadow-[0_4px_12px_-4px_rgba(245,158,11,0.1)] relative overflow-hidden">
-                                                                <span className="block text-[8px] font-black text-amber-600 uppercase tracking-widest mb-1.5 opacity-70">มูลค่า</span>
-                                                                <div className="flex items-baseline gap-0.5">
-                                                                    <span className="text-[14px] font-black text-amber-700 leading-none">฿{displayPrice}</span>
+                                                            <div className="bg-gradient-to-br from-amber-50/80 to-white rounded-2xl p-2 border border-amber-100/50 shadow-[0_4px_12px_-4px_rgba(245,158,11,0.1)] relative overflow-hidden">
+                                                                <span className="block text-[7px] font-black text-amber-600 uppercase tracking-widest mb-1 opacity-70">มูลค่า</span>
+                                                                <div className="flex items-baseline gap-0.5 min-w-0 overflow-hidden">
+                                                                    <span className="text-[13px] font-black text-amber-700 leading-none truncate">฿{displayPrice}</span>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -1859,84 +1874,86 @@ export default function WorkflowModal({
                                                 </div>
 
                                                 {/* ── Expanded: Per-Method Tabs ── */}
-                                                {isExpanded && hasMultipleMethods && (
-                                                    <div
-                                                        className="border-t border-dashed border-emerald-100 bg-gradient-to-b from-emerald-50/30 to-white px-3 pb-3 pt-3"
-                                                        style={{ animation: 'expandDown 0.25s ease-out' }}
-                                                    >
-                                                        {/* Method Tabs */}
-                                                        <div className="flex gap-1.5 overflow-x-auto scrollbar-thin pb-1 mb-3">
-                                                            {plot.methods.map((m, mIdx) => (
-                                                                <button
-                                                                    key={m.id}
-                                                                    onClick={() => setActiveMethodTabs(prev => ({ ...prev, [plot.id]: mIdx }))}
-                                                                    className={cn(
-                                                                        "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-all duration-200 shrink-0 border",
-                                                                        activeTabIdx === mIdx
-                                                                            ? "text-white shadow-md scale-105"
-                                                                            : "bg-white text-gray-400 border-gray-100 hover:border-gray-200"
-                                                                    )}
-                                                                    style={activeTabIdx === mIdx ? { backgroundColor: m.color, borderColor: m.color, boxShadow: `0 4px 12px ${m.color}40` } : {}}
-                                                                >
-                                                                    <span>{m.icon}</span>
-                                                                    <span className="truncate max-w-[80px]">{m.name.replace('สมการที่ ', 'สมการ ').replace(' (ภาคสนาม)', '').replace(' (ดาวเทียม)', '')}</span>
-                                                                </button>
-                                                            ))}
-                                                        </div>
-
-                                                        {/* Active Method Detail */}
-                                                        {activeMethod && (
-                                                            <div
-                                                                key={activeMethod.id}
-                                                                className="space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-200"
-                                                            >
-                                                                {/* Formula badge */}
-                                                                <div className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 border border-gray-100">
-                                                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base shrink-0" style={{ backgroundColor: `${activeMethod.color}18` }}>
-                                                                        {activeMethod.icon}
-                                                                    </div>
-                                                                    <div className="min-w-0">
-                                                                        <p className="text-[10px] font-bold text-gray-700 truncate">{activeMethod.name}</p>
-                                                                        <p className="text-[9px] font-mono text-gray-400 truncate">{activeMethod.formula}</p>
-                                                                    </div>
-                                                                </div>
-
-                                                                {/* Result Stats */}
-                                                                <div className="grid grid-cols-3 gap-1.5">
-                                                                    <div className="rounded-xl p-2.5 text-center border" style={{ backgroundColor: `${activeMethod.color}0D`, borderColor: `${activeMethod.color}30` }}>
-                                                                        <span className="block text-[8px] font-bold uppercase tracking-wider mb-1" style={{ color: activeMethod.color }}>CO₂e</span>
-                                                                        <span className="text-sm font-black leading-none" style={{ color: activeMethod.color }}>{activeMethod.carbon}</span>
-                                                                        <span className="block text-[7px] font-medium mt-0.5" style={{ color: `${activeMethod.color}80` }}>tCO₂e</span>
-                                                                    </div>
-                                                                    <div className="bg-blue-50 rounded-xl p-2.5 text-center border border-blue-100">
-                                                                        <span className="block text-[8px] font-bold text-blue-600 uppercase tracking-wider mb-1">AGB</span>
-                                                                        <span className="text-sm font-black text-blue-700 leading-none">{activeMethod.agb}</span>
-                                                                        <span className="block text-[7px] font-medium text-blue-500/60 mt-0.5">ตัน</span>
-                                                                    </div>
-                                                                    <div className="bg-amber-50 rounded-xl p-2.5 text-center border border-amber-100">
-                                                                        <span className="block text-[8px] font-bold text-amber-600 uppercase tracking-wider mb-1">มูลค่า</span>
-                                                                        <span className="text-sm font-black text-amber-700 leading-none">
-                                                                            {(parseFloat(activeMethod.carbon) * currentPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                                                                        </span>
-                                                                        <span className="block text-[7px] font-medium text-amber-500/60 mt-0.5">บาท</span>
-                                                                    </div>
-                                                                </div>
-
-                                                                {/* Hint: shows avg */}
-                                                                <div className="flex items-center justify-between px-1">
-                                                                    <span className="text-[9px] text-gray-400">ค่าเฉลี่ยทุกวิธี:</span>
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="text-[9px] font-bold text-emerald-600">{parseFloat(plot.carbon || 0).toFixed(2)} tCO₂e</span>
-                                                                        <span className="text-[9px] text-gray-300">|</span>
-                                                                        <span className="text-[9px] font-bold text-amber-600">
-                                                                            ฿{(parseFloat(plot.carbon || 0) * currentPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
+                                                {
+                                                    isExpanded && hasMultipleMethods && (
+                                                        <div
+                                                            className="border-t border-dashed border-emerald-100 bg-gradient-to-b from-emerald-50/30 to-white px-3 pb-3 pt-3"
+                                                            style={{ animation: 'expandDown 0.25s ease-out' }}
+                                                        >
+                                                            {/* Method Tabs */}
+                                                            <div className="flex gap-1.5 overflow-x-auto scrollbar-thin pb-1 mb-3">
+                                                                {plot.methods.map((m, mIdx) => (
+                                                                    <button
+                                                                        key={m.id}
+                                                                        onClick={() => setActiveMethodTabs(prev => ({ ...prev, [plot.id]: mIdx }))}
+                                                                        className={cn(
+                                                                            "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-all duration-200 shrink-0 border",
+                                                                            activeTabIdx === mIdx
+                                                                                ? "text-white shadow-md scale-105"
+                                                                                : "bg-white text-gray-400 border-gray-100 hover:border-gray-200"
+                                                                        )}
+                                                                        style={activeTabIdx === mIdx ? { backgroundColor: m.color, borderColor: m.color, boxShadow: `0 4px 12px ${m.color}40` } : {}}
+                                                                    >
+                                                                        <span>{m.icon}</span>
+                                                                        <span className="truncate max-w-[80px]">{m.name.replace('สมการที่ ', 'สมการ ').replace(' (ภาคสนาม)', '').replace(' (ดาวเทียม)', '')}</span>
+                                                                    </button>
+                                                                ))}
                                                             </div>
-                                                        )}
-                                                    </div>
-                                                )}
+
+                                                            {/* Active Method Detail */}
+                                                            {activeMethod && (
+                                                                <div
+                                                                    key={activeMethod.id}
+                                                                    className="space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-200"
+                                                                >
+                                                                    {/* Formula badge */}
+                                                                    <div className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 border border-gray-100">
+                                                                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base shrink-0" style={{ backgroundColor: `${activeMethod.color}18` }}>
+                                                                            {activeMethod.icon}
+                                                                        </div>
+                                                                        <div className="min-w-0">
+                                                                            <p className="text-[10px] font-bold text-gray-700 truncate">{activeMethod.name}</p>
+                                                                            <p className="text-[9px] font-mono text-gray-400 truncate">{activeMethod.formula}</p>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {/* Result Stats */}
+                                                                    <div className="grid grid-cols-3 gap-1.5">
+                                                                        <div className="rounded-xl p-2.5 text-center border" style={{ backgroundColor: `${activeMethod.color}0D`, borderColor: `${activeMethod.color}30` }}>
+                                                                            <span className="block text-[8px] font-bold uppercase tracking-wider mb-1" style={{ color: activeMethod.color }}>CO₂e</span>
+                                                                            <span className="text-sm font-black leading-none" style={{ color: activeMethod.color }}>{activeMethod.carbon}</span>
+                                                                            <span className="block text-[7px] font-medium mt-0.5" style={{ color: `${activeMethod.color}80` }}>tCO₂e</span>
+                                                                        </div>
+                                                                        <div className="bg-blue-50 rounded-xl p-2.5 text-center border border-blue-100">
+                                                                            <span className="block text-[8px] font-bold text-blue-600 uppercase tracking-wider mb-1">AGB</span>
+                                                                            <span className="text-sm font-black text-blue-700 leading-none">{activeMethod.agb}</span>
+                                                                            <span className="block text-[7px] font-medium text-blue-500/60 mt-0.5">ตัน</span>
+                                                                        </div>
+                                                                        <div className="bg-amber-50 rounded-xl p-2.5 text-center border border-amber-100">
+                                                                            <span className="block text-[8px] font-bold text-amber-600 uppercase tracking-wider mb-1">มูลค่า</span>
+                                                                            <span className="text-sm font-black text-amber-700 leading-none">
+                                                                                {(parseFloat(activeMethod.carbon) * currentPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                                                            </span>
+                                                                            <span className="block text-[7px] font-medium text-amber-500/60 mt-0.5">บาท</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {/* Hint: shows avg */}
+                                                                    <div className="flex items-center justify-between px-1">
+                                                                        <span className="text-[9px] text-gray-400">ค่าเฉลี่ยทุกวิธี:</span>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="text-[9px] font-bold text-emerald-600">{parseFloat(plot.carbon || 0).toFixed(2)} tCO₂e</span>
+                                                                            <span className="text-[9px] text-gray-300">|</span>
+                                                                            <span className="text-[9px] font-bold text-amber-600">
+                                                                                ฿{(parseFloat(plot.carbon || 0) * currentPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )
+                                                }
                                             </div>
                                         );
                                     })}
@@ -1964,7 +1981,7 @@ export default function WorkflowModal({
                         </div>
                     )}
                 </div>
-            </div>
+            </div >
         </div >
     );
 }

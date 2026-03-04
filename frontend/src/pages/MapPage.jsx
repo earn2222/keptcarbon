@@ -228,6 +228,8 @@ function MapPage() {
     const [activeBoundaryLevel, setActiveBoundaryLevel] = useState(null)
     const [coordLat, setCoordLat] = useState('')
     const [coordLng, setCoordLng] = useState('')
+    const searchMarker = useRef(null)
+
 
     // ==========================================
     // INLINE MEASUREMENT MARKERS (imperative, maplibregl.Marker)
@@ -1662,6 +1664,58 @@ function MapPage() {
             ;['admin-boundary', 'village-data'].forEach(id => { try { if (map.current.getSource(id)) map.current.removeSource(id) } catch (e) { } })
         setActiveBoundaryLevel(null)
     }, [])
+
+    const handleCoordSearch = useCallback(() => {
+        console.log('handleCoordSearch called with:', { coordLat, coordLng });
+
+        const lat = parseFloat(coordLat);
+        const lng = parseFloat(coordLng);
+
+        if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+            console.warn('Invalid coordinates:', { lat, lng });
+            alert('กรุณากรอกค่าพิกัดให้ถูกต้อง\nLat: -90 ถึง 90\nLng: -180 ถึง 180');
+            return;
+        }
+
+        if (!map.current) {
+            console.error('Map not initialized');
+            return;
+        }
+
+        // Clear previous boundary and previous search marker
+        clearBoundaryLayers();
+        if (searchMarker.current) {
+            searchMarker.current.remove();
+        }
+
+        console.log('Flying to:', [lng, lat]);
+
+        // Add marker at coords
+        const markerEl = document.createElement('div');
+        markerEl.className = 'search-coord-marker';
+        markerEl.innerHTML = `
+            <div style="position:relative;width:32px;height:32px">
+                <div class="search-marker-glow" style="position:absolute;inset:-12px;background:rgba(239,68,68,0.2);border-radius:50%;animation:search-glow 2s infinite;"></div>
+                <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:16px;height:16px;background:linear-gradient(135deg,#ef4444,#dc2626);border:3px solid white;border-radius:50%;box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:2"></div>
+                <div style="position:absolute;left:50%;top:100%;transform:translateX(-50%);width:2px;height:8px;background:#dc2626;z-index:1"></div>
+            </div>
+        `;
+
+        searchMarker.current = new maplibregl.Marker({ element: markerEl, anchor: 'bottom' })
+            .setLngLat([lng, lat])
+            .addTo(map.current);
+
+        map.current.flyTo({
+            center: [lng, lat],
+            zoom: 16,
+            pitch: 45,
+            duration: 2500,
+            essential: true
+        });
+
+        // Close search panel after success
+        setShowSearchPanel(false);
+    }, [coordLat, coordLng, clearBoundaryLayers]);
 
     const showBoundary = useCallback((geojson, level, zoomLevel) => {
         if (!map.current || !geojson) return
@@ -3455,6 +3509,15 @@ function MapPage() {
                         opacity: 1; 
                         transform: translateY(0) scale(1) perspective(500px) rotateX(0deg); 
                     }
+                }
+                /* Search Coordinate Marker */
+                .search-coord-marker {
+                    z-index: 1000;
+                    pointer-events: none;
+                }
+                @keyframes search-glow {
+                    0% { transform: scale(1); opacity: 0.8; }
+                    100% { transform: scale(2.5); opacity: 0; }
                 }
             `}</style>
         </div>
