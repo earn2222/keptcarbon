@@ -352,245 +352,222 @@ function PlotDetailModal({ plot, onClose, onEdit, onDelete }) {
         </div>
     )
 }
-// ─── PLOT CARD ITEM ───────────────────────────────────────────────────────────
+// ─── PLOT CARD ITEM ───────────────────────────────────────────────
 function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget, setDetailPlot }) {
     const [expanded, setExpanded] = useState(false)
     const [methodIdx, setMethodIdx] = useState(0)
     const method = getMethodInfo(p.method)
-
     const multiMethods = (p.actualFormulas && p.actualFormulas.length > 1) ? p.actualFormulas : null
     const totalMethods = multiMethods ? multiMethods.length : 1
-
-    // Get current method's data
     const activeMethod = multiMethods ? multiMethods[methodIdx] : null
     const displayCarbon = activeMethod?.carbon ? parseFloat(activeMethod.carbon) : (p.carbon || 0)
     const displayAgb = activeMethod?.agb ? parseFloat(activeMethod.agb) : (p.agb ? parseFloat(p.agb) : null)
     const displayName = activeMethod?.name || method.name
     const displayFormula = activeMethod?.formula || method.formula
     const displayValue = displayCarbon * CARBON_PRICE
-
     const prevMethod = (e) => { e.stopPropagation(); setMethodIdx(i => (i - 1 + totalMethods) % totalMethods) }
     const nextMethod = (e) => { e.stopPropagation(); setMethodIdx(i => (i + 1) % totalMethods) }
+    const isActive = selectedPlot === p.id
 
     return (
-        <div key={p.id}
-            className={`plot-card rounded-xl overflow-hidden cursor-pointer transition-all duration-200 ${selectedPlot === p.id ? 'active-card' : ''}`}
-            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
+        <div
+            className={`plot-card rounded-2xl cursor-pointer transition-all duration-300 ${isActive ? 'active-card' : ''}`}
+            style={{
+                background: isActive ? 'rgba(16,185,129,0.07)' : 'rgba(255,255,255,0.025)',
+                border: isActive ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(255,255,255,0.06)',
+                boxShadow: isActive ? '0 0 20px rgba(16,185,129,0.1)' : 'none',
+                overflow: 'hidden'
+            }}
             onClick={() => zoomTo(p)}>
 
-            {/* ── MULTI-METHOD NAVIGATOR BANNER (full-width top strip) ── */}
-            {multiMethods && (
-                <div onClick={e => e.stopPropagation()}
-                    style={{ background: 'linear-gradient(90deg,rgba(29,78,216,0.22) 0%,rgba(59,130,246,0.12) 100%)', borderBottom: '1px solid rgba(59,130,246,0.28)' }}>
-                    {/* Counter row */}
-                    <div className="flex items-center justify-between px-3 pt-2 pb-1">
-                        <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: 'rgba(147,197,253,0.65)' }}>วิธีคำนวณคาร์บอน</span>
-                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
-                            style={{ background: 'rgba(59,130,246,0.25)', color: '#93c5fd', border: '1px solid rgba(59,130,246,0.45)' }}>
-                            {methodIdx + 1}&nbsp;/&nbsp;{totalMethods}&nbsp;วิธี
-                        </span>
+            {/* ═══ TOP SECTION ═══ */}
+            <div style={{ padding: '14px 14px 0 14px' }}>
+
+                {/* Row 1: Name + Carbon value */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.3 }}>
+                            {p.farmerName}
+                        </div>
+                        <div style={{ fontSize: 9, color: '#475569', marginTop: 2, fontWeight: 600 }}>SKT-PLOT-{p.id}</div>
                     </div>
-                    {/* Navigator row: ← name → */}
-                    <div className="flex items-center gap-2 px-2 pb-2">
-                        <button onClick={prevMethod}
-                            className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95"
-                            style={{ background: 'rgba(59,130,246,0.2)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.35)' }}
-                            title="วิธีก่อนหน้า">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-                            </svg>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div className="method-value-transition" style={{ fontSize: 20, fontWeight: 900, color: '#34d399', lineHeight: 1, textShadow: '0 0 20px rgba(52,211,153,0.4)' }}>
+                            {displayCarbon.toFixed(2)}
+                        </div>
+                        <div style={{ fontSize: 8, color: '#64748b', marginTop: 2, fontWeight: 700, letterSpacing: '0.08em' }}>tCO₂e</div>
+                    </div>
+                </div>
+
+                {/* Row 2: Area + Method badge */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12, flexWrap: 'nowrap', overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.2)', flexShrink: 0 }}>
+                        <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#10b981', animation: 'pulse 2s infinite', flexShrink: 0 }} />
+                        <span style={{ fontSize: 10, fontWeight: 700, color: '#34d399', whiteSpace: 'nowrap' }}>{formatArea(p.area)}</span>
+                    </div>
+                    {multiMethods ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 20, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)', flexShrink: 0 }}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                            <span style={{ fontSize: 9, fontWeight: 700, color: '#818cf8', whiteSpace: 'nowrap' }}>{totalMethods} วิธี</span>
+                        </div>
+                    ) : (
+                        <div style={{ padding: '4px 10px', borderRadius: 20, background: 'rgba(100,116,139,0.1)', border: '1px solid rgba(100,116,139,0.15)', overflow: 'hidden', minWidth: 0 }}>
+                            <span style={{ fontSize: 9, fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', maxWidth: 110 }}>{displayName}</span>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* ═══ MULTI-METHOD CARD (only shown when multiMethods) ═══ */}
+            {multiMethods && (
+                <div
+                    onClick={e => e.stopPropagation()}
+                    style={{ margin: '0 10px 10px 10px', borderRadius: 14, overflow: 'hidden', background: 'rgba(10,15,35,0.8)', border: '1px solid rgba(99,102,241,0.2)' }}>
+
+                    {/* Method navigator header */}
+                    <div style={{ display: 'flex', alignItems: 'center', padding: '8px 10px', borderBottom: '1px solid rgba(99,102,241,0.12)', gap: 6 }}>
+                        {/* Prev btn */}
+                        <button onClick={prevMethod} className="method-nav-btn"
+                            style={{ width: 26, height: 26, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.25)', color: '#818cf8', cursor: 'pointer' }}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
                         </button>
-                        <div className="flex-1 flex flex-col items-center gap-1.5">
-                            <span className="text-xs font-black px-3 py-1 rounded-lg text-center"
-                                style={{ background: 'rgba(59,130,246,0.22)', color: '#bfdbfe', border: '1px solid rgba(59,130,246,0.4)', letterSpacing: '0.02em', minWidth: 90 }}>
+
+                        {/* Method name (center, no-wrap, truncate) */}
+                        <div style={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
+                            <div style={{ fontSize: 11, fontWeight: 800, color: '#c7d2fe', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.2 }}>
                                 {displayName}
-                            </span>
+                            </div>
                             {/* Dot stepper */}
-                            <div className="flex items-center gap-1.5">
-                                {multiMethods.map((m, i) => (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 5 }}>
+                                {multiMethods.map((_, i) => (
                                     <button key={i} onClick={e => { e.stopPropagation(); setMethodIdx(i) }}
                                         className="transition-all duration-300"
-                                        style={{
-                                            width: i === methodIdx ? 18 : 6,
-                                            height: 6,
-                                            borderRadius: 3,
-                                            background: i === methodIdx ? '#3b82f6' : 'rgba(255,255,255,0.18)',
-                                            boxShadow: i === methodIdx ? '0 0 7px rgba(59,130,246,0.7)' : 'none',
-                                        }}
-                                        title={m.name} />
+                                        style={{ width: i === methodIdx ? 16 : 5, height: 5, borderRadius: 99, background: i === methodIdx ? '#6366f1' : 'rgba(255,255,255,0.15)', boxShadow: i === methodIdx ? '0 0 6px rgba(99,102,241,0.7)' : 'none', border: 'none', padding: 0, cursor: 'pointer', transition: 'all 0.3s' }} />
                                 ))}
                             </div>
                         </div>
-                        <button onClick={nextMethod}
-                            className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95"
-                            style={{ background: 'rgba(59,130,246,0.2)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.35)' }}
-                            title="วิธีถัดไป">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                            </svg>
+
+                        {/* Counter */}
+                        <span style={{ fontSize: 9, fontWeight: 800, color: '#818cf8', background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.3)', padding: '2px 7px', borderRadius: 99, flexShrink: 0 }}>
+                            {methodIdx + 1}/{totalMethods}
+                        </span>
+
+                        {/* Next btn */}
+                        <button onClick={nextMethod} className="method-nav-btn"
+                            style={{ width: 26, height: 26, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.25)', color: '#818cf8', cursor: 'pointer' }}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
                         </button>
                     </div>
-                </div>
-            )}
 
-            {/* ── CARD BODY ── */}
-            <div className="p-3">
-            {/* Row 1: Name + Carbon */}
-            <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                    <p className="text-white font-bold text-sm leading-tight truncate pc-title">{p.farmerName}</p>
-                    <p className="text-slate-500 text-[10px] mt-1 pc-subtitle">SKT-PLOT-{p.id}</p>
-                </div>
-                <div className="text-right flex-shrink-0 pl-2">
-                    <span className="text-emerald-400 font-black text-base pc-value method-value-transition">{displayCarbon.toFixed(2)}</span>
-                    <span className="text-slate-500 text-[10px] block pc-subtitle">TCO₂E</span>
-                </div>
-            </div>
-
-            {/* Row 2: Area badge */}
-            <div className="flex flex-wrap items-center gap-2 mt-3">
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg pc-badge"
-                    style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.2)' }}>
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></div>
-                    <span className="text-[10px] font-bold text-emerald-400 whitespace-nowrap">
-                        {formatArea(p.area)}
-                    </span>
-                </div>
-                {!multiMethods && (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg"
-                        style={{ background: 'rgba(100,116,139,0.1)', border: '1px solid rgba(100,116,139,0.15)' }}>
-                        <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">
-                            {displayName}
-                        </span>
-                    </div>
-                )}
-            </div>
-
-            {/* EXPANDED DETAILS */}
-            {expanded && (
-                <div onClick={e => e.stopPropagation()} className="mt-3 pt-3 flex flex-col gap-1.5" style={{ borderTop: '1px dashed rgba(255,255,255,0.08)' }}>
-                    <div className="flex justify-between items-start gap-2 text-[10px]">
-                        <span className="text-slate-500 flex-shrink-0">ที่ตั้ง:</span>
-                        <span className="text-slate-300 text-right leading-tight break-words">
-                            {p.subdistrict || p.district || p.province ?
-                                [p.subdistrict && `ต.${p.subdistrict}`, p.district && `อ.${p.district}`, p.province && `จ.${p.province}`].filter(Boolean).join(' ')
-                                : (p.address || '-')}
-                        </span>
-                    </div>
-                    <div className="flex justify-between items-start gap-2 text-[10px]">
-                        <span className="text-slate-500 flex-shrink-0">พิกัด:</span>
-                        <span className="text-slate-400 text-right leading-tight font-mono">
-                            {p.lat ? parseFloat(p.lat).toFixed(6) : '-'}, {p.lng ? parseFloat(p.lng).toFixed(6) : '-'}
-                        </span>
-                    </div>
-                    <div className="flex justify-between items-start gap-2 text-[10px]">
-                        <span className="text-slate-500 flex-shrink-0">พันธุ์ยางพารา:</span>
-                        <span className="text-slate-300 text-right font-semibold">{p.variety || 'ไม่ระบุ'}</span>
-                    </div>
-                    <div className="flex justify-between text-[10px]">
-                        <span className="text-slate-500">อายุ (ระบุเอง):</span>
-                        <span className="text-slate-300">{p.manualAge ? `${p.manualAge} ปี` : '-'}</span>
-                    </div>
-                    <div className="flex justify-between text-[10px]">
-                        <span className="text-slate-500">อายุ (คำนวณ):</span>
-                        <span className="text-slate-300">{p.age ? `${p.age} ปี` : '-'}</span>
-                    </div>
-                    <div className="flex justify-between text-[10px]">
-                        <span className="text-slate-500">มวลชีวภาพ (AGB):</span>
-                        <span className="text-emerald-400 font-semibold">{displayAgb ? parseFloat(displayAgb).toFixed(2) : '-'} <span className="text-slate-500 font-normal">ตัน</span></span>
-                    </div>
-                    <div className="flex flex-col gap-2 mt-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                        <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wide">ข้อมูลการคำนวณ</span>
-
-                        {(() => {
-                            const inNdvi = p.actualFormulas ? p.actualFormulas.some(f => (f.name || '').toLowerCase().includes('ndvi') || (f.formula || '').toLowerCase().includes('ndvi')) : (method.name || '').toLowerCase().includes('ndvi') || (method.formula || '').toLowerCase().includes('ndvi') || (p.method || '').toLowerCase().includes('ndvi');
-                            const inTcari = p.actualFormulas ? p.actualFormulas.some(f => (f.name || '').toLowerCase().includes('tcari') || (f.formula || '').toLowerCase().includes('tcari')) : (method.name || '').toLowerCase().includes('tcari') || (method.formula || '').toLowerCase().includes('tcari') || (p.method || '').toLowerCase().includes('tcari');
-
-                            const showNdvi = p.ndvi && inNdvi;
-                            const showTcari = p.tcari && inTcari;
-
-                            if (!p.dbh && !p.height && !showNdvi && !showTcari) return null;
-
-                            return (
-                                <div className="grid grid-cols-2 gap-1.5">
-                                    {p.dbh && (
-                                        <div className="flex justify-between items-center rounded-md px-2 py-1" style={{ background: 'rgba(16,185,129,0.08)' }}>
-                                            <span className="text-emerald-500/80 text-[9px] font-bold">DBH</span>
-                                            <span className="text-emerald-400 text-[10px] font-mono">{p.dbh} <span className="text-[8px] opacity-70">ซม.</span></span>
-                                        </div>
-                                    )}
-                                    {p.height && (
-                                        <div className="flex justify-between items-center rounded-md px-2 py-1" style={{ background: 'rgba(16,185,129,0.08)' }}>
-                                            <span className="text-emerald-500/80 text-[9px] font-bold">ความสูง</span>
-                                            <span className="text-emerald-400 text-[10px] font-mono">{p.height} <span className="text-[8px] opacity-70">ม.</span></span>
-                                        </div>
-                                    )}
-                                    {showNdvi && (
-                                        <div className="flex justify-between items-center rounded-md px-2 py-1" style={{ background: 'rgba(59,130,246,0.08)' }}>
-                                            <span className="text-blue-400/80 text-[9px] font-bold">NDVI</span>
-                                            <span className="text-blue-400 text-[10px] font-mono">{p.ndvi}</span>
-                                        </div>
-                                    )}
-                                    {showTcari && (
-                                        <div className="flex justify-between items-center rounded-md px-2 py-1" style={{ background: 'rgba(168,85,247,0.08)' }}>
-                                            <span className="text-purple-400/80 text-[9px] font-bold">TCARI</span>
-                                            <span className="text-purple-400 text-[10px] font-mono">{p.tcari}</span>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })()}
-
-                        {/* Active method formula */}
-                        <div className="flex flex-col gap-1.5 rounded-md p-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                            <div className="flex justify-between items-center mb-0.5">
-                                <span className="text-slate-500 text-[9px]">สูตรที่ใช้คำนวณ:</span>
-                                {multiMethods && (
-                                    <span className="text-blue-400/80 text-[8px] px-1.5 py-0.5 rounded-sm bg-blue-400/10 shrink-0 border border-blue-400/20">
-                                        วิธีที่ {methodIdx + 1}/{totalMethods}
-                                    </span>
-                                )}
+                    {/* Formula + result */}
+                    <div style={{ padding: '10px 12px' }}>
+                        <div style={{ borderRadius: 9, padding: '8px 10px', background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(99,102,241,0.1)', marginBottom: 8 }}>
+                            <div style={{ fontSize: 8, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 5, fontWeight: 700 }}>สูตรคำนวณ</div>
+                            <div style={{ fontSize: 10, color: '#a5b4fc', fontFamily: 'monospace', borderLeft: '2px solid rgba(99,102,241,0.5)', paddingLeft: 8, lineHeight: 1.5, wordBreak: 'break-all' }}>
+                                {displayFormula || '—'}
                             </div>
-                            <div className="flex flex-col gap-0.5">
-                                <span className="text-slate-400 text-[8px] font-semibold">{displayName}:</span>
-                                <span className="text-blue-300 font-mono text-[9px] break-words leading-tight pl-1 border-l border-blue-500/30">{displayFormula}</span>
-                            </div>
-                            {activeMethod?.carbon && (
-                                <div className="flex items-center gap-2 mt-1 pt-1" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                                    <span className="text-slate-500 text-[8px]">ผลลัพธ์:</span>
-                                    <span className="text-emerald-400 text-[10px] font-bold">{displayCarbon.toFixed(2)} tCO₂e</span>
-                                </div>
-                            )}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: 9, color: '#475569', fontWeight: 600 }}>ผลลัพธ์วิธีนี้</span>
+                            <span className="method-value-transition" style={{ fontSize: 13, fontWeight: 900, color: '#34d399', textShadow: '0 0 12px rgba(52,211,153,0.5)' }}>
+                                {displayCarbon.toFixed(2)} <span style={{ fontSize: 9, fontWeight: 600, color: '#6ee7b7' }}>tCO₂e</span>
+                            </span>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Row 3: Value + Actions */}
-            <div className="flex items-center justify-between mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                <div>
-                    <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider pc-label">มูลค่าประเมิน</p>
-                    <p className="text-emerald-400 font-black text-sm pc-value">฿{displayValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+            {/* ═══ EXPANDED DETAILS (unchanged structure) ═══ */}
+            {expanded && (
+                <div onClick={e => e.stopPropagation()}
+                    style={{ margin: '0 10px', paddingTop: 10, borderTop: '1px dashed rgba(255,255,255,0.07)', marginBottom: 4 }}>
+                    {[
+                        { label: 'ที่ตั้ง', value: p.subdistrict || p.district || p.province ? [p.subdistrict && `ต.${p.subdistrict}`, p.district && `อ.${p.district}`, p.province && `จ.${p.province}`].filter(Boolean).join(' ') : (p.address || '-') },
+                        { label: 'พิกัด', value: `${p.lat ? parseFloat(p.lat).toFixed(6) : '-'}, ${p.lng ? parseFloat(p.lng).toFixed(6) : '-'}`, mono: true },
+                        { label: 'พันธุ์ยางพารา', value: p.variety || 'ไม่ระบุ' },
+                        { label: 'อายุ (ระบุเอง)', value: p.manualAge ? `${p.manualAge} ปี` : '-' },
+                        { label: 'อายุ (คำนวณ)', value: p.age ? `${p.age} ปี` : '-' },
+                        { label: 'มวลชีวภาพ (AGB)', value: displayAgb ? `${parseFloat(displayAgb).toFixed(2)} ตัน` : '-', accent: true },
+                    ].map(({ label, value, mono, accent }) => (
+                        <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
+                            <span style={{ fontSize: 10, color: '#475569', flexShrink: 0 }}>{label}:</span>
+                            <span style={{ fontSize: 10, color: accent ? '#34d399' : '#94a3b8', textAlign: 'right', fontFamily: mono ? 'monospace' : 'inherit', fontWeight: accent ? 700 : 400, lineHeight: 1.4, wordBreak: 'break-word' }}>{value}</span>
+                        </div>
+                    ))}
+
+                    {/* Calculation data */}
+                    {(() => {
+                        const inNdvi = p.actualFormulas ? p.actualFormulas.some(f => (f.name || '').toLowerCase().includes('ndvi') || (f.formula || '').toLowerCase().includes('ndvi')) : (method.name || '').toLowerCase().includes('ndvi') || (method.formula || '').toLowerCase().includes('ndvi') || (p.method || '').toLowerCase().includes('ndvi');
+                        const inTcari = p.actualFormulas ? p.actualFormulas.some(f => (f.name || '').toLowerCase().includes('tcari') || (f.formula || '').toLowerCase().includes('tcari')) : (method.name || '').toLowerCase().includes('tcari') || (method.formula || '').toLowerCase().includes('tcari') || (p.method || '').toLowerCase().includes('tcari');
+                        const showNdvi = p.ndvi && inNdvi;
+                        const showTcari = p.tcari && inTcari;
+                        const hasData = p.dbh || p.height || showNdvi || showTcari;
+                        if (!hasData) return null;
+                        return (
+                            <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                                <div style={{ fontSize: 9, color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>ข้อมูลการคำนวณ</div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5 }}>
+                                    {p.dbh && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: 7, padding: '5px 8px', background: 'rgba(16,185,129,0.07)' }}>
+                                            <span style={{ fontSize: 9, color: '#6ee7b7', fontWeight: 700 }}>DBH</span>
+                                            <span style={{ fontSize: 10, color: '#34d399', fontFamily: 'monospace' }}>{p.dbh} ซม.</span>
+                                        </div>
+                                    )}
+                                    {p.height && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: 7, padding: '5px 8px', background: 'rgba(16,185,129,0.07)' }}>
+                                            <span style={{ fontSize: 9, color: '#6ee7b7', fontWeight: 700 }}>สูง</span>
+                                            <span style={{ fontSize: 10, color: '#34d399', fontFamily: 'monospace' }}>{p.height} ม.</span>
+                                        </div>
+                                    )}
+                                    {showNdvi && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: 7, padding: '5px 8px', background: 'rgba(99,102,241,0.08)' }}>
+                                            <span style={{ fontSize: 9, color: '#a5b4fc', fontWeight: 700 }}>NDVI</span>
+                                            <span style={{ fontSize: 10, color: '#818cf8', fontFamily: 'monospace' }}>{p.ndvi}</span>
+                                        </div>
+                                    )}
+                                    {showTcari && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: 7, padding: '5px 8px', background: 'rgba(168,85,247,0.08)' }}>
+                                            <span style={{ fontSize: 9, color: '#d8b4fe', fontWeight: 700 }}>TCARI</span>
+                                            <span style={{ fontSize: 10, color: '#c084fc', fontFamily: 'monospace' }}>{p.tcari}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })()}
+                    <div style={{ height: 10 }} />
                 </div>
-                <div className="flex items-center gap-2">
+            )}
+
+            {/* ═══ FOOTER ═══ */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                <div>
+                    <div style={{ fontSize: 8, color: '#475569', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.08em' }}>มูลค่าประเมิน</div>
+                    <div className="method-value-transition" style={{ fontSize: 14, fontWeight: 900, color: '#34d399', marginTop: 1 }}>
+                        ฿{displayValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <button onClick={e => { e.stopPropagation(); setExpanded(!expanded) }}
-                        className="action-btn w-8 h-8 pc-action rounded-lg flex items-center justify-center transition-all duration-300"
-                        style={{ background: expanded ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)', color: expanded ? '#10b981' : '#cbd5e1' }} title={expanded ? 'ย่อรายละเอียด' : 'ดูรายละเอียดข้อมูล'}>
+                        className="action-btn"
+                        style={{ width: 30, height: 30, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: expanded ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)', color: expanded ? '#10b981' : '#94a3b8', border: 'none', cursor: 'pointer', transition: 'all 0.25s' }}
+                        title={expanded ? 'ย่อ' : 'ขยาย'}>
                         <ChevIco cls={`w-4 h-4 transform transition-transform ${expanded ? 'rotate-180' : ''}`} />
                     </button>
                     <button onClick={e => { e.stopPropagation(); handleEditPlot(p) }}
-                        className="action-btn w-8 h-8 pc-action rounded-lg flex items-center justify-center"
-                        style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }} title="แก้ไขแปลง">
-                        <EditIco cls="w-4 h-4" />
+                        className="action-btn"
+                        style={{ width: 30, height: 30, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(245,158,11,0.12)', color: '#fbbf24', border: 'none', cursor: 'pointer', transition: 'all 0.25s' }}
+                        title="แก้ไข">
+                        <EditIco cls="w-3.5 h-3.5" />
                     </button>
                     <button onClick={e => { e.stopPropagation(); setDeleteTarget(p) }}
-                        className="action-btn w-8 h-8 pc-action rounded-lg flex items-center justify-center"
-                        style={{ background: 'rgba(239,68,68,0.12)', color: '#f87171' }} title="ลบแปลง">
-                        <TrashIco cls="w-4 h-4" />
+                        className="action-btn"
+                        style={{ width: 30, height: 30, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239,68,68,0.1)', color: '#f87171', border: 'none', cursor: 'pointer', transition: 'all 0.25s' }}
+                        title="ลบ">
+                        <TrashIco cls="w-3.5 h-3.5" />
                     </button>
                 </div>
             </div>
-            </div>{/* end card body */}
         </div>
     )
 }
