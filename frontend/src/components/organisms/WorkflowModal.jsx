@@ -102,6 +102,8 @@ export default function WorkflowModal({
     const [useMetricUnit, setUseMetricUnit] = useState(false); // Toggle for Rai/Sqm
     const [searchTerm, setSearchTerm] = useState('');
 
+    const [expandedPlotId, setExpandedPlotId] = useState(null);
+    const [activeMethodTabs, setActiveMethodTabs] = useState({}); // { [plotId]: methodIndex }
     const containerRef = useRef(null);
     const fileInputRef = useRef(null);
     const [showShpInfo, setShowShpInfo] = useState(false);
@@ -1615,7 +1617,8 @@ export default function WorkflowModal({
 
                     {/* STEP 4: SUCCESS SUMMARY & FINAL DECISION */}
                     {currentStep === 4 && (
-                        <div className="space-y-6 pt-2">
+                        <div className="space-y-5 pt-2">
+                            {/* ─── Header ─── */}
                             <div className="text-center">
                                 <div className="w-16 h-16 bg-emerald-500 text-white rounded-[24px] flex items-center justify-center mx-auto mb-4 shadow-xl shadow-emerald-200 relative">
                                     <CheckCircle2 size={32} />
@@ -1625,169 +1628,285 @@ export default function WorkflowModal({
                                 <p className="text-xs text-gray-500 font-medium mt-1">นี่คือสรุปผลลัพธ์ทั้งหมดที่คุณทำรายการ</p>
                             </div>
 
-
-                            {/* Summary Cards - Stacked Layout for Better Balance */}
-                            <div className="space-y-5">
-                                {/* Totals Section */}
-                                <div className="bg-gray-50/50 rounded-2xl p-3 border border-gray-100">
-                                    <div className="grid grid-cols-3 gap-2">
-                                        <div className="bg-white rounded-xl p-2 text-center border border-emerald-100 shadow-sm flex flex-col justify-center min-h-[70px]">
-                                            <p className="text-[9px] uppercase font-bold text-emerald-600 tracking-wider mb-0.5">คาร์บอน</p>
-                                            <div className="flex flex-col items-center leading-none">
-                                                <span className="text-base font-black text-emerald-700 tracking-tight">
-                                                    {accumulatedPlots.reduce((sum, p) => sum + parseFloat(p.carbon || 0), 0).toFixed(2)}
-                                                </span>
-                                                <span className="text-[7px] font-bold text-emerald-600 opacity-60">tCO₂e</span>
-                                            </div>
-                                        </div>
-                                        <div className="bg-white rounded-xl p-2 text-center border border-blue-100 shadow-sm flex flex-col justify-center min-h-[70px]">
-                                            <p className="text-[9px] uppercase font-bold text-blue-600 tracking-wider mb-0.5">มวลชีวภาพ</p>
-                                            <div className="flex flex-col items-center leading-none">
-                                                <span className="text-base font-black text-blue-700 tracking-tight">
-                                                    {accumulatedPlots.reduce((sum, p) => sum + parseFloat(p.agb || ((parseFloat(p.carbon || 0) / 0.47))), 0).toFixed(2)}
-                                                </span>
-                                                <span className="text-[7px] font-bold text-blue-600 opacity-60">ตัน</span>
-                                            </div>
-                                        </div>
-                                        <div className="bg-white rounded-xl p-2 text-center border border-amber-100 shadow-sm flex flex-col justify-center min-h-[70px]">
-                                            <p className="text-[9px] uppercase font-bold text-amber-600 tracking-wider mb-0.5">มูลค่ารวม</p>
-                                            <div className="flex flex-col items-center leading-none">
-                                                <span className="text-base font-black text-amber-700 tracking-tight">
-                                                    {(accumulatedPlots.reduce((sum, p) => sum + parseFloat(p.carbon || 0), 0) * currentPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                                                </span>
-                                                <span className="text-[7px] font-bold text-amber-600 opacity-60">บาท</span>
-                                            </div>
-                                        </div>
+                            {/* ─── Summary Totals ─── */}
+                            <div className="bg-gradient-to-br from-slate-50 to-emerald-50/40 rounded-2xl p-3 border border-gray-100 shadow-sm">
+                                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-2 px-1">ภาพรวมทั้งหมด</p>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <div className="bg-white rounded-xl p-2.5 text-center border border-emerald-100 shadow-sm flex flex-col justify-center min-h-[72px]">
+                                        <p className="text-[9px] uppercase font-bold text-emerald-600 tracking-wider mb-1">คาร์บอน</p>
+                                        <span className="text-lg font-black text-emerald-700 tracking-tight leading-none">
+                                            {accumulatedPlots.reduce((sum, p) => sum + parseFloat(p.carbon || 0), 0).toFixed(2)}
+                                        </span>
+                                        <span className="text-[8px] font-bold text-emerald-500/60 mt-0.5">tCO₂e</span>
+                                    </div>
+                                    <div className="bg-white rounded-xl p-2.5 text-center border border-blue-100 shadow-sm flex flex-col justify-center min-h-[72px]">
+                                        <p className="text-[9px] uppercase font-bold text-blue-600 tracking-wider mb-1">มวลชีวภาพ</p>
+                                        <span className="text-lg font-black text-blue-700 tracking-tight leading-none">
+                                            {accumulatedPlots.reduce((sum, p) => sum + parseFloat(p.agb || ((parseFloat(p.carbon || 0) / 0.47))), 0).toFixed(2)}
+                                        </span>
+                                        <span className="text-[8px] font-bold text-blue-500/60 mt-0.5">ตัน</span>
+                                    </div>
+                                    <div className="bg-white rounded-xl p-2.5 text-center border border-amber-100 shadow-sm flex flex-col justify-center min-h-[72px]">
+                                        <p className="text-[9px] uppercase font-bold text-amber-600 tracking-wider mb-1">มูลค่ารวม</p>
+                                        <span className="text-lg font-black text-amber-700 tracking-tight leading-none">
+                                            {(accumulatedPlots.reduce((sum, p) => sum + parseFloat(p.carbon || 0), 0) * currentPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                        </span>
+                                        <span className="text-[8px] font-bold text-amber-500/60 mt-0.5">บาท</span>
                                     </div>
                                 </div>
+                            </div>
 
+                            {/* ─── Plot List ─── */}
+                            <div>
+                                <div className="flex justify-between items-center px-1 mb-2.5">
+                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                        รายการแปลง ({accumulatedPlots.length})
+                                    </span>
+                                    <button
+                                        className="text-[10px] font-bold text-emerald-600 hover:bg-emerald-50 px-2 py-1 rounded-lg transition-colors"
+                                        onClick={() => onSave(null, true)}
+                                    >
+                                        บันทึกทั้งหมด
+                                    </button>
+                                </div>
 
+                                {/* Scrollable Accordion List */}
+                                <div className="space-y-2.5 max-h-[40vh] overflow-y-auto pr-1 scrollbar-thin pb-2">
+                                    {accumulatedPlots.map((plot, idx) => {
+                                        const hasMultipleMethods = plot.methods && plot.methods.length > 1;
+                                        const isExpanded = expandedPlotId === plot.id;
+                                        const activeTabIdx = activeMethodTabs[plot.id] ?? 0;
+                                        const activeMethod = (plot.methods && plot.methods[activeTabIdx]) || null;
+                                        const displayCarbon = activeMethod ? activeMethod.carbon : parseFloat(plot.carbon || 0).toFixed(2);
+                                        const displayAgb = activeMethod ? activeMethod.agb : parseFloat(plot.agb || (parseFloat(plot.carbon || 0) / 0.47)).toFixed(2);
+                                        const displayPrice = (parseFloat(displayCarbon) * currentPrice).toLocaleString(undefined, { maximumFractionDigits: 0 });
 
-                                {/* List Section */}
-                                <div>
-                                    <div className="flex justify-between items-center px-1 mb-2">
-                                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">รายการแปลง ({accumulatedPlots.length})</span>
-                                        <button className="text-[10px] font-bold text-emerald-600 hover:bg-emerald-50 px-2 py-1 rounded-lg transition-colors" onClick={() => onSave(null, true)}>
-                                            บันทึกทั้งหมด
-                                        </button>
-                                    </div>
+                                        return (
+                                            <div
+                                                key={plot.id}
+                                                className={cn(
+                                                    "relative bg-white rounded-2xl border shadow-sm overflow-hidden transition-all duration-300",
+                                                    isExpanded ? "border-emerald-200 shadow-emerald-100/80 shadow-md" : "border-gray-100 hover:border-gray-200 hover:shadow-md"
+                                                )}
+                                            >
+                                                {/* Decorative left stripe */}
+                                                <div className={cn(
+                                                    "absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl transition-all duration-300",
+                                                    isExpanded ? "bg-emerald-400" : "bg-gray-100"
+                                                )} />
 
-                                    {/* Scrollable List */}
-                                    <div className="space-y-3 max-h-[35vh] overflow-y-auto pr-1 scrollbar-thin pb-1">
-                                        {accumulatedPlots.map((plot, idx) => {
-                                            const price = (parseFloat(plot.carbon || 0) * currentPrice).toLocaleString(undefined, { maximumFractionDigits: 0 });
-                                            const areaLabel = `${plot.areaRai}-${plot.areaNgan}-${parseInt(plot.areaSqWah || 0)}`;
-
-                                            return (
-                                                <div key={plot.id} className="relative bg-white rounded-2xl border border-gray-100 shadow-sm p-3 overflow-hidden hover:shadow-md transition-all group">
-                                                    {/* Header */}
-                                                    <div className="flex justify-between items-start mb-2 relative z-10">
-                                                        <div className="flex items-start gap-3">
-                                                            <div className="w-10 h-10 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-md shrink-0 border-2 border-emerald-100 mt-1">
-                                                                <TreeDeciduous size={18} strokeWidth={2.5} />
+                                                {/* ── Card Header (always visible) ── */}
+                                                <div className="pl-4 pr-3 pt-3 pb-3">
+                                                    <div className="flex justify-between items-start">
+                                                        {/* Left: Icon + Info */}
+                                                        <div
+                                                            className="flex items-start gap-2.5 flex-1 min-w-0 cursor-pointer"
+                                                            onClick={() => hasMultipleMethods && setExpandedPlotId(isExpanded ? null : plot.id)}
+                                                        >
+                                                            <div className="w-9 h-9 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-md shrink-0 border-2 border-white mt-0.5">
+                                                                <TreeDeciduous size={16} strokeWidth={2.5} />
                                                             </div>
-                                                            <div className="min-w-0 flex flex-col pt-0.5">
-                                                                <h4 className="font-bold text-gray-800 text-base leading-tight">{plot.farmerName || 'ไม่ระบุชื่อ'}</h4>
-                                                                <p className="text-[11px] text-gray-400 font-medium truncate mt-0.5 mb-1.5">
+                                                            <div className="min-w-0 flex-1">
+                                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                                    <h4 className="font-bold text-gray-800 text-sm leading-tight truncate">{plot.farmerName || 'ไม่ระบุชื่อ'}</h4>
+                                                                    {hasMultipleMethods && (
+                                                                        <span className="inline-flex items-center gap-0.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[9px] font-black px-1.5 py-0.5 rounded-full shrink-0">
+                                                                            <Calculator size={8} />
+                                                                            {plot.methods.length} วิธี
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-[10px] text-gray-400 font-medium mt-0.5">
                                                                     พันธุ์ {plot.variety || '-'} • {plot.age || 0} ปี
                                                                 </p>
-
-                                                                {/* Minimal Location Info */}
-                                                                <div className="flex flex-col gap-1">
-                                                                    <div className="flex items-center gap-1.5">
-                                                                        <Map size={10} className="text-gray-400" />
-                                                                        <span className="text-[10px] text-gray-500 font-medium">{plot.address || 'ไม่ระบุสถานที่'}</span>
-                                                                    </div>
-                                                                    <div className="flex items-center gap-1.5">
-                                                                        <Globe size={10} className="text-gray-400" />
-                                                                        <span className="text-[10px] text-gray-500 font-mono">
-                                                                            {(() => {
-                                                                                try {
-                                                                                    if (plot.geometry) {
-                                                                                        const center = turf.center(plot.geometry);
-                                                                                        const [lng, lat] = center.geometry.coordinates;
-                                                                                        return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-                                                                                    }
-                                                                                    return '-';
-                                                                                } catch (e) { return '-'; }
-                                                                            })()}
-                                                                        </span>
-                                                                    </div>
+                                                                <div className="flex items-center gap-1 mt-0.5">
+                                                                    <Map size={9} className="text-gray-300 shrink-0" />
+                                                                    <span className="text-[9px] text-gray-400 truncate">{plot.address || 'ไม่ระบุสถานที่'}</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-1 mt-0.5">
+                                                                    <Globe size={9} className="text-gray-300 shrink-0" />
+                                                                    <span className="text-[9px] text-gray-400 font-mono">
+                                                                        {(() => {
+                                                                            try {
+                                                                                if (plot.geometry) {
+                                                                                    const center = turf.center(plot.geometry);
+                                                                                    const [lng, lat] = center.geometry.coordinates;
+                                                                                    return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+                                                                                }
+                                                                                return '-';
+                                                                            } catch (e) { return '-'; }
+                                                                        })()}
+                                                                    </span>
                                                                 </div>
                                                             </div>
                                                         </div>
 
-                                                        <div className="flex gap-1 shrink-0">
+                                                        {/* Right: Action Buttons + Expand Toggle */}
+                                                        <div className="flex items-center gap-1 shrink-0 ml-1">
                                                             <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    handleEditAccumulatedPlot(plot);
-                                                                }}
-                                                                className="w-6 h-6 rounded-lg bg-gray-50 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 transition-colors flex items-center justify-center"
+                                                                onClick={(e) => { e.stopPropagation(); handleEditAccumulatedPlot(plot); }}
+                                                                className="w-7 h-7 rounded-lg bg-gray-50 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 transition-colors flex items-center justify-center"
+                                                                title="แก้ไข"
                                                             >
                                                                 <Edit3 size={12} />
                                                             </button>
                                                             <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    onDeletePlot(plot.id);
-                                                                }}
-                                                                className="w-6 h-6 rounded-lg bg-gray-50 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors flex items-center justify-center"
+                                                                onClick={(e) => { e.stopPropagation(); onDeletePlot(plot.id); }}
+                                                                className="w-7 h-7 rounded-lg bg-gray-50 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors flex items-center justify-center"
+                                                                title="ลบ"
                                                             >
                                                                 <Trash2 size={12} />
                                                             </button>
+                                                            {hasMultipleMethods && (
+                                                                <button
+                                                                    onClick={() => setExpandedPlotId(isExpanded ? null : plot.id)}
+                                                                    className={cn(
+                                                                        "w-7 h-7 rounded-lg transition-all flex items-center justify-center",
+                                                                        isExpanded
+                                                                            ? "bg-emerald-100 text-emerald-600 rotate-180"
+                                                                            : "bg-gray-50 text-gray-400 hover:bg-emerald-50 hover:text-emerald-500"
+                                                                    )}
+                                                                    title={isExpanded ? 'ซ่อนรายละเอียด' : 'ดูผลแต่ละวิธี'}
+                                                                >
+                                                                    <ChevronRight size={13} className="rotate-90 transition-transform duration-300" style={{ transform: isExpanded ? 'rotate(-90deg)' : 'rotate(90deg)' }} />
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </div>
 
-                                                    {/* Results Row */}
-                                                    <div className="grid grid-cols-3 gap-1.5 mt-2">
-                                                        {/* Carbon */}
-                                                        <div className="bg-emerald-50/50 rounded-lg p-1.5 flex flex-col items-center justify-center border border-emerald-100/50">
-                                                            <span className="text-[7px] font-bold text-emerald-600 uppercase tracking-wider mb-0.5">CO₂e</span>
-                                                            <span className="text-xs font-black text-emerald-700 leading-none">{parseFloat(plot.carbon).toFixed(2)}</span>
+                                                    {/* Summary Mini-Stats (default / collapsed) */}
+                                                    {!isExpanded && (
+                                                        <div className="grid grid-cols-3 gap-1.5 mt-2.5">
+                                                            <div className="bg-emerald-50/60 rounded-lg p-1.5 border border-emerald-100/60 text-center">
+                                                                <span className="block text-[7px] font-bold text-emerald-600 uppercase tracking-wider mb-0.5">CO₂e</span>
+                                                                <span className="text-xs font-black text-emerald-700 leading-none">
+                                                                    {parseFloat(plot.carbon || 0).toFixed(2)}
+                                                                </span>
+                                                                {hasMultipleMethods && (
+                                                                    <span className="block text-[7px] text-emerald-500/60 mt-0.5">เฉลี่ย</span>
+                                                                )}
+                                                            </div>
+                                                            <div className="bg-blue-50/60 rounded-lg p-1.5 border border-blue-100/60 text-center">
+                                                                <span className="block text-[7px] font-bold text-blue-600 uppercase tracking-wider mb-0.5">AGB</span>
+                                                                <span className="text-xs font-black text-blue-700 leading-none">
+                                                                    {parseFloat(plot.agb || (parseFloat(plot.carbon || 0) / 0.47)).toFixed(2)}
+                                                                </span>
+                                                                {hasMultipleMethods && (
+                                                                    <span className="block text-[7px] text-blue-500/60 mt-0.5">เฉลี่ย</span>
+                                                                )}
+                                                            </div>
+                                                            <div className="bg-amber-50/60 rounded-lg p-1.5 border border-amber-100/60 text-center">
+                                                                <span className="block text-[7px] font-bold text-amber-600 uppercase tracking-wider mb-0.5">฿</span>
+                                                                <span className="text-xs font-black text-amber-700 leading-none">
+                                                                    {(parseFloat(plot.carbon || 0) * currentPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                                                </span>
+                                                            </div>
                                                         </div>
-
-                                                        {/* Biomass */}
-                                                        <div className="bg-blue-50/50 rounded-lg p-1.5 flex flex-col items-center justify-center border border-blue-100/50">
-                                                            <span className="text-[7px] font-bold text-blue-600 uppercase tracking-wider mb-0.5">AGB</span>
-                                                            <span className="text-xs font-black text-blue-700 leading-none">
-                                                                {parseFloat(plot.agb || (parseFloat(plot.carbon) / 0.47)).toFixed(2)}
-                                                            </span>
-                                                        </div>
-
-                                                        {/* Price */}
-                                                        <div className="bg-amber-50/50 rounded-lg p-1.5 flex flex-col items-center justify-center border border-amber-100/50">
-                                                            <span className="text-[7px] font-bold text-amber-600 uppercase tracking-wider mb-0.5">฿</span>
-                                                            <span className="text-xs font-black text-amber-700 leading-none">{price}</span>
-                                                        </div>
-                                                    </div>
+                                                    )}
                                                 </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
 
-                                {/* Footer Buttons */}
-                                <div className="pt-2">
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <button
-                                            onClick={handleDigitizeMore}
-                                            className="h-11 bg-white hover:bg-emerald-50 border border-emerald-100 hover:border-emerald-200 text-emerald-600 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-sm"
-                                        >
-                                            <Plus size={14} strokeWidth={3} />
-                                            เพิ่มแปลงใหม่
-                                        </button>
+                                                {/* ── Expanded: Per-Method Tabs ── */}
+                                                {isExpanded && hasMultipleMethods && (
+                                                    <div
+                                                        className="border-t border-dashed border-emerald-100 bg-gradient-to-b from-emerald-50/30 to-white px-3 pb-3 pt-3"
+                                                        style={{ animation: 'expandDown 0.25s ease-out' }}
+                                                    >
+                                                        {/* Method Tabs */}
+                                                        <div className="flex gap-1.5 overflow-x-auto scrollbar-thin pb-1 mb-3">
+                                                            {plot.methods.map((m, mIdx) => (
+                                                                <button
+                                                                    key={m.id}
+                                                                    onClick={() => setActiveMethodTabs(prev => ({ ...prev, [plot.id]: mIdx }))}
+                                                                    className={cn(
+                                                                        "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-all duration-200 shrink-0 border",
+                                                                        activeTabIdx === mIdx
+                                                                            ? "text-white shadow-md scale-105"
+                                                                            : "bg-white text-gray-400 border-gray-100 hover:border-gray-200"
+                                                                    )}
+                                                                    style={activeTabIdx === mIdx ? { backgroundColor: m.color, borderColor: m.color, boxShadow: `0 4px 12px ${m.color}40` } : {}}
+                                                                >
+                                                                    <span>{m.icon}</span>
+                                                                    <span className="truncate max-w-[80px]">{m.name.replace('สมการที่ ', 'สมการ ').replace(' (ภาคสนาม)', '').replace(' (ดาวเทียม)', '')}</span>
+                                                                </button>
+                                                            ))}
+                                                        </div>
 
-                                        <button
-                                            onClick={() => onSave(null, true)}
-                                            disabled={accumulatedPlots.length === 0}
-                                            className="h-11 bg-gray-900 hover:bg-black text-white rounded-xl text-xs font-bold disabled:bg-gray-100 disabled:text-gray-400 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
-                                        >
-                                            <CheckCircle2 size={16} />
-                                            ยืนยันการบันทึก
-                                        </button>
-                                    </div>
+                                                        {/* Active Method Detail */}
+                                                        {activeMethod && (
+                                                            <div
+                                                                key={activeMethod.id}
+                                                                className="space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-200"
+                                                            >
+                                                                {/* Formula badge */}
+                                                                <div className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 border border-gray-100">
+                                                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base shrink-0" style={{ backgroundColor: `${activeMethod.color}18` }}>
+                                                                        {activeMethod.icon}
+                                                                    </div>
+                                                                    <div className="min-w-0">
+                                                                        <p className="text-[10px] font-bold text-gray-700 truncate">{activeMethod.name}</p>
+                                                                        <p className="text-[9px] font-mono text-gray-400 truncate">{activeMethod.formula}</p>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Result Stats */}
+                                                                <div className="grid grid-cols-3 gap-1.5">
+                                                                    <div className="rounded-xl p-2.5 text-center border" style={{ backgroundColor: `${activeMethod.color}0D`, borderColor: `${activeMethod.color}30` }}>
+                                                                        <span className="block text-[8px] font-bold uppercase tracking-wider mb-1" style={{ color: activeMethod.color }}>CO₂e</span>
+                                                                        <span className="text-sm font-black leading-none" style={{ color: activeMethod.color }}>{activeMethod.carbon}</span>
+                                                                        <span className="block text-[7px] font-medium mt-0.5" style={{ color: `${activeMethod.color}80` }}>tCO₂e</span>
+                                                                    </div>
+                                                                    <div className="bg-blue-50 rounded-xl p-2.5 text-center border border-blue-100">
+                                                                        <span className="block text-[8px] font-bold text-blue-600 uppercase tracking-wider mb-1">AGB</span>
+                                                                        <span className="text-sm font-black text-blue-700 leading-none">{activeMethod.agb}</span>
+                                                                        <span className="block text-[7px] font-medium text-blue-500/60 mt-0.5">ตัน</span>
+                                                                    </div>
+                                                                    <div className="bg-amber-50 rounded-xl p-2.5 text-center border border-amber-100">
+                                                                        <span className="block text-[8px] font-bold text-amber-600 uppercase tracking-wider mb-1">มูลค่า</span>
+                                                                        <span className="text-sm font-black text-amber-700 leading-none">
+                                                                            {(parseFloat(activeMethod.carbon) * currentPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                                                        </span>
+                                                                        <span className="block text-[7px] font-medium text-amber-500/60 mt-0.5">บาท</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Hint: shows avg */}
+                                                                <div className="flex items-center justify-between px-1">
+                                                                    <span className="text-[9px] text-gray-400">ค่าเฉลี่ยทุกวิธี:</span>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-[9px] font-bold text-emerald-600">{parseFloat(plot.carbon || 0).toFixed(2)} tCO₂e</span>
+                                                                        <span className="text-[9px] text-gray-300">|</span>
+                                                                        <span className="text-[9px] font-bold text-amber-600">
+                                                                            ฿{(parseFloat(plot.carbon || 0) * currentPrice).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
+                            </div>
+
+                            {/* ─── Footer Buttons ─── */}
+                            <div className="grid grid-cols-2 gap-3 pt-1">
+                                <button
+                                    onClick={handleDigitizeMore}
+                                    className="h-11 bg-white hover:bg-emerald-50 border border-emerald-100 hover:border-emerald-200 text-emerald-600 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-sm active:scale-[0.97]"
+                                >
+                                    <Plus size={14} strokeWidth={3} />
+                                    เพิ่มแปลงใหม่
+                                </button>
+                                <button
+                                    onClick={() => onSave(null, true)}
+                                    disabled={accumulatedPlots.length === 0}
+                                    className="h-11 bg-gray-900 hover:bg-black text-white rounded-xl text-xs font-bold disabled:bg-gray-100 disabled:text-gray-400 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 active:scale-[0.97]"
+                                >
+                                    <CheckCircle2 size={16} />
+                                    ยืนยันการบันทึก
+                                </button>
                             </div>
                         </div>
                     )}
