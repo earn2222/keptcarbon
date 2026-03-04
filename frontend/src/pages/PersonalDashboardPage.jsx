@@ -373,9 +373,9 @@ function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget
         <div
             className={`plot-card rounded-2xl cursor-pointer transition-all duration-300 ${isActive ? 'active-card' : ''}`}
             style={{
-                background: isActive ? 'rgba(16,185,129,0.07)' : 'rgba(255,255,255,0.025)',
-                border: isActive ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(255,255,255,0.06)',
-                boxShadow: isActive ? '0 0 20px rgba(16,185,129,0.1)' : 'none',
+                background: isActive ? '#ecfdf5' : '#ffffff',
+                border: isActive ? '1.5px solid #10b981' : '1px solid #e2f5ed',
+                boxShadow: isActive ? '0 0 0 3px rgba(16,185,129,0.12),0 4px 16px rgba(16,185,129,0.1)' : '0 1px 6px rgba(0,0,0,0.04)',
                 overflow: 'hidden'
             }}
             onClick={() => zoomTo(p)}>
@@ -386,16 +386,16 @@ function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget
                 {/* Row 1: Name + Carbon value */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.3 }}>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.3 }}>
                             {p.farmerName}
                         </div>
-                        <div style={{ fontSize: 9, color: '#475569', marginTop: 2, fontWeight: 600 }}>SKT-PLOT-{p.id}</div>
+                        <div style={{ fontSize: 9, color: '#9ca3af', marginTop: 2, fontWeight: 600 }}>SKT-PLOT-{p.id}</div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div className="method-value-transition" style={{ fontSize: 20, fontWeight: 900, color: '#34d399', lineHeight: 1, textShadow: '0 0 20px rgba(52,211,153,0.4)' }}>
+                        <div className="method-value-transition" style={{ fontSize: 20, fontWeight: 900, color: '#059669', lineHeight: 1 }}>
                             {displayCarbon.toFixed(2)}
                         </div>
-                        <div style={{ fontSize: 8, color: '#64748b', marginTop: 2, fontWeight: 700, letterSpacing: '0.08em' }}>tCO₂e</div>
+                        <div style={{ fontSize: 8, color: '#9ca3af', marginTop: 2, fontWeight: 700, letterSpacing: '0.08em' }}>tCO₂e</div>
                     </div>
                 </div>
 
@@ -422,10 +422,10 @@ function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget
             {multiMethods && (
                 <div
                     onClick={e => e.stopPropagation()}
-                    style={{ margin: '0 10px 10px 10px', borderRadius: 14, overflow: 'hidden', background: 'rgba(10,15,35,0.8)', border: '1px solid rgba(99,102,241,0.2)' }}>
+                    style={{ margin: '0 10px 10px 10px', borderRadius: 14, overflow: 'hidden', background: '#eff6ff', border: '1px solid #bfdbfe' }}>
 
                     {/* Method navigator header */}
-                    <div style={{ display: 'flex', alignItems: 'center', padding: '8px 10px', borderBottom: '1px solid rgba(99,102,241,0.12)', gap: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', padding: '8px 10px', borderBottom: '1px solid #dbeafe', gap: 6, background: '#dbeafe' }}>
                         {/* Prev btn */}
                         <button onClick={prevMethod} className="method-nav-btn"
                             style={{ width: 26, height: 26, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.25)', color: '#818cf8', cursor: 'pointer' }}>
@@ -434,7 +434,7 @@ function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget
 
                         {/* Method name (center, no-wrap, truncate) */}
                         <div style={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
-                            <div style={{ fontSize: 11, fontWeight: 800, color: '#c7d2fe', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.2 }}>
+                            <div style={{ fontSize: 11, fontWeight: 800, color: '#1d4ed8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.2 }}>
                                 {displayName}
                             </div>
                             {/* Dot stepper */}
@@ -442,13 +442,13 @@ function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget
                                 {multiMethods.map((_, i) => (
                                     <button key={i} onClick={e => { e.stopPropagation(); setMethodIdx(i) }}
                                         className="transition-all duration-300"
-                                        style={{ width: i === methodIdx ? 16 : 5, height: 5, borderRadius: 99, background: i === methodIdx ? '#6366f1' : 'rgba(255,255,255,0.15)', boxShadow: i === methodIdx ? '0 0 6px rgba(99,102,241,0.7)' : 'none', border: 'none', padding: 0, cursor: 'pointer', transition: 'all 0.3s' }} />
+                                        style={{ width: i === methodIdx ? 16 : 5, height: 5, borderRadius: 99, background: i === methodIdx ? '#2563eb' : '#bfdbfe', boxShadow: i === methodIdx ? '0 0 6px rgba(37,99,235,0.4)' : 'none', border: 'none', padding: 0, cursor: 'pointer', transition: 'all 0.3s' }} />
                                 ))}
                             </div>
                         </div>
 
                         {/* Counter */}
-                        <span style={{ fontSize: 9, fontWeight: 800, color: '#818cf8', background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.3)', padding: '2px 7px', borderRadius: 99, flexShrink: 0 }}>
+                        <span style={{ fontSize: 9, fontWeight: 800, color: '#1d4ed8', background: '#ffffff', border: '1px solid #93c5fd', padding: '2px 7px', borderRadius: 99, flexShrink: 0 }}>
                             {methodIdx + 1}/{totalMethods}
                         </span>
 
@@ -460,17 +460,17 @@ function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget
                     </div>
 
                     {/* Formula + result */}
-                    <div style={{ padding: '10px 12px' }}>
-                        <div style={{ borderRadius: 9, padding: '8px 10px', background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(99,102,241,0.1)', marginBottom: 8 }}>
-                            <div style={{ fontSize: 8, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 5, fontWeight: 700 }}>สูตรคำนวณ</div>
-                            <div style={{ fontSize: 10, color: '#a5b4fc', fontFamily: 'monospace', borderLeft: '2px solid rgba(99,102,241,0.5)', paddingLeft: 8, lineHeight: 1.5, wordBreak: 'break-all' }}>
+                    <div style={{ padding: '10px 12px', background: '#f0f9ff' }}>
+                        <div style={{ borderRadius: 9, padding: '8px 10px', background: '#ffffff', border: '1px solid #dbeafe', marginBottom: 8 }}>
+                            <div style={{ fontSize: 8, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 5, fontWeight: 700 }}>สูตรคำนวณ</div>
+                            <div style={{ fontSize: 10, color: '#1d4ed8', fontFamily: 'monospace', borderLeft: '2px solid #3b82f6', paddingLeft: 8, lineHeight: 1.5, wordBreak: 'break-all' }}>
                                 {displayFormula || '—'}
                             </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span style={{ fontSize: 9, color: '#475569', fontWeight: 600 }}>ผลลัพธ์วิธีนี้</span>
-                            <span className="method-value-transition" style={{ fontSize: 13, fontWeight: 900, color: '#34d399', textShadow: '0 0 12px rgba(52,211,153,0.5)' }}>
-                                {displayCarbon.toFixed(2)} <span style={{ fontSize: 9, fontWeight: 600, color: '#6ee7b7' }}>tCO₂e</span>
+                            <span style={{ fontSize: 9, color: '#6b7280', fontWeight: 600 }}>ผลลัพธ์วิธีนี้</span>
+                            <span className="method-value-transition" style={{ fontSize: 13, fontWeight: 900, color: '#059669' }}>
+                                {displayCarbon.toFixed(2)} <span style={{ fontSize: 9, fontWeight: 600, color: '#16a34a' }}>tCO₂e</span>
                             </span>
                         </div>
                     </div>
@@ -480,7 +480,7 @@ function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget
             {/* ═══ EXPANDED DETAILS (unchanged structure) ═══ */}
             {expanded && (
                 <div onClick={e => e.stopPropagation()}
-                    style={{ margin: '0 10px', paddingTop: 10, borderTop: '1px dashed rgba(255,255,255,0.07)', marginBottom: 4 }}>
+                    style={{ margin: '0 10px', paddingTop: 10, borderTop: '1px dashed #a7f3d0', marginBottom: 4 }}>
                     {[
                         { label: 'ที่ตั้ง', value: p.subdistrict || p.district || p.province ? [p.subdistrict && `ต.${p.subdistrict}`, p.district && `อ.${p.district}`, p.province && `จ.${p.province}`].filter(Boolean).join(' ') : (p.address || '-') },
                         { label: 'พิกัด', value: `${p.lat ? parseFloat(p.lat).toFixed(6) : '-'}, ${p.lng ? parseFloat(p.lng).toFixed(6) : '-'}`, mono: true },
@@ -490,8 +490,8 @@ function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget
                         { label: 'มวลชีวภาพ (AGB)', value: displayAgb ? `${parseFloat(displayAgb).toFixed(2)} ตัน` : '-', accent: true },
                     ].map(({ label, value, mono, accent }) => (
                         <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
-                            <span style={{ fontSize: 10, color: '#475569', flexShrink: 0 }}>{label}:</span>
-                            <span style={{ fontSize: 10, color: accent ? '#34d399' : '#94a3b8', textAlign: 'right', fontFamily: mono ? 'monospace' : 'inherit', fontWeight: accent ? 700 : 400, lineHeight: 1.4, wordBreak: 'break-word' }}>{value}</span>
+                            <span style={{ fontSize: 10, color: '#6b7280', flexShrink: 0 }}>{label}:</span>
+                            <span style={{ fontSize: 10, color: accent ? '#059669' : '#374151', textAlign: 'right', fontFamily: mono ? 'monospace' : 'inherit', fontWeight: accent ? 700 : 400, lineHeight: 1.4, wordBreak: 'break-word' }}>{value}</span>
                         </div>
                     ))}
 
@@ -504,31 +504,31 @@ function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget
                         const hasData = p.dbh || p.height || showNdvi || showTcari;
                         if (!hasData) return null;
                         return (
-                            <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                                <div style={{ fontSize: 9, color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>ข้อมูลการคำนวณ</div>
+                            <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #d1fae5' }}>
+                                <div style={{ fontSize: 9, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>ข้อมูลการคำนวณ</div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5 }}>
                                     {p.dbh && (
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: 7, padding: '5px 8px', background: 'rgba(16,185,129,0.07)' }}>
-                                            <span style={{ fontSize: 9, color: '#6ee7b7', fontWeight: 700 }}>DBH</span>
-                                            <span style={{ fontSize: 10, color: '#34d399', fontFamily: 'monospace' }}>{p.dbh} ซม.</span>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: 7, padding: '5px 8px', background: '#dcfce7', border: '1px solid #bbf7d0' }}>
+                                            <span style={{ fontSize: 9, color: '#15803d', fontWeight: 700 }}>DBH</span>
+                                            <span style={{ fontSize: 10, color: '#065f46', fontFamily: 'monospace' }}>{p.dbh} ซม.</span>
                                         </div>
                                     )}
                                     {p.height && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: 7, padding: '5px 8px', background: 'rgba(16,185,129,0.07)' }}>
-                                            <span style={{ fontSize: 9, color: '#6ee7b7', fontWeight: 700 }}>สูง</span>
-                                            <span style={{ fontSize: 10, color: '#34d399', fontFamily: 'monospace' }}>{p.height} ม.</span>
+                                            <span style={{ fontSize: 9, color: '#15803d', fontWeight: 700 }}>สูง</span>
+                                            <span style={{ fontSize: 10, color: '#065f46', fontFamily: 'monospace' }}>{p.height} ม.</span>
                                         </div>
                                     )}
                                     {showNdvi && (
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: 7, padding: '5px 8px', background: 'rgba(99,102,241,0.08)' }}>
-                                            <span style={{ fontSize: 9, color: '#a5b4fc', fontWeight: 700 }}>NDVI</span>
-                                            <span style={{ fontSize: 10, color: '#818cf8', fontFamily: 'monospace' }}>{p.ndvi}</span>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: 7, padding: '5px 8px', background: '#eff6ff', border: '1px solid #bfdbfe' }}>
+                                            <span style={{ fontSize: 9, color: '#1d4ed8', fontWeight: 700 }}>NDVI</span>
+                                            <span style={{ fontSize: 10, color: '#2563eb', fontFamily: 'monospace' }}>{p.ndvi}</span>
                                         </div>
                                     )}
                                     {showTcari && (
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: 7, padding: '5px 8px', background: 'rgba(168,85,247,0.08)' }}>
-                                            <span style={{ fontSize: 9, color: '#d8b4fe', fontWeight: 700 }}>TCARI</span>
-                                            <span style={{ fontSize: 10, color: '#c084fc', fontFamily: 'monospace' }}>{p.tcari}</span>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: 7, padding: '5px 8px', background: '#faf5ff', border: '1px solid #e9d5ff' }}>
+                                            <span style={{ fontSize: 9, color: '#7e22ce', fontWeight: 700 }}>TCARI</span>
+                                            <span style={{ fontSize: 10, color: '#9333ea', fontFamily: 'monospace' }}>{p.tcari}</span>
                                         </div>
                                     )}
                                 </div>
@@ -540,29 +540,29 @@ function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget
             )}
 
             {/* ═══ FOOTER ═══ */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderTop: '1px solid #e2f5ed', background: '#f8fffe' }}>
                 <div>
-                    <div style={{ fontSize: 8, color: '#475569', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.08em' }}>มูลค่าประเมิน</div>
-                    <div className="method-value-transition" style={{ fontSize: 14, fontWeight: 900, color: '#34d399', marginTop: 1 }}>
+                    <div style={{ fontSize: 8, color: '#9ca3af', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.08em' }}>มูลค่าประเมิน</div>
+                    <div className="method-value-transition" style={{ fontSize: 14, fontWeight: 900, color: '#059669', marginTop: 1 }}>
                         ฿{displayValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <button onClick={e => { e.stopPropagation(); setExpanded(!expanded) }}
                         className="action-btn"
-                        style={{ width: 30, height: 30, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: expanded ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)', color: expanded ? '#10b981' : '#94a3b8', border: 'none', cursor: 'pointer', transition: 'all 0.25s' }}
+                        style={{ width: 30, height: 30, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: expanded ? '#dcfce7' : '#f1f5f9', color: expanded ? '#15803d' : '#64748b', border: expanded ? '1px solid #86efac' : '1px solid #e2e8f0', cursor: 'pointer', transition: 'all 0.25s' }}
                         title={expanded ? 'ย่อ' : 'ขยาย'}>
                         <ChevIco cls={`w-4 h-4 transform transition-transform ${expanded ? 'rotate-180' : ''}`} />
                     </button>
                     <button onClick={e => { e.stopPropagation(); handleEditPlot(p) }}
                         className="action-btn"
-                        style={{ width: 30, height: 30, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(245,158,11,0.12)', color: '#fbbf24', border: 'none', cursor: 'pointer', transition: 'all 0.25s' }}
+                        style={{ width: 30, height: 30, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a', cursor: 'pointer', transition: 'all 0.25s' }}
                         title="แก้ไข">
                         <EditIco cls="w-3.5 h-3.5" />
                     </button>
                     <button onClick={e => { e.stopPropagation(); setDeleteTarget(p) }}
                         className="action-btn"
-                        style={{ width: 30, height: 30, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239,68,68,0.1)', color: '#f87171', border: 'none', cursor: 'pointer', transition: 'all 0.25s' }}
+                        style={{ width: 30, height: 30, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff1f2', color: '#e11d48', border: '1px solid #fecdd3', cursor: 'pointer', transition: 'all 0.25s' }}
                         title="ลบ">
                         <TrashIco cls="w-3.5 h-3.5" />
                     </button>
@@ -876,7 +876,7 @@ export default function PersonalDashboardPage() {
       `}</style>
 
             {/* ── LEFT SIDEBAR NAV ── */}
-            <aside className="desktop-nav flex-shrink-0 flex flex-col items-center py-6 gap-5" style={{ width: 60, background: '#161b27', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+            <aside className="desktop-nav flex-shrink-0 flex flex-col items-center py-6 gap-5" style={{ width: 64, background: '#ffffff', borderRight: '1px solid #e2f5ed', boxShadow: '2px 0 12px rgba(16,185,129,0.06)' }}>
                 {/* Logo */}
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-2" style={{ background: 'linear-gradient(135deg,#10b981,#059669)' }}>
                     <LeafIco cls="w-5 h-5 text-white" />
@@ -886,7 +886,7 @@ export default function PersonalDashboardPage() {
                     {navItems.map(item => (
                         <button key={item.key} onClick={() => history.push(item.path)} title={item.label}
                             className="nav-btn w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200"
-                            style={{ color: item.key === 'personal' ? '#10b981' : '#64748b', background: item.key === 'personal' ? 'rgba(16,185,129,0.15)' : 'transparent' }}>
+                            style={{ color: item.key === 'personal' ? '#059669' : '#94a3b8', background: item.key === 'personal' ? 'rgba(16,185,129,0.12)' : 'transparent' }}>
                             {item.icon}
                         </button>
                     ))}
@@ -904,21 +904,21 @@ export default function PersonalDashboardPage() {
             <div className="flex-1 flex flex-col overflow-hidden content-area">
 
                 {/* TOP BAR */}
-                <header className="flex-shrink-0 flex items-center justify-between px-5 py-3" style={{ background: '#161b27', borderBottom: '1px solid rgba(255,255,255,0.06)', minHeight: 56 }}>
+                <header className="flex-shrink-0 flex items-center justify-between px-5 py-3" style={{ background: '#ffffff', borderBottom: '1px solid #e2f5ed', minHeight: 56, boxShadow: '0 2px 8px rgba(16,185,129,0.06)' }}>
                     <div>
-                        <h1 className="text-white font-black text-base leading-tight">แดชบอร์ดส่วนตัว</h1>
-                        <p className="text-slate-500 text-[11px] mt-0.5">ยินดีต้อนรับ, {userProfile?.name || 'ผู้ใช้งาน'}</p>
+                        <h1 className="font-black text-base leading-tight" style={{ color: '#064e3b' }}>แดชบอร์ดส่วนตัว</h1>
+                        <p className="text-[11px] mt-0.5" style={{ color: '#6b7280' }}>ยินดีต้อนรับ, {userProfile?.name || 'ผู้ใช้งาน'}</p>
                     </div>
 
                     {/* Profile button */}
                     <div className="flex items-center gap-3">
                         <button onClick={() => setShowProfile(true)}
-                            className="flex items-center gap-2 px-3 py-2 rounded-xl transition-all hover:bg-white/5"
-                            style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+                            className="flex items-center gap-2 px-3 py-2 rounded-xl transition-all"
+                            style={{ border: '1px solid #d1fae5', background: '#f0fdf4' }}>
                             <div className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-xs font-black" style={{ background: 'linear-gradient(135deg,#10b981,#059669)', color: 'white' }}>
                                 {userProfile?.picture ? <img src={userProfile.picture} alt="" className="w-full h-full object-cover" /> : avatarLetter}
                             </div>
-                            <span className="text-white text-xs font-semibold hidden sm:block">{userProfile?.name || 'ผู้ใช้งาน'}</span>
+                            <span className="text-xs font-semibold hidden sm:block" style={{ color: '#065f46' }}>{userProfile?.name || 'ผู้ใช้งาน'}</span>
                         </button>
                         <button onClick={() => setShowProfile(true)}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
@@ -929,13 +929,13 @@ export default function PersonalDashboardPage() {
                 </header>
 
                 {/* PROFILE CARD */}
-                <div className="flex-shrink-0 px-5 py-3" style={{ background: '#1a2030', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <div className="flex-shrink-0 px-5 py-3" style={{ background: 'linear-gradient(135deg,#ecfdf5 0%,#f0fdf4 100%)', borderBottom: '1px solid #a7f3d0' }}>
                     <div className="flex flex-wrap items-center gap-4">
                         <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center font-black text-lg flex-shrink-0" style={{ background: 'linear-gradient(135deg,#10b981,#059669)', color: 'white' }}>
                             {userProfile?.picture ? <img src={userProfile.picture} alt="" className="w-full h-full object-cover" /> : avatarLetter}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <h2 className="text-white font-bold text-sm">{userProfile?.name || 'ยังไม่ได้ตั้งชื่อ'}</h2>
+                            <h2 className="font-bold text-sm" style={{ color: '#064e3b' }}>{userProfile?.name || 'ยังไม่ได้ตั้งชื่อ'}</h2>
                             <div className="flex flex-wrap items-center gap-2 mt-1">
                                 {userProfile?.email && (
                                     <span className="flex items-center gap-1 text-[10px] text-slate-400">
@@ -970,30 +970,30 @@ export default function PersonalDashboardPage() {
                 <div className="flex-1 flex overflow-hidden main-grid">
 
                     {/* LEFT: Plot List */}
-                    <div className="flex-shrink-0 flex flex-col overflow-hidden left-panel" style={{ width: 300, borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div className="flex-shrink-0 flex flex-col overflow-hidden left-panel" style={{ width: 300, borderRight: '1px solid #d1fae5', background: '#f8fffe' }}>
                         {/* Panel header */}
-                        <div className="flex-shrink-0 flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                        <div className="flex-shrink-0 flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid #d1fae5', background: '#ffffff' }}>
                             <div className="flex items-center gap-2">
-                                <span className="text-white font-bold text-sm">แปลงของฉัน</span>
-                                <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md" style={{ background: 'rgba(16,185,129,0.2)', color: '#10b981' }}>{filtered.length}</span>
+                                <span className="font-bold text-sm" style={{ color: '#064e3b' }}>แปลงของฉัน</span>
+                                <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md" style={{ background: '#d1fae5', color: '#059669' }}>{filtered.length}</span>
                             </div>
                         </div>
                         {/* Search */}
-                        <div className="flex-shrink-0 px-4 py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                        <div className="flex-shrink-0 px-4 py-2.5" style={{ borderBottom: '1px solid #e2f5ed', background: '#ffffff' }}>
                             <div className="relative">
-                                <SearchIco cls="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                                <SearchIco cls="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#9ca3af' }} />
                                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder="ค้นหาที่แปลง หรือ ID..."
-                                    className="w-full pl-8 pr-7 py-2 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }} />
+                                    className="w-full pl-8 pr-7 py-2 rounded-xl text-xs placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                                    style={{ background: '#f0fdf4', border: '1px solid #a7f3d0', color: '#1e293b' }} />
                                 {search && (
-                                    <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white">
+                                    <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2" style={{ color: '#9ca3af' }}>
                                         <XIco cls="w-3 h-3" />
                                     </button>
                                 )}
                             </div>
                         </div>
                         {/* Plot cards list */}
-                        <div className="flex-1 overflow-y-auto scrollbar px-3 py-2 flex flex-col gap-2 plot-list-container">
+                        <div className="flex-1 overflow-y-auto scrollbar px-3 py-2 flex flex-col gap-2.5 plot-list-container" style={{ background: '#f0fdf4' }}>
                             {loading ? (
                                 <div className="flex flex-col items-center justify-center h-full gap-2 text-slate-600">
                                     <div className="w-8 h-8 border-2 border-emerald-700 border-t-emerald-400 rounded-full animate-spin" />
@@ -1021,7 +1021,7 @@ export default function PersonalDashboardPage() {
                     <div className="flex-1 relative overflow-hidden map-panel">
                         <div ref={mapContainer} className="absolute inset-0 w-full h-full" />
                         {/* Map label */}
-                        <div className="absolute top-4 left-4 z-10 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-white" style={{ background: 'rgba(13,17,23,0.75)', border: '1px solid rgba(16,185,129,0.3)', backdropFilter: 'blur(8px)' }}>
+                        <div className="absolute top-4 left-4 z-10 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-white" style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(16,185,129,0.4)', backdropFilter: 'blur(8px)', color: '#064e3b' }}>
                             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                             แผนที่แสดงตำแหน่งแปลงของคุณ
                         </div>
@@ -1029,11 +1029,11 @@ export default function PersonalDashboardPage() {
                 </div>
 
                 {/* MOBILE BOTTOM NAV */}
-                <nav className="mobile-nav hidden fixed bottom-0 left-0 right-0 z-[500] items-center justify-around py-3 px-4" style={{ background: '#161b27', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <nav className="mobile-nav hidden fixed bottom-0 left-0 right-0 z-[500] items-center justify-around py-3 px-4" style={{ background: '#ffffff', borderTop: '1px solid #d1fae5', boxShadow: '0 -2px 12px rgba(16,185,129,0.08)' }}>
                     {navItems.map(item => (
                         <button key={item.key} onClick={() => history.push(item.path)}
                             className="flex flex-col items-center gap-0.5 px-2"
-                            style={{ color: item.key === 'personal' ? '#10b981' : '#64748b' }}>
+                            style={{ color: item.key === 'personal' ? '#059669' : '#94a3b8' }}>
                             {item.icon}
                             <span className="text-[9px] font-bold">{item.label}</span>
                         </button>

@@ -417,7 +417,7 @@ function DashboardPage() {
                     'color': 'rgb(255, 255, 255)',
                     'high-color': '#245cdf',
                     'horizon-blend': 0.1,
-                    'space-color': '#111827', // Gray 900 (Softer than black)
+                    'space-color': '#f0fdf4', // Gray 900 (Softer than black)
                     'star-intensity': 0.15 // Subtle stars
                 });
             }
@@ -453,7 +453,7 @@ function DashboardPage() {
     })
 
     return (
-        <div className="relative w-full h-screen overflow-hidden bg-gray-900">
+        <div className="relative w-full h-screen overflow-hidden bg-[#f0fdf4]">
             {/* FULLSCREEN MAP - True Color (No Opacity/Blend) */}
             <div ref={mapContainer} className="absolute inset-0 w-full h-full" />
 
@@ -491,15 +491,15 @@ function DashboardPage() {
                     {/* การ์ดคาร์บอน */}
                     <div className="group relative">
                         <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-green-400 rounded-2xl blur opacity-25 group-hover:opacity-50 transition-all duration-500" />
-                        <div className="relative bg-white/10 backdrop-blur-xl rounded-2xl p-4 border border-white/20 shadow-xl hover:shadow-emerald-500/20 transition-all duration-500 hover:-translate-y-1">
+                        <div className="relative bg-white rounded-2xl p-4 border border-emerald-100 shadow-xl shadow-emerald-500/5 hover:shadow-emerald-500/10 transition-all duration-500 hover:-translate-y-1">
                             <div className="flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/30">
                                     <CarbonIcon className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <p className="text-emerald-300 text-[10px] font-bold uppercase tracking-wider mb-0.5">ปริมาณคาร์บอน</p>
+                                    <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-0.5">ปริมาณคาร์บอน</p>
                                     <div className="flex items-baseline gap-2">
-                                        <h2 className="text-2xl font-black text-white leading-none tracking-tight">
+                                        <h2 className="text-2xl font-black text-slate-800 leading-none tracking-tight">
                                             {stats.totalCarbon.toLocaleString('th-TH', { maximumFractionDigits: 0 })}
                                         </h2>
                                         <span className="text-emerald-400 text-xs font-bold">ตัน CO₂</span>
@@ -512,15 +512,15 @@ function DashboardPage() {
                     {/* การ์ดพื้นที่ */}
                     <div className="group relative">
                         <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-green-400 rounded-2xl blur opacity-25 group-hover:opacity-50 transition-all duration-500" />
-                        <div className="relative bg-white/10 backdrop-blur-xl rounded-2xl p-4 border border-white/20 shadow-xl hover:shadow-emerald-500/20 transition-all duration-500 hover:-translate-y-1">
+                        <div className="relative bg-white rounded-2xl p-4 border border-emerald-100 shadow-xl shadow-emerald-500/5 hover:shadow-emerald-500/10 transition-all duration-500 hover:-translate-y-1">
                             <div className="flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/30">
                                     <MapIcon className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <p className="text-emerald-300 text-[10px] font-bold uppercase tracking-wider mb-0.5">พื้นที่ทั้งหมด</p>
+                                    <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-0.5">พื้นที่ทั้งหมด</p>
                                     <div className="flex items-baseline gap-2">
-                                        <h2 className="text-2xl font-black text-white leading-none tracking-tight">
+                                        <h2 className="text-2xl font-black text-slate-800 leading-none tracking-tight">
                                             {stats.totalArea.toLocaleString('th-TH', { maximumFractionDigits: 0 })}
                                         </h2>
                                         <span className="text-emerald-400 text-xs font-bold">ไร่</span>
@@ -533,15 +533,15 @@ function DashboardPage() {
                     {/* การ์ดผู้เข้าร่วม */}
                     <div className="group relative">
                         <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-green-400 rounded-2xl blur opacity-25 group-hover:opacity-50 transition-all duration-500" />
-                        <div className="relative bg-white/10 backdrop-blur-xl rounded-2xl p-4 border border-white/20 shadow-xl hover:shadow-emerald-500/20 transition-all duration-500 hover:-translate-y-1">
+                        <div className="relative bg-white rounded-2xl p-4 border border-emerald-100 shadow-xl shadow-emerald-500/5 hover:shadow-emerald-500/10 transition-all duration-500 hover:-translate-y-1">
                             <div className="flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/30">
                                     <UserIcon className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <p className="text-emerald-300 text-[10px] font-bold uppercase tracking-wider mb-0.5">ผู้เข้าร่วม</p>
+                                    <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-0.5">ผู้เข้าร่วม</p>
                                     <div className="flex items-baseline gap-2">
-                                        <h2 className="text-2xl font-black text-white leading-none tracking-tight">
+                                        <h2 className="text-2xl font-black text-slate-800 leading-none tracking-tight">
                                             {stats.totalPlots.toLocaleString('th-TH')}
                                         </h2>
                                         <span className="text-emerald-400 text-xs font-bold">ราย</span>
@@ -560,8 +560,8 @@ function DashboardPage() {
                 onClick={() => setShowPlotListModal(!showPlotListModal)}
                 className={`absolute bottom-28 right-6 z-50 transition-all duration-300 ${showPlotListModal ? 'translate-x-20 opacity-0 pointer-events-none' : 'opacity-100'}`}
             >
-                <div className="relative w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-lg flex items-center justify-center hover:bg-white/20 transition-all active:scale-95 group">
-                    <MenuIcon className="w-6 h-6 text-white group-hover:scale-110 transition-transform" />
+                <div className="relative w-12 h-12 bg-white rounded-2xl border border-emerald-100 shadow-xl shadow-emerald-900/5 flex items-center justify-center hover:bg-emerald-50 transition-all active:scale-95 group">
+                    <MenuIcon className="w-6 h-6 text-emerald-600 group-hover:scale-110 transition-transform" />
                     {recentPlots.length > 0 && (
                         <span className="absolute -top-1 -right-1 flex h-4 w-4">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -588,20 +588,20 @@ function DashboardPage() {
                     />
                 )}
 
-                <div className="h-full w-full bg-white/60 backdrop-blur-3xl border border-white/40 overflow-hidden shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] flex flex-col rounded-[2rem]">
+                <div className="h-full w-full bg-white overflow-hidden shadow-[0_8px_32px_0_rgba(16,185,129,0.15)] border border-emerald-100 flex flex-col rounded-[2rem]">
                     {/* Header */}
-                    <div className="px-5 py-4 border-b border-white/30 flex flex-col gap-3 bg-gradient-to-br from-white/40 to-white/20 backdrop-blur-sm">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h3 className="text-lg font-bold text-slate-800 drop-shadow-sm">รายการแปลง</h3>
-                                <p className="text-xs text-slate-600 mt-0.5">ทั้งหมด {accumulatedPlots.length} แปลง</p>
+                    <div className="px-6 py-5 flex flex-col gap-4 bg-white/95 backdrop-blur-md shrink-0">
+                        <div className="flex items-start justify-between">
+                            <div className="flex flex-col gap-1">
+                                <h3 className="text-[20px] font-black text-[#1e293b] leading-none tracking-tight">รายการแปลง</h3>
+                                <p className="text-[14px] text-slate-500 font-medium">ทั้งหมด {accumulatedPlots.length} แปลง</p>
                             </div>
                             <button
                                 onClick={() => setShowPlotListModal(false)}
-                                className="w-8 h-8 rounded-full bg-white/40 hover:bg-white/60 flex items-center justify-center text-slate-600 hover:text-slate-800 transition-colors shadow-sm"
+                                className="w-[2.25rem] h-[2.25rem] rounded-full border border-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition-colors shrink-0"
                             >
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
                         </div>
@@ -609,33 +609,36 @@ function DashboardPage() {
                         {/* Zoom to All Button */}
                         <button
                             onClick={() => { zoomToAllPlots(); setShowPlotListModal(false); }}
-                            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-4 py-2.5 rounded-xl font-semibold text-sm shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all duration-300 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95"
+                            className="mt-1 w-full bg-[#34d399] hover:bg-[#10b981] text-white px-5 py-3 rounded-[1.25rem] font-bold text-[15px] shadow-sm transition-all duration-300 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95"
                         >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                            <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
                             </svg>
                             ดูแปลงทั้งหมด
                         </button>
                     </div>
 
+                    {/* Divider that exists in the image faintly */}
+                    <div className="w-full h-[1px] bg-slate-100 shrink-0"></div>
+
                     {/* Check / Search */}
-                    <div className="p-4 border-b border-white/20 bg-white/20">
+                    <div className="px-6 py-4 bg-white/95 backdrop-blur-md shrink-0">
                         <div className="relative">
                             <input
                                 type="text"
                                 placeholder="ค้นหาแปลง..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full bg-white/50 border border-white/40 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:bg-white/70 transition-all placeholder-slate-500 shadow-inner"
+                                className="w-full bg-[#f0fdf4] border border-[#d1fae5] rounded-[1.25rem] px-5 py-3 text-[14px] font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#34d399] focus:bg-white transition-all placeholder-slate-400/80 shadow-sm"
                             />
-                            <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                             </svg>
                         </div>
                     </div>
 
                     {/* List */}
-                    <div className="flex-1 overflow-y-auto p-3 space-y-2.5 scrollbar-thin scrollbar-thumb-white/50 scrollbar-track-transparent">
+                    <div className="flex-1 overflow-y-auto px-4 pt-2 pb-6 space-y-3 scrollbar-thin scrollbar-thumb-emerald-100 scrollbar-track-transparent">
                         {filteredPlots.length === 0 ? (
                             <div className="text-center py-10">
                                 <p className="text-slate-500 text-sm font-medium">ไม่พบข้อมูล</p>
@@ -648,41 +651,46 @@ function DashboardPage() {
                                         zoomToPlot(plot);
                                         if (window.innerWidth < 768) setShowPlotListModal(false);
                                     }}
-                                    className={`group relative p-3 rounded-2xl border transition-all cursor-pointer backdrop-blur-md ${selectedPlotId === plot.id
-                                        ? 'bg-emerald-50/90 border-emerald-400 shadow-md shadow-emerald-500/10'
-                                        : 'bg-white/40 border-white/40 hover:bg-white/60 hover:shadow-lg hover:-translate-y-0.5'
+                                    className={`group relative p-4 rounded-[1.5rem] transition-all duration-300 cursor-pointer border ${selectedPlotId === plot.id
+                                        ? 'bg-white shadow-xl shadow-emerald-900/5 border-emerald-400 ring-1 ring-emerald-400 scale-[1.02]'
+                                        : 'bg-white shadow-sm border-slate-100 hover:border-emerald-200 hover:shadow-md hover:bg-[#f8faf9]'
                                         }`}
                                 >
-                                    <div className="flex items-start justify-between mb-2">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold transition-colors shadow-sm ${selectedPlotId === plot.id
-                                                ? 'bg-emerald-500 text-white'
-                                                : 'bg-white/70 text-slate-600 group-hover:bg-emerald-100 group-hover:text-emerald-700'
-                                                }`}>
-                                                #{idx + 1}
-                                            </div>
-                                            <div>
-                                                <h4 className={`text-sm font-bold ${selectedPlotId === plot.id ? 'text-emerald-800' : 'text-slate-800'}`}>
-                                                    แปลง #{plot.id}
-                                                </h4>
-                                                <p className="text-[10px] text-slate-500">
-                                                    {new Date(plot.date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
-                                                </p>
-                                            </div>
+                                    {/* Map Pulse Indicator (Active) */}
+                                    {selectedPlotId === plot.id && (
+                                        <div className="absolute right-4 top-4 w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
+                                    )}
+
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <div className={`w-[2.75rem] h-[2.75rem] rounded-full flex items-center justify-center text-lg font-black shrink-0 transition-colors shadow-sm ${selectedPlotId === plot.id
+                                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                                            : 'bg-white text-[#1e293b] border border-slate-100 group-hover:border-emerald-200 group-hover:text-emerald-700'
+                                            }`}>
+                                            #{idx + 1}
                                         </div>
-                                        {selectedPlotId === plot.id && (
-                                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
-                                        )}
+                                        <div>
+                                            <h4 className={`text-[17px] font-extrabold tracking-tight leading-none ${selectedPlotId === plot.id ? 'text-emerald-800' : 'text-[#1e293b]'
+                                                }`}>
+                                                แปลง #{plot.id}
+                                            </h4>
+                                            <p className="text-[11px] font-medium text-slate-400 mt-1">
+                                                {new Date(plot.date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
+                                            </p>
+                                        </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-2 mt-2">
-                                        <div className="bg-white/40 rounded-lg px-2.5 py-1.5 flex flex-col border border-white/30">
-                                            <span className="text-[9px] text-slate-500 uppercase font-bold tracking-wider">พื้นที่</span>
-                                            <span className="text-xs font-black text-slate-700">{plot.areaRai.toFixed(1)} ไร่</span>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="bg-white rounded-2xl px-3 py-2.5 flex flex-col justify-center border border-emerald-50/80 shadow-sm group-hover:border-emerald-100 transition-colors">
+                                            <span className="text-[11px] text-[#64748b] font-bold mb-0.5">พื้นที่</span>
+                                            <span className="text-[15px] font-black text-[#1e293b]">
+                                                {plot.areaRai.toFixed(1)} <span className="text-[13px] font-bold">ไร่</span>
+                                            </span>
                                         </div>
-                                        <div className="bg-emerald-50/50 rounded-lg px-2.5 py-1.5 flex flex-col border border-emerald-100/30">
-                                            <span className="text-[9px] text-emerald-700/70 uppercase font-bold tracking-wider">คาร์บอน</span>
-                                            <span className="text-xs font-black text-emerald-600">{plot.carbon.toFixed(0)} tCO₂e</span>
+                                        <div className="bg-[#f0fdf4] rounded-2xl px-3 py-2.5 flex flex-col justify-center border border-[#d1fae5] shadow-sm">
+                                            <span className="text-[11px] text-[#059669] font-bold mb-0.5">คาร์บอน</span>
+                                            <span className="text-[15px] font-black text-[#047857]">
+                                                {plot.carbon.toFixed(0)} <span className="text-[13px] font-bold">tCO₂e</span>
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -697,17 +705,17 @@ function DashboardPage() {
                 Exact Match to MapPage.jsx (http://localhost:3000/map)
             ========================================== */}
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50">
-                <nav className="flex items-center gap-4 px-6 py-3 bg-black/20 backdrop-blur-2xl rounded-full border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] hover:bg-black/30 transition-all duration-300">
+                <nav className="flex items-center gap-4 px-6 py-3 bg-white/95 backdrop-blur-2xl rounded-full border border-emerald-100 shadow-[0_8px_32px_0_rgba(16,185,129,0.15)] hover:bg-white transition-all duration-300">
 
                     {/* Home */}
                     <button
                         onClick={() => history.push('/')}
                         className="group relative flex flex-col items-center justify-center w-10 h-10 transition-all"
                     >
-                        <div className="text-white/70 group-hover:text-white group-hover:scale-110 transition-all duration-300">
+                        <div className="text-slate-400 group-hover:text-emerald-600 group-hover:scale-110 transition-all duration-300">
                             <HomeIcon />
                         </div>
-                        <span className="absolute -bottom-8 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-white font-medium bg-black/50 px-2 py-0.5 rounded-md backdrop-blur-md">หน้าหลัก</span>
+                        <span className="absolute -bottom-8 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-medium bg-white border border-emerald-100/50 shadow-md text-emerald-800 px-2 py-0.5 rounded-md backdrop-blur-md">หน้าหลัก</span>
                     </button>
 
                     {/* Map */}
@@ -715,16 +723,16 @@ function DashboardPage() {
                         onClick={() => history.push('/map')}
                         className="group relative flex flex-col items-center justify-center w-10 h-10 transition-all"
                     >
-                        <div className="text-white/70 group-hover:text-white group-hover:scale-110 transition-all duration-300">
+                        <div className="text-slate-400 group-hover:text-emerald-600 group-hover:scale-110 transition-all duration-300">
                             <MapIcon />
                         </div>
-                        <span className="absolute -bottom-8 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-white font-medium bg-black/50 px-2 py-0.5 rounded-md backdrop-blur-md">แผนที่</span>
+                        <span className="absolute -bottom-8 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-medium bg-white border border-emerald-100/50 shadow-md text-emerald-800 px-2 py-0.5 rounded-md backdrop-blur-md">แผนที่</span>
                     </button>
 
                     {/* Dashboard (Active - Blue Crystal) */}
                     <div className="relative flex flex-col items-center justify-center w-12 h-12">
-                        <div className="absolute inset-0 bg-blue-500/80 blur-xl rounded-full opacity-40 animate-pulse" />
-                        <div className="relative w-12 h-12 bg-gradient-to-tr from-blue-600 to-blue-400 rounded-full flex items-center justify-center text-white shadow-lg border border-white/20 transform scale-110">
+                        <div className="absolute inset-0 bg-emerald-500/80 blur-xl rounded-full opacity-40 animate-pulse" />
+                        <div className="relative w-12 h-12 bg-gradient-to-tr from-emerald-500 to-emerald-400 rounded-full flex items-center justify-center text-white shadow-lg border border-white/20 transform scale-110">
                             <DashboardIcon />
                         </div>
                     </div>
@@ -737,11 +745,11 @@ function DashboardPage() {
                         {userProfile?.picture ? (
                             <img src={userProfile.picture} alt="Profile" className="w-7 h-7 rounded-md object-cover group-hover:scale-110 transition-all duration-300" />
                         ) : (
-                            <div className="text-white/70 group-hover:text-white group-hover:scale-110 transition-all duration-300">
+                            <div className="text-slate-400 group-hover:text-emerald-600 group-hover:scale-110 transition-all duration-300">
                                 <UserIcon />
                             </div>
                         )}
-                        <span className="absolute -bottom-8 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-white font-medium bg-black/50 px-2 py-0.5 rounded-md backdrop-blur-md">ส่วนตัว</span>
+                        <span className="absolute -bottom-8 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-medium bg-white border border-emerald-100/50 shadow-md text-emerald-800 px-2 py-0.5 rounded-md backdrop-blur-md">ส่วนตัว</span>
                     </button>
 
                     {/* History */}
@@ -749,10 +757,10 @@ function DashboardPage() {
                         onClick={() => history.push('/dashboard/history')}
                         className="group relative flex flex-col items-center justify-center w-10 h-10 transition-all"
                     >
-                        <div className="text-white/70 group-hover:text-white group-hover:scale-110 transition-all duration-300">
+                        <div className="text-slate-400 group-hover:text-emerald-600 group-hover:scale-110 transition-all duration-300">
                             <HistoryIcon />
                         </div>
-                        <span className="absolute -bottom-8 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-white font-medium bg-black/50 px-2 py-0.5 rounded-md backdrop-blur-md">ประวัติ</span>
+                        <span className="absolute -bottom-8 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-medium bg-white border border-emerald-100/50 shadow-md text-emerald-800 px-2 py-0.5 rounded-md backdrop-blur-md">ประวัติ</span>
                     </button>
                 </nav>
             </div>

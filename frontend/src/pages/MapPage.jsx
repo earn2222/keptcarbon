@@ -547,7 +547,7 @@ function MapPage() {
                     'color': 'rgb(255, 255, 255)',
                     'high-color': '#245cdf',
                     'horizon-blend': 0.1,
-                    'space-color': '#111827', // Gray 900 (Matching Dashboard)
+                    'space-color': '#f0fdf4', // Gray 900 (Matching Dashboard)
                     'star-intensity': 0.15
                 });
             }
@@ -1420,7 +1420,7 @@ function MapPage() {
                 el.innerHTML = `
                     <div style="position: relative; display: flex; flex-direction: column; align-items: center;">
                         <div style="width: 28px; height: 28px; background: rgba(239, 68, 68, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; animation: pulse-red-ring 2s infinite;">
-                            <div style="width: 12px; height: 12px; background: #ef4444; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 10px rgba(0,0,0,0.3);"></div>
+                            <div style="width: 12px; height: 12px; background: #ef4444; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 10px rgba(16,185,129,0.15);"></div>
                         </div>
                         <div style="position: absolute; top: 32px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: #ef4444; color: white; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 900; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4); text-transform: uppercase; letter-spacing: 0.05em;">
                             แปลงที่คุณเลือก
@@ -2469,7 +2469,7 @@ function MapPage() {
     }
 
     return (
-        <div className="relative w-full h-screen bg-black overflow-hidden">
+        <div className="relative w-full h-screen bg-[#f0fdf4] overflow-hidden">
             {/* ==========================================
                 MAP CONTAINER
             ========================================== */}
@@ -2487,11 +2487,11 @@ function MapPage() {
             <div className="absolute top-4 left-4 z-30 flex flex-col gap-2 font-sans select-none">
 
                 {/* 0. LOCATION NAME (New) */}
-                <div className="group flex items-center gap-2 px-2.5 py-1.5 bg-slate-900/60 backdrop-blur-md rounded-lg border border-white/5 shadow-lg shadow-black/10 hover:bg-slate-900/80 hover:border-pink-500/30 hover:pl-3 transition-all duration-300 w-fit max-w-[200px]">
+                <div className="group flex items-center gap-2 px-2.5 py-1.5 bg-white/80 backdrop-blur-md rounded-lg border border-emerald-100 shadow-lg shadow-black/10 hover:bg-white hover:border-pink-500/30 hover:pl-3 transition-all duration-300 w-fit max-w-[200px]">
                     <div className="w-1.5 h-1.5 rounded-full bg-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.6)] group-hover:animate-pulse" />
                     <div className="flex flex-col overflow-hidden">
                         <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none">Location</span>
-                        <span className="text-[11px] font-prompt font-medium text-pink-50 leading-none mt-0.5 truncate max-w-[150px]">
+                        <span className="text-[11px] font-prompt font-medium text-emerald-900 leading-none mt-0.5 truncate max-w-[150px]">
                             {coordinates.locationName || 'ประเทศไทย'}
                         </span>
                     </div>
@@ -2499,36 +2499,36 @@ function MapPage() {
 
                 {/* 1. LATITUDE */}
                 <div
-                    className="group flex items-center gap-2 px-2.5 py-1.5 bg-slate-900/60 backdrop-blur-md rounded-lg border border-white/5 shadow-lg shadow-black/10 hover:bg-slate-900/80 hover:border-emerald-500/30 hover:pl-3 transition-all duration-300 cursor-pointer active:scale-95 w-fit"
+                    className="group flex items-center gap-2 px-2.5 py-1.5 bg-white/80 backdrop-blur-md rounded-lg border border-emerald-100 shadow-lg shadow-black/10 hover:bg-white hover:border-emerald-500/30 hover:pl-3 transition-all duration-300 cursor-pointer active:scale-95 w-fit"
                     onClick={() => { navigator.clipboard.writeText(coordinates.lat); }}
                     title="Copy Latitude"
                 >
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)] group-hover:animate-pulse" />
                     <div className="flex flex-col">
                         <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none">Lat</span>
-                        <span className="text-[11px] font-mono font-medium text-emerald-50 leading-none mt-0.5">{coordinates.lat}</span>
+                        <span className="text-[11px] font-mono font-medium text-emerald-900 leading-none mt-0.5">{coordinates.lat}</span>
                     </div>
                 </div>
 
                 {/* 2. LONGITUDE */}
                 <div
-                    className="group flex items-center gap-2 px-2.5 py-1.5 bg-slate-900/60 backdrop-blur-md rounded-lg border border-white/5 shadow-lg shadow-black/10 hover:bg-slate-900/80 hover:border-blue-500/30 hover:pl-3 transition-all duration-300 cursor-pointer active:scale-95 w-fit"
+                    className="group flex items-center gap-2 px-2.5 py-1.5 bg-white/80 backdrop-blur-md rounded-lg border border-emerald-100 shadow-lg shadow-black/10 hover:bg-white hover:border-blue-500/30 hover:pl-3 transition-all duration-300 cursor-pointer active:scale-95 w-fit"
                     onClick={() => { navigator.clipboard.writeText(coordinates.lng); }}
                     title="Copy Longitude"
                 >
                     <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)] group-hover:animate-spin" />
                     <div className="flex flex-col">
                         <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none">Lng</span>
-                        <span className="text-[11px] font-mono font-medium text-blue-50 leading-none mt-0.5">{coordinates.lng}</span>
+                        <span className="text-[11px] font-mono font-medium text-emerald-900 leading-none mt-0.5">{coordinates.lng}</span>
                     </div>
                 </div>
 
                 {/* 3. ZOOM */}
-                <div className="group flex items-center gap-2 px-2.5 py-1.5 bg-slate-900/60 backdrop-blur-md rounded-lg border border-white/5 shadow-lg shadow-black/10 hover:bg-slate-900/80 hover:border-amber-500/30 hover:pl-3 transition-all duration-300 cursor-default w-fit">
+                <div className="group flex items-center gap-2 px-2.5 py-1.5 bg-white/80 backdrop-blur-md rounded-lg border border-emerald-100 shadow-lg shadow-black/10 hover:bg-white hover:border-amber-500/30 hover:pl-3 transition-all duration-300 cursor-default w-fit">
                     <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)] group-hover:scale-150 transition-transform" />
                     <div className="flex flex-col">
                         <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none">Zoom</span>
-                        <span className="text-[11px] font-mono font-black text-amber-50 leading-none mt-0.5">{coordinates.zoom}</span>
+                        <span className="text-[11px] font-mono font-black text-emerald-900 leading-none mt-0.5">{coordinates.zoom}</span>
                     </div>
                 </div>
 
@@ -2541,10 +2541,10 @@ function MapPage() {
                 {/* Search Button */}
                 <button
                     onClick={() => setShowSearchPanel(!showSearchPanel)}
-                    className={`w-12 h-12 rounded-2xl flex items-center justify-center backdrop-blur-xl border transition-all duration-300 active:scale-90 shadow-[0_8px_32px_rgba(0,0,0,0.3)]
+                    className={`w-12 h-12 rounded-2xl flex items-center justify-center backdrop-blur-xl border transition-all duration-300 active:scale-90 shadow-[0_8px_32px_rgba(16,185,129,0.15)]
                         ${showSearchPanel
                             ? 'bg-emerald-500/80 text-white border-emerald-400/50 shadow-emerald-500/20'
-                            : 'bg-black/20 text-white/70 border-white/10 hover:bg-black/40 hover:text-white hover:border-white/20'
+                            : 'bg-white/80 text-emerald-600 border-emerald-100 hover:bg-emerald-500/80 hover:text-white hover:border-emerald-400/50'
                         }`}
                 >
                     <SearchIcon />
@@ -2553,10 +2553,10 @@ function MapPage() {
                 {/* Layers Button */}
                 <button
                     onClick={() => setShowLayerPanel(!showLayerPanel)}
-                    className={`w-12 h-12 rounded-2xl flex items-center justify-center backdrop-blur-xl border transition-all duration-300 active:scale-90 shadow-[0_8px_32px_rgba(0,0,0,0.3)]
+                    className={`w-12 h-12 rounded-2xl flex items-center justify-center backdrop-blur-xl border transition-all duration-300 active:scale-90 shadow-[0_8px_32px_rgba(16,185,129,0.15)]
                         ${showLayerPanel
                             ? 'bg-emerald-500/80 text-white border-emerald-400/50 shadow-emerald-500/20'
-                            : 'bg-black/20 text-white/70 border-white/10 hover:bg-black/40 hover:text-white hover:border-white/20'
+                            : 'bg-white/80 text-emerald-600 border-emerald-100 hover:bg-emerald-500/80 hover:text-white hover:border-emerald-400/50'
                         }`}
                 >
                     <LayersIcon />
@@ -2565,7 +2565,7 @@ function MapPage() {
                 {/* My Location Button */}
                 <button
                     onClick={locateUser}
-                    className="w-12 h-12 rounded-2xl bg-black/20 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/70 hover:text-emerald-400 hover:bg-black/40 hover:border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)] transition-all duration-300 active:scale-90"
+                    className="w-12 h-12 rounded-2xl bg-white/80 backdrop-blur-xl border border-emerald-100 flex items-center justify-center text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 hover:border-emerald-200 shadow-[0_8px_32px_rgba(16,185,129,0.15)] transition-all duration-300 active:scale-90"
                     title="ตำแหน่งของฉัน"
                 >
                     <TargetIcon />
@@ -2791,19 +2791,19 @@ function MapPage() {
             <div className="absolute right-6 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-2">
                 <button
                     onClick={zoomIn}
-                    className="w-12 h-12 rounded-2xl bg-black/20 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-black/40 hover:border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)] transition-all duration-300 active:scale-90"
+                    className="w-12 h-12 rounded-2xl bg-white/80 backdrop-blur-xl border border-emerald-100 flex items-center justify-center text-emerald-600 hover:text-white hover:bg-emerald-500/80 hover:border-emerald-400/50 shadow-[0_8px_32px_rgba(16,185,129,0.15)] transition-all duration-300 active:scale-90"
                 >
                     <ZoomInIcon />
                 </button>
                 <button
                     onClick={zoomOut}
-                    className="w-12 h-12 rounded-2xl bg-black/20 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-black/40 hover:border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)] transition-all duration-300 active:scale-90"
+                    className="w-12 h-12 rounded-2xl bg-white/80 backdrop-blur-xl border border-emerald-100 flex items-center justify-center text-emerald-600 hover:text-white hover:bg-emerald-500/80 hover:border-emerald-400/50 shadow-[0_8px_32px_rgba(16,185,129,0.15)] transition-all duration-300 active:scale-90"
                 >
                     <ZoomOutIcon />
                 </button>
                 <button
                     onClick={resetNorth}
-                    className="w-12 h-12 rounded-2xl bg-black/20 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-black/40 hover:border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)] transition-all duration-300 active:scale-90"
+                    className="w-12 h-12 rounded-2xl bg-white/80 backdrop-blur-xl border border-emerald-100 flex items-center justify-center text-emerald-600 hover:text-white hover:bg-emerald-500/80 hover:border-emerald-400/50 shadow-[0_8px_32px_rgba(16,185,129,0.15)] transition-all duration-300 active:scale-90"
                 >
                     <CompassIcon />
                 </button>
@@ -2841,8 +2841,8 @@ function MapPage() {
                         }}
                         className="group flex items-center justify-end gap-4"
                     >
-                        <div className="bg-black/30 backdrop-blur-xl border border-white/10 px-5 py-2.5 rounded-2xl shadow-2xl transform transition-all duration-300 group-hover:-translate-x-2">
-                            <span className="text-white/90 text-xs font-bold tracking-widest uppercase">วาดเองดิจิไตส์ยางพารา</span>
+                        <div className="bg-white backdrop-blur-xl border border-emerald-100 shadow-md px-5 py-2.5 rounded-2xl shadow-2xl transform transition-all duration-300 group-hover:-translate-x-2">
+                            <span className="text-emerald-900 text-xs font-bold tracking-widest uppercase">วาดเองดิจิไตส์ยางพารา</span>
                         </div>
                         <div className="relative">
                             <div className="w-14 h-14 rounded-2xl bg-white text-emerald-600 flex items-center justify-center shadow-2xl transition-all duration-300 group-hover:scale-110 active:scale-90 group-hover:rotate-12">
@@ -2859,8 +2859,8 @@ function MapPage() {
                         }}
                         className="group flex items-center justify-end gap-4"
                     >
-                        <div className="bg-black/30 backdrop-blur-xl border border-white/10 px-5 py-2.5 rounded-2xl shadow-2xl transform transition-all duration-300 group-hover:-translate-x-2">
-                            <span className="text-white/90 text-xs font-bold tracking-widest uppercase">นำเข้าเเปลง SHP</span>
+                        <div className="bg-white backdrop-blur-xl border border-emerald-100 shadow-md px-5 py-2.5 rounded-2xl shadow-2xl transform transition-all duration-300 group-hover:-translate-x-2">
+                            <span className="text-emerald-900 text-xs font-bold tracking-widest uppercase">นำเข้าเเปลง SHP</span>
                         </div>
                         <div className="relative">
                             <div className="w-14 h-14 rounded-2xl bg-white text-blue-600 flex items-center justify-center shadow-2xl transition-all duration-300 group-hover:scale-110 active:scale-90 group-hover:-rotate-12">
@@ -2879,9 +2879,9 @@ function MapPage() {
 
                     <button
                         onClick={() => setShowFABMenu(!showFABMenu)}
-                        className={`relative w-20 h-20 rounded-[2.5rem] flex items-center justify-center shadow-[0_20px_60px_rgba(0,0,0,0.5)] border border-white/30 transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-90
+                        className={`relative w-20 h-20 rounded-[2.5rem] flex items-center justify-center shadow-[0_20px_60px_rgba(0,0,0,0.5)] border border-emerald-100 transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-90
                             ${showFABMenu
-                                ? 'bg-slate-900/90 text-white rotate-[225deg] rounded-full'
+                                ? 'bg-white text-emerald-600 border border-emerald-200 rotate-[225deg] rounded-full shadow-xl'
                                 : 'bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-500 text-white rotate-0'}
                         `}
                     >
@@ -2897,23 +2897,23 @@ function MapPage() {
                 CRYSTAL NAVBAR (Bottom) - MAP ACTIVE
             ========================================== */}
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50">
-                <nav className="flex items-center gap-4 px-6 py-3 bg-black/20 backdrop-blur-2xl rounded-full border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] hover:bg-black/30 transition-all duration-300">
+                <nav className="flex items-center gap-4 px-6 py-3 bg-white/80 backdrop-blur-2xl rounded-full border border-emerald-100 shadow-[0_8px_32px_0_rgba(16,185,129,0.15)] hover:bg-white transition-all duration-300">
 
                     {/* Home */}
                     <button
                         onClick={() => handleNavClick('/')}
                         className="group relative flex flex-col items-center justify-center w-10 h-10 transition-all"
                     >
-                        <div className="text-white/70 group-hover:text-white group-hover:scale-110 transition-all duration-300">
+                        <div className="text-slate-400 group-hover:text-emerald-600 group-hover:scale-110 transition-all duration-300">
                             <HomeIcon />
                         </div>
-                        <span className="absolute -bottom-8 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-white font-medium bg-black/50 px-2 py-0.5 rounded-md backdrop-blur-md">หน้าหลัก</span>
+                        <span className="absolute -bottom-8 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-medium bg-white border border-emerald-100 shadow-md text-emerald-800 px-2 py-0.5 rounded-md backdrop-blur-md">หน้าหลัก</span>
                     </button>
 
                     {/* Map (Active) */}
                     <div className="relative flex flex-col items-center justify-center w-12 h-12">
-                        <div className="absolute inset-0 bg-blue-500/80 blur-xl rounded-full opacity-40 animate-pulse" />
-                        <div className="relative w-12 h-12 bg-gradient-to-tr from-blue-600 to-blue-400 rounded-full flex items-center justify-center text-white shadow-lg border border-white/20 transform scale-110">
+                        <div className="absolute inset-0 bg-emerald-500/80 blur-xl rounded-full opacity-40 animate-pulse" />
+                        <div className="relative w-12 h-12 bg-gradient-to-tr from-emerald-500 to-emerald-400 rounded-full flex items-center justify-center text-white shadow-lg border border-white/20 transform scale-110">
                             <MapIcon />
                         </div>
                     </div>
@@ -2923,10 +2923,10 @@ function MapPage() {
                         onClick={() => handleNavClick('/dashboard')}
                         className="group relative flex flex-col items-center justify-center w-10 h-10 transition-all"
                     >
-                        <div className="text-white/70 group-hover:text-white group-hover:scale-110 transition-all duration-300">
+                        <div className="text-slate-400 group-hover:text-emerald-600 group-hover:scale-110 transition-all duration-300">
                             <DashboardIcon />
                         </div>
-                        <span className="absolute -bottom-8 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-white font-medium bg-black/50 px-2 py-0.5 rounded-md backdrop-blur-md">แดชบอร์ด</span>
+                        <span className="absolute -bottom-8 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-medium bg-white border border-emerald-100 shadow-md text-emerald-800 px-2 py-0.5 rounded-md backdrop-blur-md">แดชบอร์ด</span>
                     </button>
 
                     {/* Personal */}
@@ -2937,11 +2937,11 @@ function MapPage() {
                         {userProfile?.picture ? (
                             <img src={userProfile.picture} alt="Profile" className="w-7 h-7 rounded-md object-cover group-hover:scale-110 transition-all duration-300" />
                         ) : (
-                            <div className="text-white/70 group-hover:text-white group-hover:scale-110 transition-all duration-300">
+                            <div className="text-slate-400 group-hover:text-emerald-600 group-hover:scale-110 transition-all duration-300">
                                 <UserIcon />
                             </div>
                         )}
-                        <span className="absolute -bottom-8 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-white font-medium bg-black/50 px-2 py-0.5 rounded-md backdrop-blur-md">ส่วนตัว</span>
+                        <span className="absolute -bottom-8 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-medium bg-white border border-emerald-100 shadow-md text-emerald-800 px-2 py-0.5 rounded-md backdrop-blur-md">ส่วนตัว</span>
                     </button>
 
                     {/* History */}
@@ -2949,10 +2949,10 @@ function MapPage() {
                         onClick={() => handleNavClick('/dashboard/history')}
                         className="group relative flex flex-col items-center justify-center w-10 h-10 transition-all"
                     >
-                        <div className="text-white/70 group-hover:text-white group-hover:scale-110 transition-all duration-300">
+                        <div className="text-slate-400 group-hover:text-emerald-600 group-hover:scale-110 transition-all duration-300">
                             <HistoryIcon />
                         </div>
-                        <span className="absolute -bottom-8 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-white font-medium bg-black/50 px-2 py-0.5 rounded-md backdrop-blur-md">ประวัติ</span>
+                        <span className="absolute -bottom-8 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-medium bg-white border border-emerald-100 shadow-md text-emerald-800 px-2 py-0.5 rounded-md backdrop-blur-md">ประวัติ</span>
                     </button>
                 </nav>
             </div>
@@ -2978,7 +2978,7 @@ function MapPage() {
 
                         {/* Mode indicator (only when editing) */}
                         {editingGeomPlot && (
-                            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 backdrop-blur-xl rounded-full shadow-lg border border-white/10 mb-1 bg-blue-500/80">
+                            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 backdrop-blur-xl rounded-full shadow-lg border border-white/10 mb-1 bg-emerald-500/80">
                                 <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                                 <span className="text-white text-[10px] font-bold tracking-widest uppercase whitespace-nowrap">แก้ไขรูปร่าง</span>
                             </div>
@@ -2994,10 +2994,10 @@ function MapPage() {
                                 width: 'clamp(36px, 5vw, 44px)',
                                 height: 'clamp(36px, 5vw, 44px)',
                                 borderRadius: 13,
-                                background: activeTool === 'draw' ? 'rgba(16,185,129,0.9)' : 'rgba(0,0,0,0.4)',
-                                border: activeTool === 'draw' ? '1px solid rgba(52,211,153,0.6)' : '1px solid rgba(255,255,255,0.15)',
-                                color: activeTool === 'draw' ? '#fff' : 'rgba(255,255,255,0.85)',
-                                boxShadow: activeTool === 'draw' ? '0 4px 20px rgba(16,185,129,0.4)' : '0 4px 16px rgba(0,0,0,0.3)'
+                                background: activeTool === 'draw' ? 'rgba(16,185,129,0.9)' : 'rgba(255,255,255,0.95)',
+                                border: activeTool === 'draw' ? '1px solid rgba(52,211,153,0.6)' : '1px solid rgba(16,185,129,0.2)',
+                                color: activeTool === 'draw' ? '#fff' : 'rgba(15,23,42,0.85)',
+                                boxShadow: activeTool === 'draw' ? '0 4px 20px rgba(16,185,129,0.4)' : '0 4px 16px rgba(16,185,129,0.15)'
                             }}
                         >
                             <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -3013,10 +3013,10 @@ function MapPage() {
                             className="flex items-center justify-center backdrop-blur-xl border shadow-lg transition-all duration-200 active:scale-90"
                             style={{
                                 width: 'clamp(36px,5vw,44px)', height: 'clamp(36px,5vw,44px)', borderRadius: 13,
-                                background: activeTool === 'edit' ? 'rgba(59,130,246,0.9)' : 'rgba(0,0,0,0.4)',
-                                border: activeTool === 'edit' ? '1px solid rgba(96,165,250,0.6)' : '1px solid rgba(255,255,255,0.15)',
-                                color: activeTool === 'edit' ? '#fff' : 'rgba(255,255,255,0.85)',
-                                boxShadow: activeTool === 'edit' ? '0 4px 20px rgba(59,130,246,0.4)' : '0 4px 16px rgba(0,0,0,0.3)'
+                                background: activeTool === 'edit' ? 'rgba(59,130,246,0.9)' : 'rgba(255,255,255,0.95)',
+                                border: activeTool === 'edit' ? '1px solid rgba(96,165,250,0.6)' : '1px solid rgba(16,185,129,0.2)',
+                                color: activeTool === 'edit' ? '#fff' : 'rgba(15,23,42,0.85)',
+                                boxShadow: activeTool === 'edit' ? '0 4px 20px rgba(59,130,246,0.4)' : '0 4px 16px rgba(16,185,129,0.15)'
                             }}
                         >
                             <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -3032,13 +3032,13 @@ function MapPage() {
                             className="flex items-center justify-center backdrop-blur-xl border shadow-lg transition-all duration-200 active:scale-90"
                             style={{
                                 width: 'clamp(36px,5vw,44px)', height: 'clamp(36px,5vw,44px)', borderRadius: 13,
-                                background: workflowModal.isOpen ? 'rgba(245,158,11,0.9)' : 'rgba(0,0,0,0.4)',
-                                border: workflowModal.isOpen ? '1px solid rgba(251,191,36,0.6)' : '1px solid rgba(255,255,255,0.15)',
+                                background: workflowModal.isOpen ? 'rgba(245,158,11,0.9)' : 'rgba(255,255,255,0.95)',
+                                border: workflowModal.isOpen ? '1px solid rgba(251,191,36,0.6)' : '1px solid rgba(16,185,129,0.2)',
                                 color: workflowModal.isOpen ? '#fff' : 'rgba(251,191,36,0.9)',
-                                boxShadow: workflowModal.isOpen ? '0 4px 20px rgba(245,158,11,0.4)' : '0 4px 16px rgba(0,0,0,0.3)'
+                                boxShadow: workflowModal.isOpen ? '0 4px 20px rgba(245,158,11,0.4)' : '0 4px 16px rgba(16,185,129,0.15)'
                             }}
                             onMouseEnter={e => { if (!workflowModal.isOpen) { e.currentTarget.style.background = 'rgba(245,158,11,0.85)'; e.currentTarget.style.color = '#fff'; } }}
-                            onMouseLeave={e => { if (!workflowModal.isOpen) { e.currentTarget.style.background = 'rgba(0,0,0,0.4)'; e.currentTarget.style.color = 'rgba(251,191,36,0.9)'; } }}
+                            onMouseLeave={e => { if (!workflowModal.isOpen) { e.currentTarget.style.background = 'rgba(255,255,255,0.95)'; e.currentTarget.style.color = 'rgba(251,191,36,0.9)'; } }}
                         >
                             <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -3053,13 +3053,13 @@ function MapPage() {
                             className="flex items-center justify-center backdrop-blur-xl border shadow-lg transition-all duration-200 active:scale-90"
                             style={{
                                 width: 'clamp(36px,5vw,44px)', height: 'clamp(36px,5vw,44px)', borderRadius: 13,
-                                background: 'rgba(0,0,0,0.4)',
-                                border: '1px solid rgba(255,255,255,0.15)',
+                                background: 'rgba(255,255,255,0.95)',
+                                border: '1px solid rgba(16,185,129,0.2)',
                                 color: 'rgba(248,113,113,0.95)',
-                                boxShadow: '0 4px 16px rgba(0,0,0,0.3)'
+                                boxShadow: '0 4px 16px rgba(16,185,129,0.15)'
                             }}
                             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.85)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.border = '1px solid rgba(239,68,68,0.5)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.4)'; e.currentTarget.style.color = 'rgba(248,113,113,0.95)'; e.currentTarget.style.border = '1px solid rgba(255,255,255,0.15)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.95)'; e.currentTarget.style.color = 'rgba(248,113,113,0.95)'; e.currentTarget.style.border = '1px solid rgba(16,185,129,0.2)'; }}
                         >
                             <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <polyline points="3 6 5 6 21 6" />
@@ -3067,7 +3067,7 @@ function MapPage() {
                             </svg>
                         </button>
 
-                        <div style={{ height: 1, background: 'rgba(255,255,255,0.1)', margin: '2px 4px' }} />
+                        <div style={{ height: 1, background: 'rgba(16,185,129,0.1)', margin: '2px 4px' }} />
 
                         {/* Confirm / Save */}
                         <button
@@ -3096,12 +3096,12 @@ function MapPage() {
                             className="flex items-center justify-center backdrop-blur-xl border shadow-lg transition-all duration-200 active:scale-90"
                             style={{
                                 width: 'clamp(36px,5vw,44px)', height: 'clamp(36px,5vw,44px)', borderRadius: 13,
-                                background: 'rgba(0,0,0,0.4)',
-                                border: '1px solid rgba(255,255,255,0.15)',
-                                color: 'rgba(255,255,255,0.75)'
+                                background: 'rgba(255,255,255,0.95)',
+                                border: '1px solid rgba(16,185,129,0.2)',
+                                color: 'rgba(15,23,42,0.75)'
                             }}
                             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(51,65,85,0.85)'; e.currentTarget.style.color = '#fff'; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.4)'; e.currentTarget.style.color = 'rgba(255,255,255,0.75)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.95)'; e.currentTarget.style.color = 'rgba(15,23,42,0.75)'; }}
                         >
                             <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -3165,7 +3165,7 @@ function MapPage() {
                                 </div>
                                 <div>
                                     <div style={{ color: 'white', fontWeight: 800, fontSize: 15, lineHeight: 1.3 }}>ยืนยันการลบแปลง</div>
-                                    <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11, marginTop: 2 }}>การกระทำนี้ไม่สามารถย้อนกลับได้</div>
+                                    <div style={{ color: 'rgba(15,23,42,0.75)', fontSize: 11, marginTop: 2 }}>การกระทำนี้ไม่สามารถย้อนกลับได้</div>
                                 </div>
                             </div>
                         </div>
@@ -3334,7 +3334,7 @@ function MapPage() {
                     background: linear-gradient(135deg, #10b981, #059669);
                     border: 3px solid white;
                     border-radius: 50%;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                    box-shadow: 0 2px 8px rgba(16,185,129,0.15);
                 }
 
                 @keyframes pulse-ring {
