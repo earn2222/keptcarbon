@@ -374,9 +374,67 @@ function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget
 
     return (
         <div key={p.id}
-            className={`plot-card rounded-xl p-3 cursor-pointer transition-all duration-200 ${selectedPlot === p.id ? 'active-card' : ''}`}
+            className={`plot-card rounded-xl overflow-hidden cursor-pointer transition-all duration-200 ${selectedPlot === p.id ? 'active-card' : ''}`}
             style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
             onClick={() => zoomTo(p)}>
+
+            {/* ── MULTI-METHOD NAVIGATOR BANNER (full-width top strip) ── */}
+            {multiMethods && (
+                <div onClick={e => e.stopPropagation()}
+                    style={{ background: 'linear-gradient(90deg,rgba(29,78,216,0.22) 0%,rgba(59,130,246,0.12) 100%)', borderBottom: '1px solid rgba(59,130,246,0.28)' }}>
+                    {/* Counter row */}
+                    <div className="flex items-center justify-between px-3 pt-2 pb-1">
+                        <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: 'rgba(147,197,253,0.65)' }}>วิธีคำนวณคาร์บอน</span>
+                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
+                            style={{ background: 'rgba(59,130,246,0.25)', color: '#93c5fd', border: '1px solid rgba(59,130,246,0.45)' }}>
+                            {methodIdx + 1}&nbsp;/&nbsp;{totalMethods}&nbsp;วิธี
+                        </span>
+                    </div>
+                    {/* Navigator row: ← name → */}
+                    <div className="flex items-center gap-2 px-2 pb-2">
+                        <button onClick={prevMethod}
+                            className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95"
+                            style={{ background: 'rgba(59,130,246,0.2)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.35)' }}
+                            title="วิธีก่อนหน้า">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                            </svg>
+                        </button>
+                        <div className="flex-1 flex flex-col items-center gap-1.5">
+                            <span className="text-xs font-black px-3 py-1 rounded-lg text-center"
+                                style={{ background: 'rgba(59,130,246,0.22)', color: '#bfdbfe', border: '1px solid rgba(59,130,246,0.4)', letterSpacing: '0.02em', minWidth: 90 }}>
+                                {displayName}
+                            </span>
+                            {/* Dot stepper */}
+                            <div className="flex items-center gap-1.5">
+                                {multiMethods.map((m, i) => (
+                                    <button key={i} onClick={e => { e.stopPropagation(); setMethodIdx(i) }}
+                                        className="transition-all duration-300"
+                                        style={{
+                                            width: i === methodIdx ? 18 : 6,
+                                            height: 6,
+                                            borderRadius: 3,
+                                            background: i === methodIdx ? '#3b82f6' : 'rgba(255,255,255,0.18)',
+                                            boxShadow: i === methodIdx ? '0 0 7px rgba(59,130,246,0.7)' : 'none',
+                                        }}
+                                        title={m.name} />
+                                ))}
+                            </div>
+                        </div>
+                        <button onClick={nextMethod}
+                            className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95"
+                            style={{ background: 'rgba(59,130,246,0.2)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.35)' }}
+                            title="วิธีถัดไป">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* ── CARD BODY ── */}
+            <div className="p-3">
             {/* Row 1: Name + Carbon */}
             <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
@@ -384,30 +442,13 @@ function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget
                     <p className="text-slate-500 text-[10px] mt-1 pc-subtitle">SKT-PLOT-{p.id}</p>
                 </div>
                 <div className="text-right flex-shrink-0 pl-2">
-                    {multiMethods ? (
-                        <div className="flex items-center gap-1">
-                            <button onClick={prevMethod} className="method-nav-btn w-5 h-5 rounded-full flex items-center justify-center text-emerald-400/60 hover:text-emerald-400 hover:bg-emerald-400/10 transition-all" title="วิธีก่อนหน้า">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
-                            </button>
-                            <div className="text-center min-w-[52px]">
-                                <span className="text-emerald-400 font-black text-base pc-value method-value-transition">{displayCarbon.toFixed(2)}</span>
-                                <span className="text-slate-500 text-[10px] block pc-subtitle">TCO₂E</span>
-                            </div>
-                            <button onClick={nextMethod} className="method-nav-btn w-5 h-5 rounded-full flex items-center justify-center text-emerald-400/60 hover:text-emerald-400 hover:bg-emerald-400/10 transition-all" title="วิธีถัดไป">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
-                            </button>
-                        </div>
-                    ) : (
-                        <>
-                            <span className="text-emerald-400 font-black text-base pc-value">{displayCarbon.toFixed(2)}</span>
-                            <span className="text-slate-500 text-[10px] block pc-subtitle">TCO₂E</span>
-                        </>
-                    )}
+                    <span className="text-emerald-400 font-black text-base pc-value method-value-transition">{displayCarbon.toFixed(2)}</span>
+                    <span className="text-slate-500 text-[10px] block pc-subtitle">TCO₂E</span>
                 </div>
             </div>
 
-            {/* Row 2: Badges (Area + Method) - Stacked and centered */}
-            <div className="flex flex-col items-center gap-2 mt-3">
+            {/* Row 2: Area badge */}
+            <div className="flex flex-wrap items-center gap-2 mt-3">
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg pc-badge"
                     style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.2)' }}>
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></div>
@@ -415,34 +456,15 @@ function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget
                         {formatArea(p.area)}
                     </span>
                 </div>
-                {multiMethods && (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg method-badge-active"
-                        style={{ background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.2)' }}>
-                        <span className="text-[10px] font-bold text-blue-400 whitespace-nowrap">
+                {!multiMethods && (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg"
+                        style={{ background: 'rgba(100,116,139,0.1)', border: '1px solid rgba(100,116,139,0.15)' }}>
+                        <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">
                             {displayName}
                         </span>
                     </div>
                 )}
             </div>
-
-            {/* Method dots indicator */}
-            {multiMethods && (
-                <div onClick={e => e.stopPropagation()} className="flex items-center justify-center gap-1.5 mt-2">
-                    {multiMethods.map((_, i) => (
-                        <button key={i} onClick={(e) => { e.stopPropagation(); setMethodIdx(i) }}
-                            className="transition-all duration-300"
-                            style={{
-                                width: i === methodIdx ? 16 : 6,
-                                height: 6,
-                                borderRadius: 3,
-                                background: i === methodIdx ? '#10b981' : 'rgba(255,255,255,0.15)',
-                                boxShadow: i === methodIdx ? '0 0 8px rgba(16,185,129,0.5)' : 'none',
-                            }}
-                            title={multiMethods[i].name} />
-                    ))}
-                    <span className="text-[9px] text-slate-500 ml-1.5">{methodIdx + 1}/{totalMethods} วิธี</span>
-                </div>
-            )}
 
             {/* EXPANDED DETAILS */}
             {expanded && (
@@ -568,6 +590,7 @@ function PlotCardItem({ p, selectedPlot, zoomTo, handleEditPlot, setDeleteTarget
                     </button>
                 </div>
             </div>
+            </div>{/* end card body */}
         </div>
     )
 }
